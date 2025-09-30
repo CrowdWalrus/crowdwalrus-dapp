@@ -93,7 +93,6 @@ CrowdWalrus uses a hybrid storage approach leveraging both Sui blockchain and Wa
 | `full_description` | Walrus | HTML | Complete campaign story with rich formatting |
 | `cover_image` | Walrus | Image | Main campaign image (JPG/PNG) |
 | `gallery_images` | Walrus | Images | Additional campaign images |
-| `creator_bio` | Walrus | HTML | About the campaign creator |
 
 #### **Additional Metadata (VecMap on Sui)**
 
@@ -106,7 +105,6 @@ metadata: {
   "walrus_storage_epochs": "100",
   "category": "Technology",
   "cover_image_quilt_id": "image_identifier", // Identifier within Quilt
-  "contact_email": "creator@example.com",
   "social_twitter": "https://twitter.com/...",
   "social_discord": "https://discord.gg/...",
   // ... any other custom fields
@@ -337,10 +335,8 @@ Example: `save-the-whales.crowdwalrus.sui` → Campaign Object ID
 - Full description (HTML editor - can use Quill.js or similar)
 - Cover image upload
 - Gallery images upload (optional)
-- Creator bio
 
-**Contact & Social:**
-- Contact email
+**Social Links:**
 - Social media links (Twitter, Discord, etc.)
 
 #### **3. Preview Campaign**
@@ -766,8 +762,6 @@ const imageUrl = URL.createObjectURL(imageBlob);
 **Optional but Recommended:**
 - [x] Gallery images
 - [x] Category
-- [x] Creator bio
-- [x] Contact email
 - [x] Social media links
 
 ### Technical Integration Points
