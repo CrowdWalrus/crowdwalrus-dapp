@@ -1,6 +1,8 @@
 import { ConnectButton } from "@mysten/dapp-kit";
 import { Box, Container, Flex, Heading } from "@radix-ui/themes";
-import { WalletStatus } from "./WalletStatus";
+import { Routes, Route, Link } from "react-router-dom";
+import { HomePage } from "./pages/HomePage";
+import { TestPage } from "./pages/TestPage";
 
 function App() {
   return (
@@ -18,19 +20,17 @@ function App() {
           <Heading>dApp Starter Template</Heading>
         </Box>
 
-        <Box>
+        <Flex gap="4" align="center">
+          <Link to="/">Home</Link>
+          <Link to="/test">Test</Link>
           <ConnectButton />
-        </Box>
+        </Flex>
       </Flex>
       <Container>
-        <Container
-          mt="5"
-          pt="2"
-          px="4"
-          style={{ background: "var(--gray-a2)", minHeight: 500 }}
-        >
-          <WalletStatus />
-        </Container>
+        <Routes>
+          <Route path="/" element={<HomePage />} />
+          <Route path="/test" element={<TestPage />} />
+        </Routes>
       </Container>
     </>
   );
