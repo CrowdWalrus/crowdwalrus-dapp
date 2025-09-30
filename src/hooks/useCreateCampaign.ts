@@ -3,14 +3,17 @@
  *
  * This hook orchestrates the complete campaign creation flow:
  * 1. Validate form data
- * 2. Prepare and upload files to Walrus
- * 3. Build Sui transaction
- * 4. Execute transaction
- * 5. Return campaign details
+ * 2. Prepare files for Walrus upload
+ * 3. Upload to Walrus using multi-step flow (encode, register, upload, certify)
+ *    - Register and certify steps require wallet signatures
+ *    - This approach avoids browser popup blocking
+ * 4. Build Sui transaction for campaign creation
+ * 5. Execute campaign creation transaction
+ * 6. Return campaign details
  *
  * Usage:
  * const { mutate: createCampaign, isPending, error, data } = useCreateCampaign();
- * createCampaign(formData, {
+ * createCampaign({ formData }, {
  *   onSuccess: (result) => console.log('Campaign created:', result),
  *   onError: (error) => console.error('Failed:', error),
  * });
@@ -20,11 +23,14 @@ import { useMutation } from '@tanstack/react-query';
 import { useSuiClient } from '@mysten/dapp-kit';
 import { useSignAndExecuteTransaction } from '@mysten/dapp-kit';
 import { useCurrentAccount } from '@mysten/dapp-kit';
-import type { Keypair } from '@mysten/sui/cryptography';
 import {
   createWalrusClient,
   prepareCampaignFiles,
-  uploadCampaignFiles,
+  createWalrusUploadFlow,
+  buildRegisterTransaction,
+  uploadToWalrusNodes,
+  buildCertifyTransaction,
+  getUploadedFilesInfo,
   getWalrusUrl,
 } from '@/services/walrus';
 import {
@@ -49,7 +55,6 @@ import { useState } from 'react';
 interface CreateCampaignOptions {
   network?: 'devnet' | 'testnet' | 'mainnet';
   onProgress?: (progress: CampaignCreationProgress) => void;
-  signer: Keypair; // Required for Walrus upload
 }
 
 /**
@@ -119,29 +124,92 @@ export function useCreateCampaign() {
         );
         const files = await prepareCampaignFiles(formData);
 
-        // Step 3: Upload to Walrus
+        // Step 3: Upload to Walrus (multi-step process)
+        const walrusClient = createWalrusClient(suiClient, network);
+
+        // Step 3a: Encode files
         reportProgress(
           CampaignCreationStep.UPLOADING_TO_WALRUS,
-          'Uploading to Walrus decentralized storage...',
+          'Encoding files for Walrus upload...',
           40
         );
 
-        const walrusClient = createWalrusClient(suiClient, network);
+        const flow = await createWalrusUploadFlow(walrusClient, files);
 
-        // Note: Walrus requires a Keypair signer for uploads
-        // The wallet must provide a Keypair for signing Walrus transactions
-        if (!options?.signer) {
+        // Step 3b: Register blob (requires wallet signature)
+        reportProgress(
+          CampaignCreationStep.UPLOADING_TO_WALRUS,
+          'Registering blob on blockchain (wallet signature required)...',
+          50
+        );
+
+        const registerTx = buildRegisterTransaction(
+          flow,
+          storageEpochs,
+          currentAccount.address
+        );
+
+        const registerResult = await signAndExecuteTransaction(
+          {
+            transaction: registerTx,
+            chain: `sui:${network}`,
+          },
+          {
+            onSuccess: (txResult) => {
+              console.log('Register transaction successful:', txResult);
+            },
+          }
+        );
+
+        if (!registerResult) {
           throw new CampaignCreationError(
-            'Signer not provided for Walrus upload. Please provide a wallet keypair.',
+            'Failed to register blob: No result returned',
             CampaignCreationStep.UPLOADING_TO_WALRUS
           );
         }
 
-        const uploadResult = await uploadCampaignFiles(
-          walrusClient,
+        // Step 3c: Upload data to storage nodes
+        reportProgress(
+          CampaignCreationStep.UPLOADING_TO_WALRUS,
+          'Uploading data to Walrus storage nodes...',
+          60
+        );
+
+        await uploadToWalrusNodes(flow, registerResult.digest);
+
+        // Step 3d: Certify blob (requires wallet signature)
+        reportProgress(
+          CampaignCreationStep.UPLOADING_TO_WALRUS,
+          'Certifying blob (wallet signature required)...',
+          65
+        );
+
+        const certifyTx = buildCertifyTransaction(flow);
+
+        const certifyResult = await signAndExecuteTransaction(
+          {
+            transaction: certifyTx,
+            chain: `sui:${network}`,
+          },
+          {
+            onSuccess: (txResult) => {
+              console.log('Certify transaction successful:', txResult);
+            },
+          }
+        );
+
+        if (!certifyResult) {
+          throw new CampaignCreationError(
+            'Failed to certify blob: No result returned',
+            CampaignCreationStep.UPLOADING_TO_WALRUS
+          );
+        }
+
+        // Step 3e: Get uploaded files info
+        const uploadResult = await getUploadedFilesInfo(
+          flow,
           files,
-          storageEpochs,
-          options.signer
+          storageEpochs
         );
 
         // Step 4: Build Sui transaction

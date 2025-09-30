@@ -7,7 +7,6 @@
 
 import { WalrusClient, WalrusFile } from "@mysten/walrus";
 import type { SuiClient } from "@mysten/sui/client";
-import type { Signer } from "@mysten/sui/cryptography";
 import {
   WalrusUploadError,
   type WalrusUploadResult,
@@ -72,30 +71,109 @@ export async function prepareCampaignFiles(
 }
 
 /**
- * Upload campaign files to Walrus using Quilt
+ * Create a Walrus upload flow for browser-based wallet signing
+ * This approach avoids browser popup blocking by separating transaction signatures
+ *
+ * Returns the flow object that can be used for subsequent operations
  */
-export async function uploadCampaignFiles(
+export async function createWalrusUploadFlow(
   walrusClient: WalrusClient,
   files: WalrusFile[],
+) {
+  try {
+    // Create the upload flow
+    const flow = walrusClient.writeFilesFlow({ files });
+
+    // Encode the files (prepares them for upload)
+    await flow.encode();
+
+    return flow;
+  } catch (error) {
+    throw new WalrusUploadError(
+      `Failed to create Walrus upload flow: ${error instanceof Error ? error.message : "Unknown error"}`,
+      error,
+    );
+  }
+}
+
+/**
+ * Build the register transaction for the Walrus upload flow
+ * This transaction must be signed by the user's wallet
+ */
+export function buildRegisterTransaction(
+  flow: any, // WriteFilesFlow type from SDK
   epochs: number,
-  signer: Signer,
+  owner: string,
+) {
+  try {
+    return flow.register({
+      epochs,
+      owner,
+      deletable: false, // Campaign content should be permanent
+    });
+  } catch (error) {
+    throw new WalrusUploadError(
+      `Failed to build register transaction: ${error instanceof Error ? error.message : "Unknown error"}`,
+      error,
+    );
+  }
+}
+
+/**
+ * Upload the actual file data to Walrus storage nodes
+ * This happens after the register transaction is confirmed
+ */
+export async function uploadToWalrusNodes(
+  flow: any, // WriteFilesFlow type from SDK
+  registerDigest: string,
+) {
+  try {
+    await flow.upload({ digest: registerDigest });
+  } catch (error) {
+    throw new WalrusUploadError(
+      `Failed to upload to Walrus storage nodes: ${error instanceof Error ? error.message : "Unknown error"}`,
+      error,
+    );
+  }
+}
+
+/**
+ * Build the certify transaction for the Walrus upload flow
+ * This transaction must be signed by the user's wallet to finalize the upload
+ */
+export function buildCertifyTransaction(flow: any) {
+  try {
+    return flow.certify();
+  } catch (error) {
+    throw new WalrusUploadError(
+      `Failed to build certify transaction: ${error instanceof Error ? error.message : "Unknown error"}`,
+      error,
+    );
+  }
+}
+
+/**
+ * Get the uploaded files information after certification
+ * Returns blob ID and file details needed for campaign creation
+ */
+export async function getUploadedFilesInfo(
+  flow: any,
+  files: WalrusFile[],
+  epochs: number,
 ): Promise<WalrusUploadResult> {
   try {
-    // Upload all files as a single Quilt
-    const results = await walrusClient.writeFiles({
-      files,
-      epochs,
-      deletable: false, // Campaign content should be permanent
-      signer,
-    });
+    // Get the list of uploaded files from the flow
+    const uploadedFiles = await flow.listFiles();
 
-    // writeFiles returns an array, get the first result
-    const result = results[0];
-    if (!result) {
-      throw new Error("No result returned from Walrus upload");
+    if (!uploadedFiles || uploadedFiles.length === 0) {
+      throw new Error("No files returned from Walrus upload");
     }
 
-    // Calculate file sizes (we need to get them from the files)
+    // Get the blob ID from the first file (they're all in the same Quilt)
+    const blobId = uploadedFiles[0].blobId;
+    const blobObject = uploadedFiles[0].blobObject?.id?.id || '';
+
+    // Calculate file sizes
     const fileSizes = await Promise.all(
       files.map(async (file) => ({
         identifier: (await file.getIdentifier()) || "unknown",
@@ -107,14 +185,14 @@ export async function uploadCampaignFiles(
     const cost = estimateStorageCostSimple(totalSize, epochs);
 
     return {
-      blobId: result.blobId,
-      blobObject: result.blobObject.id.id,
+      blobId,
+      blobObject,
       files: fileSizes,
       cost,
     };
   } catch (error) {
     throw new WalrusUploadError(
-      `Failed to upload files to Walrus: ${error instanceof Error ? error.message : "Unknown error"}`,
+      `Failed to get uploaded files info: ${error instanceof Error ? error.message : "Unknown error"}`,
       error,
     );
   }
