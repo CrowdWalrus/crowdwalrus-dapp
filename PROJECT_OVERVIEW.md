@@ -34,7 +34,6 @@ CrowdWalrus uses a hybrid storage approach leveraging both Sui blockchain and Wa
 #### **On Walrus Storage** (Decentralized File Storage)
 - Campaign HTML page (full description, rich content)
 - Campaign images (cover image, gallery, media)
-- Campaign video embeds (as HTML)
 - Rich text content
 - Any large media files
 
@@ -69,8 +68,6 @@ CrowdWalrus uses a hybrid storage approach leveraging both Sui blockchain and Wa
 | Field | Location | Type | Description |
 |-------|----------|------|-------------|
 | `funding_goal` | Sui (metadata) | String | Target amount in SUI |
-| `minimum_donation` | Sui (metadata) | String | Minimum contribution amount |
-| `donation_tiers` | Sui (metadata) | JSON String | Suggested donation amounts with descriptions |
 | `start_date` | Sui | u64 | Campaign start epoch |
 | `end_date` | Sui | u64 | Campaign end epoch |
 
@@ -96,8 +93,6 @@ CrowdWalrus uses a hybrid storage approach leveraging both Sui blockchain and Wa
 | `full_description` | Walrus | HTML | Complete campaign story with rich formatting |
 | `cover_image` | Walrus | Image | Main campaign image (JPG/PNG) |
 | `gallery_images` | Walrus | Images | Additional campaign images |
-| `video_url` | Walrus | HTML embed | YouTube/Vimeo embed code |
-| `impact_description` | Walrus | HTML | What donations will accomplish |
 | `creator_bio` | Walrus | HTML | About the campaign creator |
 
 #### **Additional Metadata (VecMap on Sui)**
@@ -107,16 +102,9 @@ The `metadata: VecMap<String, String>` field in the smart contract stores key-va
 ```typescript
 metadata: {
   "funding_goal": "10000",
-  "minimum_donation": "10",
   "walrus_quilt_id": "123456789...", // u256 as string
   "walrus_storage_epochs": "100",
-  "donation_tiers": JSON.stringify([
-    { amount: "25", description: "Supporter tier" },
-    { amount: "100", description: "Backer tier" },
-    { amount: "500", description: "Sponsor tier" }
-  ]),
   "category": "Technology",
-  "tags": "blockchain,crowdfunding,web3",
   "cover_image_quilt_id": "image_identifier", // Identifier within Quilt
   "contact_email": "creator@example.com",
   "social_twitter": "https://twitter.com/...",
@@ -273,20 +261,16 @@ import { useSignAndExecuteTransaction } from '@mysten/dapp-kit';
 // Prepare metadata with Walrus Quilt ID
 const metadataKeys = [
   'funding_goal',
-  'minimum_donation',
   'walrus_quilt_id',
   'walrus_storage_epochs',
-  'donation_tiers',
   'category',
   'cover_image_id'
 ];
 
 const metadataValues = [
   '10000',
-  '10',
   quiltBlobId.toString(), // Convert u256 to string
   '100',
-  JSON.stringify(donationTiers),
   'Technology',
   'cover.jpg'
 ];
@@ -344,19 +328,15 @@ Example: `save-the-whales.crowdwalrus.sui` → Campaign Object ID
 - Short description (280 chars)
 - Subdomain name (validate availability)
 - Category selection
-- Tags (optional)
 
 **Fundraising Details:**
 - Funding goal (in SUI)
-- Minimum donation amount
-- Donation tiers (optional: amount + description)
 - Campaign duration (start/end dates)
 
 **Rich Content:**
 - Full description (HTML editor - can use Quill.js or similar)
 - Cover image upload
 - Gallery images upload (optional)
-- Video embed URL (optional)
 - Creator bio
 
 **Contact & Social:**
@@ -521,54 +501,6 @@ Campaign Created ✓
 
 ### Based on Crowdfunding Best Practices
 
-#### **Goal Tracking**
-
-**Implementation:**
-- Store `funding_goal` in metadata
-- Query donation transactions on Sui
-- Calculate `current_amount` / `funding_goal` = progress %
-- Display thermometer/progress bar
-
-**Formula:**
-```typescript
-const progress = (totalDonations / fundingGoal) * 100;
-const percentageFunded = Math.min(progress, 100);
-const backersCount = uniqueDonors.length;
-const avgDonation = totalDonations / backersCount;
-```
-
-#### **Donation Tiers**
-
-Store as JSON in metadata:
-```typescript
-const donationTiers = [
-  {
-    amount: "25",
-    title: "Supporter",
-    description: "Get updates + thank you message",
-    estimatedDelivery: "Immediately"
-  },
-  {
-    amount: "100",
-    title: "Backer",
-    description: "Everything above + exclusive NFT",
-    estimatedDelivery: "1 month after campaign ends"
-  },
-  {
-    amount: "500",
-    title: "Sponsor",
-    description: "Everything above + your name on website",
-    estimatedDelivery: "2 months after campaign ends"
-  }
-];
-```
-
-**UI Features:**
-- Display tiers as cards
-- Highlight popular tier
-- Show estimated delivery
-- Quick select buttons
-
 #### **Campaign Updates**
 
 From `campaign.move`:
@@ -598,16 +530,14 @@ tx.moveCall({
 
 **Update Metadata Can Include:**
 - Walrus blob ID for rich content/images
-- Video URLs
 - Milestone reached
 - Problem/solution updates
 
 #### **Activity Feed**
 
 Display:
-- Recent donations (amount, donor name/address, timestamp)
 - Campaign updates
-- Milestones reached (50%, 75%, 100%)
+- Milestones reached
 - Comments (if implemented)
 
 #### **Social Sharing**
@@ -801,23 +731,6 @@ const imageBlob = await coverImage.blob();
 const imageUrl = URL.createObjectURL(imageBlob);
 ```
 
-### Donation Tracking
-
-**Method 1: Custom Smart Contract**
-- Create a donation contract that tracks contributions
-- Link donations to campaign ID
-- Query donation objects by campaign
-
-**Method 2: Direct SUI Transfers**
-- Users send SUI directly to campaign creator's wallet
-- Track via Sui transaction history
-- Query transactions with recipient = creator's address
-
-**Recommendation:** Implement custom donation contract for:
-- Better tracking and analytics
-- Refund capability
-- Platform features (quadratic funding, etc.)
-
 ---
 
 ## Summary Checklist
@@ -830,9 +743,8 @@ const imageUrl = URL.createObjectURL(imageBlob);
 - [ ] Campaign preview before submission
 - [ ] Campaign page rendering (HTML + images from Walrus)
 - [ ] Campaign listing and filtering
-- [ ] Campaign detail page with progress tracker
+- [ ] Campaign detail page
 - [ ] Campaign updates feed
-- [ ] Donation UI (if implementing donation contract)
 - [ ] SuiNS subdomain display and resolution
 - [ ] Error handling for all operations
 - [ ] Wallet connection and balance checking
@@ -852,12 +764,8 @@ const imageUrl = URL.createObjectURL(imageBlob);
 - [x] Campaign duration (start/end dates)
 
 **Optional but Recommended:**
-- [x] Minimum donation
-- [x] Donation tiers
 - [x] Gallery images
-- [x] Video embed
 - [x] Category
-- [x] Tags
 - [x] Creator bio
 - [x] Contact email
 - [x] Social media links
