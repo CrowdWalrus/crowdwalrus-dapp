@@ -124,6 +124,22 @@ export function useCreateCampaign() {
         );
         const files = await prepareCampaignFiles(formData);
 
+        // Calculate storage cost estimate
+        console.log('\n=== STORAGE COST ESTIMATE ===');
+        try {
+          const { calculateStorageCost } = await import('@/services/walrus');
+          const costEstimate = await calculateStorageCost(suiClient, network, formData, storageEpochs);
+          console.log('Total WAL needed:', costEstimate.totalCostWal.toFixed(6), 'WAL');
+          console.log('  - Storage cost:', costEstimate.storageCostWal.toFixed(6), 'WAL');
+          console.log('  - Upload cost:', costEstimate.uploadCostWal.toFixed(6), 'WAL');
+          console.log('Epochs:', storageEpochs);
+          console.log('Total size:', costEstimate.rawSize, 'bytes');
+          console.log('Encoded size:', costEstimate.encodedSize, 'bytes');
+          console.log('============================\n');
+        } catch (error) {
+          console.warn('Could not calculate storage cost estimate:', error);
+        }
+
         // Step 3: Upload to Walrus (multi-step process)
         const walrusClient = createWalrusClient(suiClient, network);
 

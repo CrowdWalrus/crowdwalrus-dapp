@@ -31,6 +31,27 @@ export function buildCreateCampaignTransaction(
   const startDate = Math.floor(formData.start_date.getTime() / 1000);
   const endDate = Math.floor(formData.end_date.getTime() / 1000);
 
+  // Append .crowdwalrus-test.sui to subdomain for testing
+  const fullSubdomain = `${formData.subdomain_name}.crowdwalrus-test.sui`;
+
+  console.log("\n=== BUILDING SUI TRANSACTION ===");
+  console.log("Network:", network);
+  console.log("Package ID:", config.contracts.packageId);
+  console.log("CrowdWalrus Object:", config.contracts.crowdWalrusObjectId);
+  console.log("SuiNS Manager:", config.contracts.suinsManagerObjectId);
+  console.log("SuiNS Object:", config.contracts.suinsObjectId);
+  console.log("\n--- Transaction Arguments ---");
+  console.log("Campaign Name:", formData.name);
+  console.log("Short Description:", formData.short_description);
+  console.log("Subdomain Name (original):", formData.subdomain_name);
+  console.log("Subdomain Name (full):", fullSubdomain);
+  console.log("Start Date (u64):", startDate);
+  console.log("End Date (u64):", endDate);
+  console.log("\n--- Metadata VecMap ---");
+  console.log("Keys:", keys);
+  console.log("Values:", values);
+  console.log("================================\n");
+
   // Build the move call
   tx.moveCall({
     target: `${config.contracts.packageId}::crowd_walrus::create_campaign`,
@@ -53,8 +74,8 @@ export function buildCreateCampaignTransaction(
       // Short description
       tx.pure.string(formData.short_description),
 
-      // Subdomain name
-      tx.pure.string(formData.subdomain_name),
+      // Subdomain name (with .crowdwalrus-test.sui suffix)
+      tx.pure.string(fullSubdomain),
 
       // Metadata keys (vector<String>)
       tx.pure.vector("string", keys),

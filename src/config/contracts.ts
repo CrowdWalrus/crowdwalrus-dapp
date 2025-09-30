@@ -75,17 +75,17 @@ const DEVNET_CONFIG: NetworkContractConfig = {
 
 const TESTNET_CONFIG: NetworkContractConfig = {
   contracts: {
-    // TODO: Add your testnet package ID after deployment
-    packageId: 'YOUR_TESTNET_PACKAGE_ID_HERE',
+    // Package ID from deployment: 0x04bdca4b5d72638f99934eaf4afbb9d190d65302d29268d0b527748d0f74679f
+    packageId: '0x04bdca4b5d72638f99934eaf4afbb9d190d65302d29268d0b527748d0f74679f',
 
-    // TODO: Add your CrowdWalrus shared object ID
-    crowdWalrusObjectId: 'YOUR_TESTNET_CROWDWALRUS_OBJECT_ID_HERE',
+    // CrowdWalrus shared object from deployment
+    crowdWalrusObjectId: '0xf4e8ca077d99563a0829e67fc595264774a2c2f2b55085edcedaf46378779aab',
 
-    // TODO: Add SuiNS Manager object ID for testnet
-    suinsManagerObjectId: 'YOUR_TESTNET_SUINS_MANAGER_OBJECT_ID_HERE',
+    // SuiNS Manager shared object from deployment
+    suinsManagerObjectId: '0x57b7c3942b7e99e2ee9cc9e265caa98e1e35da9aa4a270bcd7ac1b54410ea8e3',
 
-    // TODO: Add SuiNS registry object ID for testnet
-    suinsObjectId: 'YOUR_TESTNET_SUINS_OBJECT_ID_HERE',
+    // SuiNS registry object ID for testnet (official Sui object)
+    suinsObjectId: '0xb120c0d55432630fce61f7854795a3463deb6e3b443cc4ae72e1282073ff56e4',
   },
   walrus: {
     network: 'testnet',
@@ -94,7 +94,7 @@ const TESTNET_CONFIG: NetworkContractConfig = {
     systemObjectId: '0x98ebc47370603fe81d9e15491b2f1443d619d1dab720d586e429ed233e1255c1',
   },
   storageDefaults: {
-    defaultEpochs: 100, // ~100 days on testnet (1 day per epoch)
+    defaultEpochs: 3, // Just 3 days for testing (1 day per epoch on testnet)
     epochDurationDays: 1,
   },
 };

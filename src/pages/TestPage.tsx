@@ -70,19 +70,52 @@ export function TestPage() {
       social_discord: socialDiscord || undefined,
     };
 
+    console.log("=== CAMPAIGN CREATION START ===");
+    console.log("Connected Wallet:", currentAccount.address);
+    console.log("Network:", "testnet");
+    console.log("\n--- Form Data ---");
+    console.log("Name:", formData.name);
+    console.log("Short Description:", formData.short_description);
+    console.log("Subdomain:", formData.subdomain_name);
+    console.log("Category:", formData.category);
+    console.log("Funding Goal:", formData.funding_goal, "SUI");
+    console.log("Start Date:", formData.start_date.toISOString());
+    console.log("End Date:", formData.end_date.toISOString());
+    console.log("Start Date (Unix):", Math.floor(formData.start_date.getTime() / 1000));
+    console.log("End Date (Unix):", Math.floor(formData.end_date.getTime() / 1000));
+    console.log("Full Description Length:", formData.full_description.length, "chars");
+    console.log("Cover Image:", {
+      name: coverImage.name,
+      size: coverImage.size,
+      type: coverImage.type,
+    });
+    console.log("Social Twitter:", formData.social_twitter || "Not provided");
+    console.log("Social Discord:", formData.social_discord || "Not provided");
+    console.log("================================\n");
+
     createCampaign(
       { formData, options: {
         network: 'testnet',
         onProgress: (progress: CampaignCreationProgress) => {
+          console.log(`[Progress] ${progress.step}: ${progress.message}`);
           setProgressMessage(progress.message);
         }
       }},
       {
         onSuccess: (result) => {
-          console.log("Campaign created successfully:", result);
+          console.log("\n=== CAMPAIGN CREATED SUCCESSFULLY ===");
+          console.log("Campaign ID:", result.campaignId);
+          console.log("Transaction Digest:", result.transactionDigest);
+          console.log("Walrus Blob ID:", result.walrusBlobId);
+          console.log("Subdomain:", result.subdomain);
+          console.log("Description URL:", result.walrusDescriptionUrl);
+          console.log("Cover Image URL:", result.walrusCoverImageUrl);
+          console.log("=====================================\n");
         },
         onError: (error) => {
-          console.error("Campaign creation failed:", error);
+          console.error("\n=== CAMPAIGN CREATION FAILED ===");
+          console.error("Error:", error);
+          console.error("================================\n");
         },
       }
     );
@@ -150,7 +183,7 @@ export function TestPage() {
             <p className="text-green-600 font-semibold mb-4">Campaign Created Successfully!</p>
             <div className="space-y-2 text-sm">
               <p><strong>Campaign ID:</strong> {data.campaignId}</p>
-              <p><strong>Subdomain:</strong> {data.subdomain}.crowdwalrus.sui</p>
+              <p><strong>Subdomain:</strong> {data.subdomain}.crowdwalrus-test.sui</p>
               <p><strong>Transaction:</strong> {data.transactionDigest}</p>
               <p><strong>Walrus Blob ID:</strong> {data.walrusBlobId}</p>
               <p><strong>Description URL:</strong> {data.walrusDescriptionUrl}</p>
@@ -204,7 +237,7 @@ export function TestPage() {
                   required
                 />
                 <p className="text-sm text-muted-foreground">
-                  Your campaign will be accessible at: {subdomain || 'subdomain'}.crowdwalrus.sui
+                  Your campaign will be accessible at: {subdomain || 'subdomain'}.crowdwalrus-test.sui
                 </p>
               </div>
 

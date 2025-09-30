@@ -18,6 +18,8 @@ import {
   calculateCampaignStorageCost,
   type CampaignStorageCost,
 } from "./walrus-pricing";
+// Import WASM file with ?url suffix for Vite
+import walrusWasmUrl from "@mysten/walrus-wasm/web/walrus_wasm_bg.wasm?url";
 
 /**
  * Create and configure a WalrusClient instance
@@ -35,6 +37,7 @@ export function createWalrusClient(
   return new WalrusClient({
     suiClient,
     network: walrusNetwork as "testnet" | "mainnet",
+    wasmUrl: walrusWasmUrl,
   });
 }
 
@@ -45,6 +48,7 @@ export function createWalrusClient(
 export async function prepareCampaignFiles(
   formData: CampaignFormData,
 ): Promise<WalrusFile[]> {
+  console.log("\n=== PREPARING WALRUS FILES ===");
   const files: WalrusFile[] = [];
 
   // 1. Store raw rich text HTML from editor
@@ -58,6 +62,7 @@ export async function prepareCampaignFiles(
     },
   });
   files.push(descriptionFile);
+  console.log("File 1: description.html -", descriptionBytes.length, "bytes");
 
   // 2. Store cover image
   const coverImageBuffer = await formData.cover_image.arrayBuffer();
@@ -70,6 +75,10 @@ export async function prepareCampaignFiles(
     },
   });
   files.push(coverImageFile);
+  console.log("File 2: cover.jpg -", coverImageBuffer.byteLength, "bytes");
+  console.log("Total files:", files.length);
+  console.log("Total size:", descriptionBytes.length + coverImageBuffer.byteLength, "bytes");
+  console.log("==============================\n");
 
   return files;
 }
@@ -110,6 +119,18 @@ export function buildRegisterTransaction(
   owner: string,
 ) {
   try {
+    // Get storage cost info from the flow if available
+    const costInfo = flow.getStorageCost?.() || null;
+
+    console.log("\n=== WALRUS REGISTER TRANSACTION ===");
+    console.log("Epochs:", epochs);
+    console.log("Owner:", owner);
+    console.log("Deletable:", false);
+    if (costInfo) {
+      console.log("Storage Cost Info:", costInfo);
+    }
+    console.log("===================================\n");
+
     return flow.register({
       epochs,
       owner,
@@ -177,6 +198,10 @@ export async function getUploadedFilesInfo(
     const blobId = uploadedFiles[0].blobId;
     const blobObject = uploadedFiles[0].blobObject?.id?.id || '';
 
+    console.log("\n=== WALRUS UPLOAD COMPLETE ===");
+    console.log("Blob ID:", blobId);
+    console.log("Blob Object:", blobObject);
+
     // Calculate file sizes
     const fileSizes = await Promise.all(
       files.map(async (file) => ({
@@ -185,10 +210,17 @@ export async function getUploadedFilesInfo(
       })),
     );
 
+    console.log("Files uploaded:");
+    fileSizes.forEach(f => console.log(`  - ${f.identifier}: ${f.size} bytes`));
+
     const totalSize = fileSizes.reduce((sum, file) => sum + file.size, 0);
     // Using fallback estimate here since we don't have SuiClient in this context
     // The actual cost was already calculated and paid during the register transaction
     const cost = estimateStorageCostSimple(totalSize, epochs);
+
+    console.log("Total size:", totalSize, "bytes");
+    console.log("Estimated cost:", cost, "WAL");
+    console.log("==============================\n");
 
     return {
       blobId,
