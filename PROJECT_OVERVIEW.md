@@ -2,6 +2,10 @@
 
 This document defines the complete data architecture, technical implementation details, and user flows for the CrowdWalrus decentralized crowdfunding platform frontend.
 
+## 🔒 Security Notice
+
+**This application uses a browser-safe wallet integration approach.** All Walrus uploads use the multi-step flow (`writeFilesFlow()`) that works with browser wallet extensions without requiring direct access to private keys. This is a production-ready, secure implementation.
+
 ## Table of Contents
 
 1. [Data Architecture](#data-architecture)
@@ -121,6 +125,19 @@ metadata: {
 
 ## Walrus Storage Integration
 
+### ⚠️ Important: Browser Wallet Security
+
+**This application uses the secure multi-step upload flow (`writeFilesFlow()`) instead of direct keypair access.**
+
+The traditional `writeFiles()` method requires direct access to private keys, which is insecure in browser environments. Instead, we use:
+- `createWalrusUploadFlow()` - Creates and encodes the upload flow
+- `buildRegisterTransaction()` - Returns transaction for wallet to sign
+- `uploadToWalrusNodes()` - Uploads to storage nodes
+- `buildCertifyTransaction()` - Returns transaction for wallet to sign
+- `getUploadedFilesInfo()` - Retrieves final blob ID
+
+This approach works securely with browser wallet extensions (Sui Wallet, Ethos, etc.) without requiring private key access.
+
 ### Walrus Quilt for Batch Storage
 
 **What is Quilt?**
@@ -160,7 +177,11 @@ const walrusClient = new WalrusClient({
 
 #### Upload Campaign Files to Quilt
 
+**Browser-Safe Multi-Step Upload Flow** (No Keypair Required)
+
 ```typescript
+import { useSignAndExecuteTransaction } from '@mysten/dapp-kit';
+
 // Prepare campaign files
 const campaignFiles = [
   {
@@ -175,18 +196,49 @@ const campaignFiles = [
   }
 ];
 
-// Upload to Walrus Quilt
-const results = await walrusClient.writeFiles({
+// Step 1: Create and encode the upload flow
+const flow = await walrusClient.createWalrusUploadFlow({
   files: campaignFiles,
   epochs: 100, // Storage duration (testnet: 1 day/epoch, mainnet: 14 days/epoch)
   deletable: false, // Campaign content should be permanent
-  signer: keypair // User's wallet keypair
 });
 
-// Get the Quilt blob ID
-const quiltBlobId = results.blobId; // u256 type
-const quiltBlobObject = results.blobObject; // Sui object ID
+// Step 2: Register - Build transaction for wallet to sign
+const registerTx = flow.buildRegisterTransaction();
+
+// Execute registration transaction via wallet
+const { mutate: signAndExecute } = useSignAndExecuteTransaction();
+await signAndExecute(
+  { transaction: registerTx },
+  {
+    onSuccess: async (result) => {
+      // Step 3: Upload encoded data to Walrus storage nodes
+      await flow.uploadToWalrusNodes();
+
+      // Step 4: Certify - Build transaction for wallet to sign
+      const certifyTx = flow.buildCertifyTransaction();
+
+      // Execute certification transaction via wallet
+      await signAndExecute(
+        { transaction: certifyTx },
+        {
+          onSuccess: async () => {
+            // Step 5: Get final blob ID and info
+            const uploadedInfo = await flow.getUploadedFilesInfo();
+            const quiltBlobId = uploadedInfo.blobId; // u256 type
+          }
+        }
+      );
+    }
+  }
+);
 ```
+
+**Why This Approach?**
+- ✅ Works with browser wallet extensions (Sui Wallet, Ethos, etc.)
+- ✅ No direct access to private keys required
+- ✅ Each signature triggered by separate transaction (avoids popup blocking)
+- ✅ Secure and production-ready
 
 #### Retrieve Files from Quilt
 
@@ -354,6 +406,8 @@ const estimatedCost = totalSize * 5 * WALRUS_PRICE_PER_BYTE * epochs;
 
 #### **5. Upload to Walrus**
 
+**Multi-Step Upload Process (Browser-Safe)**
+
 ```typescript
 // Step 1: Prepare files
 const files = [
@@ -361,22 +415,35 @@ const files = [
   { data: coverImage, identifier: 'cover.jpg', tags: {...} }
 ];
 
-// Step 2: Upload to Walrus Quilt
-const { blobId, blobObject } = await walrusClient.writeFiles({
+// Step 2: Create upload flow (encode files)
+const flow = await walrusClient.createWalrusUploadFlow({
   files,
   epochs: storageEpochs,
   deletable: false,
-  signer: wallet.keypair
 });
 
-// Step 3: Store blobId for Sui transaction
-const quiltBlobId = blobId.toString();
+// Step 3: Register with wallet signature
+const registerTx = flow.buildRegisterTransaction();
+await signAndExecuteTransaction({ transaction: registerTx });
+
+// Step 4: Upload to Walrus storage nodes
+await flow.uploadToWalrusNodes();
+
+// Step 5: Certify with wallet signature
+const certifyTx = flow.buildCertifyTransaction();
+await signAndExecuteTransaction({ transaction: certifyTx });
+
+// Step 6: Get final blob ID
+const uploadedInfo = await flow.getUploadedFilesInfo();
+const quiltBlobId = uploadedInfo.blobId.toString();
 ```
 
 **UI States:**
-- Show upload progress
-- Handle errors (insufficient funds, network issues)
+- Show upload progress (encoding → registering → uploading → certifying)
+- Handle wallet signature prompts (2 signatures required: register + certify)
+- Handle errors (insufficient funds, network issues, signature rejection)
 - Display success with Quilt blob ID
+- Provide clear feedback for each step to avoid user confusion
 
 #### **6. Create Campaign on Sui**
 
@@ -460,13 +527,21 @@ Validate & Preview
     ↓
 Generate HTML Content
     ↓
-Upload to Walrus Quilt ← [HTML, Images]
+Create Walrus Upload Flow ← [HTML, Images]
+    ↓
+Encode Files Locally
+    ↓
+Build Register Transaction → User Signs (Wallet Popup #1)
+    ↓
+Upload Encoded Data to Walrus Nodes
+    ↓
+Build Certify Transaction → User Signs (Wallet Popup #2)
     ↓
 Get Quilt Blob ID (u256)
     ↓
-Create Sui Transaction ← [Metadata + Blob ID]
+Create Sui Campaign Transaction ← [Metadata + Blob ID]
     ↓
-Execute Transaction
+Execute Transaction → User Signs (Wallet Popup #3)
     ↓
 Campaign Created ✓
 ```
@@ -477,6 +552,7 @@ Campaign Created ✓
 |------------|-------|----------|
 | **Insufficient Balance** | Not enough SUI for gas/storage | Show balance, suggest amounts |
 | **Subdomain Taken** | Subdomain already exists | Suggest alternatives |
+| **Signature Rejected** | User rejected wallet popup | Allow retry, explain why signature needed |
 | **Walrus Upload Failed** | Network/storage node issues | Retry mechanism, fallback nodes |
 | **Transaction Failed** | Gas estimation, contract error | Show clear error messages |
 | **Storage Expired** | Campaign storage expired | Allow extending storage |
@@ -723,20 +799,27 @@ const imageUrl = URL.createObjectURL(imageBlob);
 
 ### Frontend Must Implement
 
-- [ ] Campaign creation form (all fields)
-- [ ] Walrus Quilt upload flow with progress
-- [ ] Sui transaction creation and execution
+- [x] Campaign creation form (all fields)
+- [x] Walrus Quilt upload flow with progress (multi-step, browser-safe)
+- [x] Sui transaction creation and execution (via wallet extensions)
 - [ ] Campaign preview before submission
 - [ ] Campaign page rendering (HTML + images from Walrus)
 - [ ] Campaign listing and filtering
 - [ ] Campaign detail page
 - [ ] Campaign updates feed
 - [ ] SuiNS subdomain display and resolution
-- [ ] Error handling for all operations
-- [ ] Wallet connection and balance checking
-- [ ] Storage cost estimation and display
+- [x] Error handling for all operations (including signature rejection)
+- [x] Wallet connection and balance checking
+- [x] Storage cost estimation and display (real-time pricing)
 - [ ] Campaign owner dashboard
 - [ ] Social sharing functionality
+
+### ✅ Security Implementation
+
+- [x] **Browser-safe wallet integration** - No direct private key access required
+- [x] **Multi-step upload flow** - Uses `writeFilesFlow()` with wallet signatures
+- [x] **Wallet popup handling** - Clear UX for 3 required signatures (2 for Walrus, 1 for campaign)
+- [ ] **HTML sanitization** - Still needed for displaying campaign content
 
 ### Data to Collect in Form
 
@@ -775,4 +858,4 @@ const imageUrl = URL.createObjectURL(imageBlob);
 
 ---
 
-*Last Updated: 2025-09-30*
+*Last Updated: 2025-09-30 - Updated with browser-safe wallet integration (no keypair required)*
