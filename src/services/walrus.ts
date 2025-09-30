@@ -13,7 +13,11 @@ import {
   type StorageCostEstimate,
   type CampaignFormData,
 } from "@/types/campaign";
-import { getContractConfig, STORAGE_COST_MULTIPLIER } from "@/config/contracts";
+import { getContractConfig } from "@/config/contracts";
+import {
+  calculateCampaignStorageCost,
+  type CampaignStorageCost,
+} from "./walrus-pricing";
 
 /**
  * Create and configure a WalrusClient instance
@@ -182,6 +186,8 @@ export async function getUploadedFilesInfo(
     );
 
     const totalSize = fileSizes.reduce((sum, file) => sum + file.size, 0);
+    // Using fallback estimate here since we don't have SuiClient in this context
+    // The actual cost was already calculated and paid during the register transaction
     const cost = estimateStorageCostSimple(totalSize, epochs);
 
     return {
@@ -199,9 +205,11 @@ export async function getUploadedFilesInfo(
 }
 
 /**
- * Calculate estimated storage cost for campaign files
+ * Calculate estimated storage cost for campaign files using real Walrus pricing
  */
 export async function calculateStorageCost(
+  suiClient: SuiClient,
+  network: "devnet" | "testnet" | "mainnet",
   formData: CampaignFormData,
   epochs?: number,
 ): Promise<StorageCostEstimate> {
@@ -220,35 +228,60 @@ export async function calculateStorageCost(
     0;
   const imagesSize =
     fileSizes.find((f) => f.identifier === "cover.jpg")?.bytes.length || 0;
-  const totalSize = descriptionSize + imagesSize;
+  const rawSize = descriptionSize + imagesSize;
 
   const storageEpochs =
-    epochs || getContractConfig("testnet").storageDefaults.defaultEpochs;
-  const estimatedCost = estimateStorageCostSimple(totalSize, storageEpochs);
+    epochs || getContractConfig(network).storageDefaults.defaultEpochs;
+
+  // Query real Walrus pricing and calculate accurate costs
+  const cost: CampaignStorageCost = await calculateCampaignStorageCost(
+    suiClient,
+    network === "devnet" ? "testnet" : network,
+    rawSize,
+    storageEpochs,
+  );
 
   return {
-    totalSize,
+    rawSize,
+    encodedSize: cost.encodedSize,
+    metadataSize: cost.metadataSize,
     epochs: storageEpochs,
-    estimatedCost,
+    storageCostWal: cost.storageCostWal,
+    uploadCostWal: cost.uploadCostWal,
+    totalCostWal: cost.totalCostWal,
+    estimatedCost: cost.totalCostWal.toFixed(6), // Legacy field
     breakdown: {
       htmlSize: descriptionSize,
       imagesSize,
     },
+    pricingTimestamp: cost.pricing.timestamp,
+    network: cost.pricing.network,
   };
 }
 
 /**
- * Simple storage cost estimation
- * Note: This is a rough estimate. Actual cost depends on Walrus pricing at the time.
+ * Simple storage cost estimation (DEPRECATED - kept for backward compatibility)
+ * Use calculateStorageCost with real pricing instead
+ *
+ * @deprecated This uses placeholder pricing. Use calculateStorageCost instead.
  */
-function estimateStorageCostSimple(blobSize: number, epochs: number): string {
-  // Cost formula: blob_size * STORAGE_COST_MULTIPLIER * price_per_byte * epochs
-  // For now, we'll use a placeholder price since Walrus pricing may vary
-  // TODO: Update with actual Walrus pricing when available
-  const PRICE_PER_BYTE_SUI = 0.000001; // Placeholder - update with actual pricing
+function estimateStorageCostSimple(rawSize: number, epochs: number): string {
+  // Fallback estimate using hardcoded Mainnet pricing (as of March 2025)
+  // Storage: 100,000 FROST/MB, Upload: 20,000 FROST/MB
+  // 1 WAL = 1 billion FROST
 
-  const cost = blobSize * STORAGE_COST_MULTIPLIER * PRICE_PER_BYTE_SUI * epochs;
-  return cost.toFixed(6);
+  const METADATA_SIZE_MB = 64; // 64MB metadata per blob
+  const ENCODING_MULTIPLIER = 5; // 5x encoding overhead
+
+  const rawSizeMb = rawSize / (1024 * 1024);
+  const encodedSizeMb = (rawSizeMb * ENCODING_MULTIPLIER) + METADATA_SIZE_MB;
+
+  const storageCostFrost = encodedSizeMb * 100_000 * epochs;
+  const uploadCostFrost = encodedSizeMb * 20_000;
+  const totalCostFrost = storageCostFrost + uploadCostFrost;
+
+  const totalCostWal = totalCostFrost / 1_000_000_000;
+  return totalCostWal.toFixed(6);
 }
 
 /**

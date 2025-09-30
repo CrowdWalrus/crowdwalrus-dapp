@@ -122,16 +122,34 @@ export class TransactionExecutionError extends CampaignCreationError {
 }
 
 /**
- * Storage cost estimation result
+ * Storage cost estimation result with detailed breakdown
  */
 export interface StorageCostEstimate {
-  totalSize: number; // Total size in bytes
-  epochs: number; // Storage duration
-  estimatedCost: string; // Cost in SUI tokens
+  // Size information
+  rawSize: number;        // Original file sizes in bytes
+  encodedSize: number;    // Size after Walrus encoding (5x + metadata)
+  metadataSize: number;   // Fixed metadata overhead (64MB)
+
+  // Duration
+  epochs: number;         // Storage duration in epochs
+
+  // Costs in WAL tokens
+  storageCostWal: number; // Storage cost (epochs × size)
+  uploadCostWal: number;  // One-time upload/write cost
+  totalCostWal: number;   // Total cost in WAL
+
+  // Legacy field for backward compatibility (deprecated)
+  estimatedCost: string;  // Total cost in WAL as string
+
+  // Breakdown by file type
   breakdown: {
-    htmlSize: number;
-    imagesSize: number;
+    htmlSize: number;     // Size of description.html
+    imagesSize: number;   // Size of cover image
   };
+
+  // Pricing information
+  pricingTimestamp: number; // When pricing was fetched
+  network: 'testnet' | 'mainnet';
 }
 
 /**

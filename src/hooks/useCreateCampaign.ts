@@ -322,10 +322,13 @@ export function useCreateCampaign() {
  * Useful for displaying cost before campaign creation
  */
 export function useEstimateStorageCost() {
+  const suiClient = useSuiClient();
+  const network = 'testnet' as const; // TODO: Make this configurable
+
   return useMutation({
     mutationFn: async (formData: CampaignFormData) => {
       const { calculateStorageCost } = await import('@/services/walrus');
-      return calculateStorageCost(formData);
+      return calculateStorageCost(suiClient, network, formData);
     },
   });
 }
