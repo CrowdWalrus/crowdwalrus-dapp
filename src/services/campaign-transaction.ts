@@ -199,28 +199,41 @@ export function buildToggleActiveTransaction(
 }
 
 /**
- * Extract campaign ID from transaction effects
+ * Extract campaign ID from transaction result
  * Looks for the created Campaign object in the transaction results
+ * Note: Expects the full transaction result with objectChanges at top level
  */
 export function extractCampaignIdFromEffects(
-  effects: any,
+  result: any,
   packageId: string,
 ): string | null {
   try {
-    // Look for created objects with the Campaign type
-    const createdObjects = effects?.objectChanges?.filter(
+    console.log("\n=== EXTRACTING CAMPAIGN ID ===");
+    console.log("Package ID:", packageId);
+    console.log("Transaction result:", JSON.stringify(result, null, 2));
+
+    // objectChanges is at the top level of the result object
+    const createdObjects = result?.objectChanges?.filter(
       (change: any) =>
         change.type === "created" &&
         change.objectType?.includes(`${packageId}::campaign::Campaign`),
     );
 
+    console.log("Created objects found:", createdObjects);
+    console.log("Number of created objects:", createdObjects?.length || 0);
+
     if (createdObjects && createdObjects.length > 0) {
-      return createdObjects[0].objectId;
+      const campaignId = createdObjects[0].objectId;
+      console.log("Extracted Campaign ID:", campaignId);
+      console.log("==============================\n");
+      return campaignId;
     }
 
+    console.log("No Campaign object found in transaction result");
+    console.log("==============================\n");
     return null;
   } catch (error) {
-    console.error("Error extracting campaign ID from effects:", error);
+    console.error("Error extracting campaign ID from result:", error);
     return null;
   }
 }

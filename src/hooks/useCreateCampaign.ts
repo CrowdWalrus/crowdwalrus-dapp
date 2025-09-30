@@ -72,7 +72,18 @@ export function useCreateCampaign() {
   const suiClient = useSuiClient();
   const currentAccount = useCurrentAccount();
   const { mutateAsync: signAndExecuteTransaction } =
-    useSignAndExecuteTransaction();
+    useSignAndExecuteTransaction({
+      execute: async ({ bytes, signature }) =>
+        await suiClient.executeTransactionBlock({
+          transactionBlock: bytes,
+          signature,
+          options: {
+            showRawEffects: true,
+            showObjectChanges: true,
+            showEffects: true,
+          },
+        }),
+    });
 
   const [currentStep, setCurrentStep] = useState<CampaignCreationStep>(
     CampaignCreationStep.IDLE
@@ -268,7 +279,7 @@ export function useCreateCampaign() {
 
         // Extract campaign ID from transaction effects
         const campaignId = extractCampaignIdFromEffects(
-          result.effects,
+          result,
           config.contracts.packageId
         );
 

@@ -59,7 +59,7 @@ const DEVNET_CONFIG: NetworkContractConfig = {
   walrus: {
     network: 'devnet',
     uploadRelay: 'https://relay.walrus.site',
-    aggregatorUrl: 'https://aggregator.walrus.site/v1',
+    aggregatorUrl: 'https://aggregator.walrus-testnet.walrus.space/v1',
     // Devnet uses testnet system object
     systemObjectId: '0x98ebc47370603fe81d9e15491b2f1443d619d1dab720d586e429ed233e1255c1',
   },
@@ -75,7 +75,7 @@ const DEVNET_CONFIG: NetworkContractConfig = {
 
 const TESTNET_CONFIG: NetworkContractConfig = {
   contracts: {
-    // Package ID from deployment: 0x04bdca4b5d72638f99934eaf4afbb9d190d65302d29268d0b527748d0f74679f
+    // Package ID from deployment
     packageId: '0x04bdca4b5d72638f99934eaf4afbb9d190d65302d29268d0b527748d0f74679f',
 
     // CrowdWalrus shared object from deployment
@@ -84,13 +84,13 @@ const TESTNET_CONFIG: NetworkContractConfig = {
     // SuiNS Manager shared object from deployment
     suinsManagerObjectId: '0x57b7c3942b7e99e2ee9cc9e265caa98e1e35da9aa4a270bcd7ac1b54410ea8e3',
 
-    // SuiNS registry object ID for testnet (official Sui object)
-    suinsObjectId: '0xb120c0d55432630fce61f7854795a3463deb6e3b443cc4ae72e1282073ff56e4',
+    // SuiNS registry object ID for custom deployment (crowdwalrus-testnet-core-v2)
+    suinsObjectId: '0x300369e8909b9a6464da265b9a5a9ab6fe2158a040e84e808628cde7a07ee5a3',
   },
   walrus: {
     network: 'testnet',
     uploadRelay: 'https://relay.walrus.site',
-    aggregatorUrl: 'https://aggregator.walrus.site/v1',
+    aggregatorUrl: 'https://aggregator.walrus-testnet.walrus.space/v1',
     systemObjectId: '0x98ebc47370603fe81d9e15491b2f1443d619d1dab720d586e429ed233e1255c1',
   },
   storageDefaults: {
@@ -120,7 +120,7 @@ const MAINNET_CONFIG: NetworkContractConfig = {
   walrus: {
     network: 'mainnet',
     uploadRelay: 'https://relay.walrus.site',
-    aggregatorUrl: 'https://aggregator.walrus.site/v1',
+    aggregatorUrl: 'https://aggregator.walrus.space/v1',
     systemObjectId: '0x2134d52768ea07e8c43570ef975eb3e4c27a39fa6396bef985b5abc58d03ddd2',
   },
   storageDefaults: {
