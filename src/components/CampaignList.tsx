@@ -1,0 +1,330 @@
+/**
+ * CampaignList Component
+ *
+ * Displays all campaigns created on the platform
+ * Fetches campaign data from Sui blockchain and Walrus storage
+ */
+
+import { useState, useEffect } from 'react';
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
+import { Button } from '@/components/ui/button';
+import { useMyCampaigns, type CampaignData } from '@/hooks/useMyCampaigns';
+
+interface CampaignCardProps {
+  campaign: CampaignData;
+  network: 'devnet' | 'testnet' | 'mainnet';
+}
+
+/**
+ * Individual campaign card component
+ */
+function CampaignCard({ campaign, network }: CampaignCardProps) {
+  const [imageError, setImageError] = useState(false);
+  const [description, setDescription] = useState<string>('');
+  const [loadingDescription, setLoadingDescription] = useState(false);
+  const [imageObjectUrl, setImageObjectUrl] = useState<string>('');
+  const [loadingImage, setLoadingImage] = useState(true);
+
+  // Debug: Log cover image URL
+  console.log('Campaign:', campaign.name);
+  console.log('Cover Image URL:', campaign.coverImageUrl);
+  console.log('Walrus Quilt ID:', campaign.walrusQuiltId);
+
+  // Fetch image as blob to bypass COEP restrictions
+  useEffect(() => {
+    let objectUrl: string | null = null;
+
+    const fetchImage = async () => {
+      if (!campaign.coverImageUrl) {
+        setLoadingImage(false);
+        return;
+      }
+
+      try {
+        setLoadingImage(true);
+        const response = await fetch(campaign.coverImageUrl);
+        if (!response.ok) {
+          throw new Error(`Failed to fetch image: ${response.statusText}`);
+        }
+        const blob = await response.blob();
+        objectUrl = URL.createObjectURL(blob);
+        setImageObjectUrl(objectUrl);
+        setLoadingImage(false);
+        console.log('Image fetched successfully:', campaign.coverImageUrl);
+      } catch (error) {
+        console.error('Error fetching image:', error);
+        setImageError(true);
+        setLoadingImage(false);
+      }
+    };
+
+    fetchImage();
+
+    // Cleanup object URL on unmount or URL change
+    return () => {
+      if (objectUrl) {
+        URL.revokeObjectURL(objectUrl);
+      }
+    };
+  }, [campaign.coverImageUrl]);
+
+  // Format dates
+  const formatDate = (timestamp: number) => {
+    return new Date(timestamp * 1000).toLocaleDateString('en-US', {
+      year: 'numeric',
+      month: 'short',
+      day: 'numeric',
+    });
+  };
+
+  // Fetch description from Walrus
+  useEffect(() => {
+    const fetchDescription = async () => {
+      if (!campaign.descriptionUrl) return;
+
+      setLoadingDescription(true);
+      try {
+        const response = await fetch(campaign.descriptionUrl);
+        if (response.ok) {
+          const html = await response.text();
+          setDescription(html);
+        }
+      } catch (error) {
+        console.error('Error fetching description:', error);
+      } finally {
+        setLoadingDescription(false);
+      }
+    };
+
+    fetchDescription();
+  }, [campaign.descriptionUrl]);
+
+  // Determine subdomain suffix
+  const subdomainSuffix = network === 'testnet' ? '.crowdwalrus-test.sui' : '.crowdwalrus.sui';
+  const fullSubdomain = campaign.subdomainName.includes('.sui')
+    ? campaign.subdomainName
+    : campaign.subdomainName + subdomainSuffix;
+
+  return (
+    <Card className="overflow-hidden">
+      {/* Cover Image */}
+      <div className="w-full h-48 bg-gray-200 overflow-hidden">
+        {loadingImage ? (
+          <div className="w-full h-full flex items-center justify-center bg-gray-300 text-gray-600">
+            <p className="text-sm">Loading image...</p>
+          </div>
+        ) : imageObjectUrl && !imageError ? (
+          <img
+            src={imageObjectUrl}
+            alt={campaign.name}
+            className="w-full h-full object-cover"
+          />
+        ) : (
+          <div className="w-full h-full flex flex-col items-center justify-center bg-gray-300 text-gray-600 p-4">
+            <p className="text-sm font-semibold">{imageError ? 'Image failed to load' : 'No image'}</p>
+            {imageError && campaign.coverImageUrl && (
+              <p className="text-xs mt-2 break-all text-center">{campaign.coverImageUrl}</p>
+            )}
+          </div>
+        )}
+      </div>
+
+      <CardHeader>
+        <div className="flex items-start justify-between gap-2">
+          <div className="flex-1">
+            <CardTitle className="text-xl">{campaign.name}</CardTitle>
+            <CardDescription className="mt-1">{campaign.shortDescription}</CardDescription>
+          </div>
+          <div className="flex flex-col gap-1">
+            {campaign.validated && (
+              <span className="px-2 py-1 text-xs font-semibold bg-green-100 text-green-800 rounded">
+                Validated
+              </span>
+            )}
+            <span
+              className={`px-2 py-1 text-xs font-semibold rounded ${
+                campaign.isActive
+                  ? 'bg-blue-100 text-blue-800'
+                  : 'bg-gray-100 text-gray-800'
+              }`}
+            >
+              {campaign.isActive ? 'Active' : 'Inactive'}
+            </span>
+          </div>
+        </div>
+      </CardHeader>
+
+      <CardContent className="space-y-3">
+        {/* Campaign Details */}
+        <div className="grid grid-cols-2 gap-3 text-sm">
+          <div>
+            <p className="text-muted-foreground">Funding Goal</p>
+            <p className="font-semibold">{campaign.fundingGoal} SUI</p>
+          </div>
+          <div>
+            <p className="text-muted-foreground">Category</p>
+            <p className="font-semibold">{campaign.category}</p>
+          </div>
+          <div>
+            <p className="text-muted-foreground">Start Date</p>
+            <p className="font-semibold">{formatDate(campaign.startDate)}</p>
+          </div>
+          <div>
+            <p className="text-muted-foreground">End Date</p>
+            <p className="font-semibold">{formatDate(campaign.endDate)}</p>
+          </div>
+        </div>
+
+        {/* Subdomain */}
+        <div className="pt-2 border-t">
+          <p className="text-xs text-muted-foreground mb-1">Campaign URL</p>
+          <p className="text-sm font-mono bg-gray-50 px-2 py-1 rounded break-all">
+            {fullSubdomain}
+          </p>
+        </div>
+
+        {/* Walrus Description Preview */}
+        {description && (
+          <div className="pt-2 border-t">
+            <p className="text-xs text-muted-foreground mb-1">Description (from Walrus)</p>
+            <div
+              className="text-sm bg-gray-50 px-3 py-2 rounded max-h-32 overflow-y-auto prose prose-sm"
+              dangerouslySetInnerHTML={{ __html: description }}
+            />
+          </div>
+        )}
+
+        {loadingDescription && (
+          <div className="pt-2 border-t">
+            <p className="text-xs text-muted-foreground">Loading description from Walrus...</p>
+          </div>
+        )}
+
+        {/* Social Links */}
+        {(campaign.socialTwitter || campaign.socialDiscord || campaign.socialWebsite) && (
+          <div className="pt-2 border-t">
+            <p className="text-xs text-muted-foreground mb-2">Social Links</p>
+            <div className="flex flex-wrap gap-2">
+              {campaign.socialTwitter && (
+                <a
+                  href={campaign.socialTwitter}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="text-xs text-blue-600 hover:underline"
+                >
+                  Twitter
+                </a>
+              )}
+              {campaign.socialDiscord && (
+                <a
+                  href={campaign.socialDiscord}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="text-xs text-blue-600 hover:underline"
+                >
+                  Discord
+                </a>
+              )}
+              {campaign.socialWebsite && (
+                <a
+                  href={campaign.socialWebsite}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="text-xs text-blue-600 hover:underline"
+                >
+                  Website
+                </a>
+              )}
+            </div>
+          </div>
+        )}
+
+        {/* Campaign ID (for debugging) */}
+        <div className="pt-2 border-t">
+          <p className="text-xs text-muted-foreground mb-1">Campaign ID</p>
+          <p className="text-xs font-mono bg-gray-50 px-2 py-1 rounded break-all">
+            {campaign.id}
+          </p>
+        </div>
+
+        {/* Walrus Blob ID */}
+        <div>
+          <p className="text-xs text-muted-foreground mb-1">Walrus Blob ID</p>
+          <p className="text-xs font-mono bg-gray-50 px-2 py-1 rounded break-all">
+            {campaign.walrusQuiltId || 'Not available'}
+          </p>
+        </div>
+      </CardContent>
+    </Card>
+  );
+}
+
+/**
+ * Main CampaignList component
+ */
+export function CampaignList() {
+  const network = 'testnet' as const; // TODO: Make this configurable
+  const { campaigns, isPending, error, hasNoCampaigns, refetch } = useMyCampaigns(network);
+
+  // Loading state
+  if (isPending) {
+    return (
+      <Card>
+        <CardContent className="pt-6">
+          <p className="text-muted-foreground">Loading campaigns...</p>
+        </CardContent>
+      </Card>
+    );
+  }
+
+  // Error state
+  if (error) {
+    return (
+      <Card className="border-red-500">
+        <CardContent className="pt-6">
+          <p className="text-red-600 font-semibold mb-2">Error loading campaigns</p>
+          <p className="text-sm text-muted-foreground mb-4">{error.message}</p>
+          <Button variant="outline" onClick={() => refetch()}>
+            Retry
+          </Button>
+        </CardContent>
+      </Card>
+    );
+  }
+
+  // Empty state
+  if (hasNoCampaigns) {
+    return (
+      <Card>
+        <CardContent className="pt-6">
+          <p className="text-muted-foreground">
+            No campaigns have been created yet. Be the first to create a campaign!
+          </p>
+        </CardContent>
+      </Card>
+    );
+  }
+
+  // Display campaigns
+  return (
+    <div className="space-y-6">
+      <div className="flex items-center justify-between">
+        <div>
+          <h2 className="text-2xl font-bold">All Campaigns</h2>
+          <p className="text-sm text-muted-foreground mt-1">
+            {campaigns.length} campaign{campaigns.length !== 1 ? 's' : ''} found
+          </p>
+        </div>
+        <Button variant="outline" onClick={() => refetch()}>
+          Refresh
+        </Button>
+      </div>
+
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+        {campaigns.map((campaign) => (
+          <CampaignCard key={campaign.id} campaign={campaign} network={network} />
+        ))}
+      </div>
+    </div>
+  );
+}

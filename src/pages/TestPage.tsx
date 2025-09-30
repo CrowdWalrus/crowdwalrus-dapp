@@ -9,6 +9,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { useCurrentAccount } from "@mysten/dapp-kit";
 import { useCreateCampaign } from "@/hooks/useCreateCampaign";
 import type { CampaignFormData, CampaignCreationProgress } from "@/types/campaign";
+import { CampaignList } from "@/components/CampaignList";
 
 export function TestPage() {
   const currentAccount = useCurrentAccount();
@@ -394,6 +395,11 @@ export function TestPage() {
           </div>
         </div>
       </form>
+
+      {/* Campaigns List Section */}
+      <div className="mt-12 pt-8 border-t">
+        <CampaignList />
+      </div>
     </Container>
   );
 }
