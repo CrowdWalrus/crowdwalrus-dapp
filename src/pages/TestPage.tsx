@@ -125,16 +125,6 @@ export function TestPage() {
                 accept="image/*"
               />
             </div>
-
-            <div className="space-y-2">
-              <Label htmlFor="gallery_images">Gallery Images</Label>
-              <Input
-                id="gallery_images"
-                type="file"
-                accept="image/*"
-                multiple
-              />
-            </div>
           </CardContent>
         </Card>
 

@@ -33,7 +33,7 @@ CrowdWalrus uses a hybrid storage approach leveraging both Sui blockchain and Wa
 
 #### **On Walrus Storage** (Decentralized File Storage)
 - Campaign HTML page (full description, rich content)
-- Campaign images (cover image, gallery, media)
+- Campaign cover image
 - Rich text content
 - Any large media files
 
@@ -92,7 +92,6 @@ CrowdWalrus uses a hybrid storage approach leveraging both Sui blockchain and Wa
 |---------|---------|--------|-------------|
 | `full_description` | Walrus | HTML | Complete campaign story with rich formatting |
 | `cover_image` | Walrus | Image | Main campaign image (JPG/PNG) |
-| `gallery_images` | Walrus | Images | Additional campaign images |
 
 #### **Additional Metadata (VecMap on Sui)**
 
@@ -173,13 +172,7 @@ const campaignFiles = [
     data: new Uint8Array(coverImageBuffer), // Cover image
     identifier: 'cover.jpg',
     tags: { 'content-type': 'image/jpeg', 'file-type': 'cover' }
-  },
-  {
-    data: new Uint8Array(galleryImage1Buffer),
-    identifier: 'gallery-1.jpg',
-    tags: { 'content-type': 'image/jpeg', 'file-type': 'gallery' }
-  },
-  // ... more images
+  }
 ];
 
 // Upload to Walrus Quilt
@@ -206,10 +199,9 @@ const allFiles = await blob.files();
 const [htmlFile] = await blob.files({ identifiers: ['index.html'] });
 const htmlContent = await htmlFile.arrayBuffer();
 
-// Get files by tag
-const galleryImages = await blob.files({
-  tags: [{ 'file-type': 'gallery' }]
-});
+// Get cover image
+const [coverImage] = await blob.files({ identifiers: ['cover.jpg'] });
+const coverImageBlob = await coverImage.blob();
 ```
 
 ### Quilt Storage Considerations
@@ -334,7 +326,6 @@ Example: `save-the-whales.crowdwalrus.sui` → Campaign Object ID
 **Rich Content:**
 - Full description (HTML editor - can use Quill.js or similar)
 - Cover image upload
-- Gallery images upload (optional)
 
 **Social Links:**
 - Social media links (Twitter, Discord, etc.)
@@ -367,8 +358,7 @@ const estimatedCost = totalSize * 5 * WALRUS_PRICE_PER_BYTE * epochs;
 // Step 1: Prepare files
 const files = [
   { data: htmlBuffer, identifier: 'index.html', tags: {...} },
-  { data: coverImage, identifier: 'cover.jpg', tags: {...} },
-  // ... more files
+  { data: coverImage, identifier: 'cover.jpg', tags: {...} }
 ];
 
 // Step 2: Upload to Walrus Quilt
@@ -760,7 +750,6 @@ const imageUrl = URL.createObjectURL(imageBlob);
 - [x] Campaign duration (start/end dates)
 
 **Optional but Recommended:**
-- [x] Gallery images
 - [x] Category
 - [x] Social media links
 
