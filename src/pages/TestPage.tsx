@@ -1,5 +1,4 @@
 import { useState } from "react";
-import { Container, Heading } from "@radix-ui/themes";
 import { Button } from "@/shared/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/shared/components/ui/card";
 import { Input } from "@/shared/components/ui/input";
@@ -144,10 +143,10 @@ export function TestPage() {
   };
 
   return (
-    <Container mt="5" pt="2" px="4" className="max-w-4xl">
-      <Heading size="8" mb="6">
+    <div className="mt-5 pt-2 px-4 container max-w-4xl">
+      <h1 className="text-4xl font-bold mb-6">
         Create Campaign
-      </Heading>
+      </h1>
 
       {/* Wallet Status */}
       {!currentAccount && (
@@ -400,6 +399,6 @@ export function TestPage() {
       <div className="mt-12 pt-8 border-t">
         <CampaignList />
       </div>
-    </Container>
+    </div>
   );
 }

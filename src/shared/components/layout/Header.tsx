@@ -1,5 +1,4 @@
 import { useCurrentAccount, ConnectButton } from "@mysten/dapp-kit";
-import { Container, Flex } from "@radix-ui/themes";
 import { Link } from "react-router-dom";
 import { Button } from "@/shared/components/ui/button";
 import { RocketIcon, ChevronDownIcon } from "@radix-ui/react-icons";
@@ -13,8 +12,8 @@ export function Header() {
 
   return (
     <header className="bg-white border-b shadow-sm">
-      <Container>
-        <Flex justify="between" align="center" pb="6" pt="9">
+      <div className="container mx-auto px-4">
+        <div className="flex justify-between items-center pb-6 pt-9">
           {/* Logo */}
           <Link to="/" className="flex items-center h-[50px]">
             <img src="/logo.svg" alt="CrowdWalrus" className="h-full" />
@@ -22,7 +21,7 @@ export function Header() {
 
           {/* Navigation */}
           <nav>
-            <Flex gap="12" align="center">
+            <div className="flex gap-12 items-center">
               <Link
                 to="/"
                 className="font-medium text-lg hover:text-primary transition-colors"
@@ -47,11 +46,11 @@ export function Header() {
               >
                 Contact Us
               </Link>
-            </Flex>
+            </div>
           </nav>
 
           {/* Actions */}
-          <Flex gap="4" align="center">
+          <div className="flex gap-4 items-center">
             <Button asChild>
               <Link to="/campaigns/new">
                 <RocketIcon />
@@ -68,9 +67,9 @@ export function Header() {
             ) : (
               <ConnectButton />
             )}
-          </Flex>
-        </Flex>
-      </Container>
+          </div>
+        </div>
+      </div>
     </header>
   );
 }

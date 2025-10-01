@@ -1,5 +1,4 @@
 import { useCurrentAccount, useSuiClientQuery } from "@mysten/dapp-kit";
-import { Flex, Heading, Text } from "@radix-ui/themes";
 
 export function OwnedObjects() {
   const account = useCurrentAccount();
@@ -18,25 +17,25 @@ export function OwnedObjects() {
   }
 
   if (error) {
-    return <Flex>Error: {error.message}</Flex>;
+    return <div className="flex">Error: {error.message}</div>;
   }
 
   if (isPending || !data) {
-    return <Flex>Loading...</Flex>;
+    return <div className="flex">Loading...</div>;
   }
 
   return (
-    <Flex direction="column" my="2">
+    <div className="flex flex-col my-2">
       {data.data.length === 0 ? (
-        <Text>No objects owned by the connected wallet</Text>
+        <p className="text-base">No objects owned by the connected wallet</p>
       ) : (
-        <Heading size="4">Objects owned by the connected wallet</Heading>
+        <h2 className="text-xl font-semibold">Objects owned by the connected wallet</h2>
       )}
       {data.data.map((object) => (
-        <Flex key={object.data?.objectId}>
-          <Text>Object ID: {object.data?.objectId}</Text>
-        </Flex>
+        <div key={object.data?.objectId} className="flex">
+          <p className="text-base">Object ID: {object.data?.objectId}</p>
+        </div>
       ))}
-    </Flex>
+    </div>
   );
 }
