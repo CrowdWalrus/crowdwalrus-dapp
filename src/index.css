@@ -192,6 +192,23 @@
 
   /* Spacing */
   --spacing-logo: 1.5rem;
+
+  /* Container max-widths for layout consistency */
+  --container-max-width: 1488px; /* Figma design content width */
+  --container-padding: 120px; /* Figma design horizontal padding */
+}
+
+/* ============================================
+   RADIX UI OVERRIDES
+   Customize Radix Themes without conflicts
+   ============================================ */
+
+.radix-themes {
+  /* Override Radix Container sizes to match Figma design */
+  --container-1: 448px;   /* Small */
+  --container-2: 688px;   /* Medium */
+  --container-3: 880px;   /* Large */
+  --container-4: 1488px;  /* XL - Figma content width (1728px - 240px padding) */
 }
 
 .dark {
