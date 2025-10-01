@@ -30,6 +30,7 @@ import { Card, CardContent } from "@/shared/components/ui/card";
 
 export default function NewCampaignPage() {
   const [coverImage, setCoverImage] = useState<string | null>(null);
+  const [isDragging, setIsDragging] = useState(false);
 
   const validateImage = (file: File): Promise<string | null> => {
     return new Promise((resolve) => {
@@ -67,6 +68,21 @@ export default function NewCampaignPage() {
     });
   };
 
+  const processFile = async (file: File) => {
+    const error = await validateImage(file);
+    if (error) {
+      toast.error(error);
+      return false;
+    }
+
+    const reader = new FileReader();
+    reader.onload = (event) => {
+      setCoverImage(event.target?.result as string);
+    };
+    reader.readAsDataURL(file);
+    return true;
+  };
+
   const handleImageChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
 
@@ -75,19 +91,44 @@ export default function NewCampaignPage() {
       return;
     }
 
-    const error = await validateImage(file);
-    if (error) {
-      toast.error(error);
+    const success = await processFile(file);
+    if (!success) {
       setCoverImage(null);
       e.target.value = "";
-      return;
     }
+  };
 
-    const reader = new FileReader();
-    reader.onload = (event) => {
-      setCoverImage(event.target?.result as string);
-    };
-    reader.readAsDataURL(file);
+  const handleDragOver = (e: React.DragEvent<HTMLDivElement>) => {
+    e.preventDefault();
+    e.stopPropagation();
+    setIsDragging(true);
+  };
+
+  const handleDragLeave = (e: React.DragEvent<HTMLDivElement>) => {
+    e.preventDefault();
+    e.stopPropagation();
+    setIsDragging(false);
+  };
+
+  const handleDrop = async (e: React.DragEvent<HTMLDivElement>) => {
+    e.preventDefault();
+    e.stopPropagation();
+    setIsDragging(false);
+
+    const file = e.dataTransfer.files?.[0];
+    if (!file) return;
+
+    const success = await processFile(file);
+    if (success) {
+      const fileInput = document.getElementById(
+        "cover-image",
+      ) as HTMLInputElement;
+      if (fileInput) {
+        const dataTransfer = new DataTransfer();
+        dataTransfer.items.add(file);
+        fileInput.files = dataTransfer.files;
+      }
+    }
   };
 
   const handleRemoveImage = () => {
@@ -183,7 +224,16 @@ export default function NewCampaignPage() {
                     Upload an image minimum 946x432px resolution. JPEG and PNG
                     format. Max up to 5MB.
                   </p>
-                  <div className="relative w-full h-[360px] rounded-3xl border-2 border-dashed border-border bg-muted/30 flex items-center justify-center overflow-hidden">
+                  <div
+                    className={`relative w-full h-[360px] rounded-3xl border-2 border-dashed flex items-center justify-center overflow-hidden transition-colors ${
+                      isDragging
+                        ? "border-primary bg-primary/10"
+                        : "border-border bg-muted/30"
+                    }`}
+                    onDragOver={handleDragOver}
+                    onDragLeave={handleDragLeave}
+                    onDrop={handleDrop}
+                  >
                     {coverImage ? (
                       <>
                         <img
@@ -205,7 +255,9 @@ export default function NewCampaignPage() {
                       <div className="flex flex-col items-center gap-2 text-muted-foreground">
                         <Upload className="h-12 w-12" />
                         <p className="text-sm">
-                          Click "Choose File" to upload an image
+                          {isDragging
+                            ? "Drop image here"
+                            : 'Drag and drop or click "Choose File" to upload'}
                         </p>
                       </div>
                     )}
