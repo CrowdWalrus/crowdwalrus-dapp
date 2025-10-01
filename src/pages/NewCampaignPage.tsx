@@ -60,13 +60,15 @@ export default function NewCampaignPage() {
             </div>
 
             {/* Campaign Details Section */}
-            <section className="mb-12">
+            <section className="flex flex-col mb-12 gap-8">
               <h2 className="text-2xl font-semibold mb-8">Campaign Details</h2>
 
-              <div className="-">
+              <div className="flex flex-col gap-8">
                 {/* Campaign Name */}
-                <div className="space-y-2">
-                  <Label htmlFor="campaign-name">Campaign name *</Label>
+                <div>
+                  <Label htmlFor="campaign-name" className="block pb-4">
+                    Title *
+                  </Label>
                   <Input
                     id="campaign-name"
                     placeholder="Enter your campaign name"
@@ -74,8 +76,10 @@ export default function NewCampaignPage() {
                 </div>
 
                 {/* Description */}
-                <div className="space-y-2">
-                  <Label htmlFor="description">Description *</Label>
+                <div>
+                  <Label htmlFor="description" className="block pb-4">
+                    Short description *
+                  </Label>
                   <Textarea
                     id="description"
                     placeholder="Brief description of your campaign"
@@ -84,16 +88,18 @@ export default function NewCampaignPage() {
                 </div>
 
                 {/* Subdomain */}
-                <div className="space-y-2">
-                  <Label htmlFor="subdomain">Sub-name *</Label>
+                <div>
+                  <Label htmlFor="subdomain" className="block pb-4">
+                    Sub-name *
+                  </Label>
                   <Input id="subdomain" placeholder="yourcampaign" />
-                  <p className="text-sm text-muted-foreground">
+                  <p className="text-sm text-muted-foreground pt-2">
                     yourcampaign.crowdwalrus.site
                   </p>
                 </div>
 
                 {/* Cover Image */}
-                <div className="space-y-2">
+                <div>
                   <Label htmlFor="cover-image">Cover image *</Label>
                   <p className="text-sm text-muted-foreground mb-3">
                     Upload an image minimum 946x432px resolution. JPEG and PNG
