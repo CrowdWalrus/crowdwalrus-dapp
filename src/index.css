@@ -1,128 +1,465 @@
+/* CrowdWalrus Brand Theme - Tailwind CSS v4 + ShadCN Compatible */
+/* Based strictly on CrowdWalrus Brand Guidelines PDF */
+
 @import 'tailwindcss';
 
 @plugin 'tailwindcss-animate';
 
 @custom-variant dark (&:is(.dark *));
 
-@theme {
+/* ============================================
+   CSS VARIABLES - Must be outside @layer base
+   ============================================ */
+
+:root {
+  /* ShadCN UI Theme Variables - Wrapped in oklch() */
+  --background: oklch(100.00% 0.000 0); /* white-50 */
+  --foreground: oklch(17.25% 0.028 273); /* black-500 */
+
+  --card: oklch(100.00% 0.000 0); /* white-50 */
+  --card-foreground: oklch(17.25% 0.028 273); /* black-500 */
+
+  --popover: oklch(100.00% 0.000 0); /* white-50 */
+  --popover-foreground: oklch(17.25% 0.028 273); /* black-500 */
+
+  --primary: oklch(53.67% 0.265 281); /* blue-500 */
+  --primary-foreground: oklch(100.00% 0.000 0); /* white-50 */
+
+  --secondary: oklch(71.59% 0.155 306); /* purple-500 */
+  --secondary-foreground: oklch(100.00% 0.000 0); /* white-50 */
+
+  --muted: oklch(97.61% 0.000 0); /* white-500 */
+  --muted-foreground: oklch(48.33% 0.015 276); /* black-300 */
+
+  --accent: oklch(78.56% 0.148 224); /* sky-500 */
+  --accent-foreground: oklch(17.25% 0.028 273); /* black-500 */
+
+  --destructive: oklch(63.71% 0.210 29); /* red-500 */
+  --destructive-foreground: oklch(100.00% 0.000 0); /* white-50 */
+
+  --border: oklch(90.97% 0.000 0); /* white-600 */
+  --input: oklch(90.97% 0.000 0); /* white-600 */
+  --ring: oklch(53.67% 0.265 281); /* blue-500 */
+
+  --chart-1: oklch(53.67% 0.265 281); /* blue-500 */
+  --chart-2: oklch(71.59% 0.155 306); /* purple-500 */
+  --chart-3: oklch(78.56% 0.148 224); /* sky-500 */
+  --chart-4: oklch(90.20% 0.068 186); /* green-500 */
+  --chart-5: oklch(81.09% 0.163 76); /* orange-500 */
+
+  --radius: 0.5rem;
+
+  /* Brand Color Palette - Blue (Page 17) */
+  --blue-50: oklch(95.10% 0.026 293);
+  --blue-100: oklch(84.65% 0.084 293);
+  --blue-200: oklch(77.27% 0.126 291);
+  --blue-300: oklch(67.24% 0.186 289);
+  --blue-400: oklch(61.52% 0.220 287);
+  --blue-500: oklch(53.67% 0.265 281);
+  --blue-600: oklch(50.17% 0.245 281);
+  --blue-700: oklch(42.03% 0.202 282);
+  --blue-800: oklch(35.33% 0.164 282);
+  --blue-900: oklch(29.69% 0.132 283);
+
+  /* Purple Palette (Page 17) */
+  --purple-50: oklch(97.09% 0.014 308);
+  --purple-100: oklch(91.09% 0.046 308);
+  --purple-200: oklch(86.81% 0.070 308);
+  --purple-300: oklch(80.83% 0.102 307);
+  --purple-400: oklch(77.07% 0.123 307);
+  --purple-500: oklch(71.59% 0.155 306);
+  --purple-600: oklch(66.78% 0.143 306);
+  --purple-700: oklch(55.79% 0.118 306);
+  --purple-800: oklch(46.48% 0.095 306);
+  --purple-900: oklch(38.82% 0.075 307);
+
+  /* Sky Blue Palette (Page 17) */
+  --sky-50: oklch(97.19% 0.022 214);
+  --sky-100: oklch(91.50% 0.067 215);
+  --sky-200: oklch(88.07% 0.095 215);
+  --sky-300: oklch(83.68% 0.125 218);
+  --sky-400: oklch(81.35% 0.138 220);
+  --sky-500: oklch(78.56% 0.148 224);
+  --sky-600: oklch(73.29% 0.137 224);
+  --sky-700: oklch(60.98% 0.114 224);
+  --sky-800: oklch(50.61% 0.094 223);
+  --sky-900: oklch(41.99% 0.077 222);
+
+  /* Green Palette (Page 17) */
+  --green-50: oklch(98.93% 0.006 185);
+  --green-100: oklch(96.89% 0.022 187);
+  --green-200: oklch(95.27% 0.033 187);
+  --green-300: oklch(93.40% 0.047 186);
+  --green-400: oklch(91.97% 0.055 186);
+  --green-500: oklch(90.20% 0.068 186);
+  --green-600: oklch(84.13% 0.063 185);
+  --green-700: oklch(69.89% 0.052 186);
+  --green-800: oklch(58.07% 0.042 186);
+  --green-900: oklch(47.98% 0.034 185);
+
+  /* White Palette (Page 18) */
+  --white-50: oklch(100.00% 0.000 0);
+  --white-100: oklch(99.40% 0.000 0);
+  --white-200: oklch(98.81% 0.000 0);
+  --white-300: oklch(98.51% 0.000 0);
+  --white-400: oklch(98.21% 0.000 0);
+  --white-500: oklch(97.61% 0.000 0);
+  --white-600: oklch(90.97% 0.000 0);
+  --white-700: oklch(75.40% 0.000 0);
+  --white-800: oklch(62.68% 0.000 0);
+  --white-900: oklch(51.73% 0.000 0);
+
+  /* Black Palette (Page 18) */
+  --black-50: oklch(92.83% 0.001 286);
+  --black-100: oklch(77.35% 0.006 275);
+  --black-200: oklch(65.69% 0.009 271);
+  --black-300: oklch(48.33% 0.015 276);
+  --black-400: oklch(36.97% 0.017 277);
+  --black-500: oklch(17.25% 0.028 273);
+  --black-600: oklch(16.66% 0.024 272);
+  --black-700: oklch(15.23% 0.020 274);
+  --black-800: oklch(13.70% 0.016 277);
+  --black-900: oklch(12.42% 0.015 275);
+
+  /* Semantic Red - Error (Page 19) */
+  --red-50: oklch(95.71% 0.020 21);
+  --red-100: oklch(86.92% 0.061 23);
+  --red-200: oklch(80.96% 0.094 24);
+  --red-300: oklch(73.30% 0.142 25);
+  --red-400: oklch(68.95% 0.172 26);
+  --red-500: oklch(63.71% 0.210 29);
+  --red-600: oklch(59.37% 0.195 29);
+  --red-700: oklch(49.53% 0.160 28);
+  --red-800: oklch(41.39% 0.131 28);
+  --red-900: oklch(34.59% 0.105 28);
+
+  /* Semantic Orange - Warning (Page 19) */
+  --orange-50: oklch(97.86% 0.020 82);
+  --orange-100: oklch(93.56% 0.063 84);
+  --orange-200: oklch(90.60% 0.092 83);
+  --orange-300: oklch(86.64% 0.127 81);
+  --orange-400: oklch(84.34% 0.145 80);
+  --orange-500: oklch(81.09% 0.163 76);
+  --orange-600: oklch(75.53% 0.152 76);
+  --orange-700: oklch(63.01% 0.126 76);
+  --orange-800: oklch(52.41% 0.103 77);
+  --orange-900: oklch(43.37% 0.084 78);
+
+  /* Semantic Green - Success (Page 19) */
+  --sgreen-50: oklch(97.41% 0.020 165);
+  --sgreen-100: oklch(91.90% 0.062 164);
+  --sgreen-200: oklch(88.36% 0.091 162);
+  --sgreen-300: oklch(83.61% 0.129 160);
+  --sgreen-400: oklch(80.82% 0.149 159);
+  --sgreen-500: oklch(77.30% 0.175 156);
+  --sgreen-600: oklch(72.10% 0.163 155);
+  --sgreen-700: oklch(59.99% 0.133 156);
+  --sgreen-800: oklch(49.95% 0.109 156);
+  --sgreen-900: oklch(41.30% 0.088 157);
+
+  /* Typography Variables */
+  --font-primary: 'Inter Tight', ui-sans-serif, system-ui, sans-serif;
+  --font-secondary: 'Inter', ui-sans-serif, system-ui, sans-serif;
+  --font-mono: ui-monospace, 'SF Mono', 'Monaco', 'Inconsolata', monospace;
+
+  /* Type Scale - Desktop (Pages 13-14) */
+  --font-size-h1: 5.25rem;
+  --font-size-h2: 3.75rem;
+  --font-size-h3: 3rem;
+  --font-size-h4: 2.5rem;
+  --font-size-h5: 2rem;
+  --font-size-h6: 1.625rem;
+  --font-size-extra-large: 1.625rem;
+  --font-size-large: 1.5rem;
+  --font-size-medium: 1.25rem;
+  --font-size-regular: 1.125rem;
+  --font-size-small: 1rem;
+  --font-size-extra-small: 0.875rem;
+  --font-size-tiny: 0.75rem;
+
+  /* Font Weights */
+  --font-weight-light: 300;
+  --font-weight-regular: 400;
+  --font-weight-medium: 500;
+  --font-weight-semibold: 600;
+  --font-weight-bold: 700;
+  --font-weight-extrabold: 800;
+
+  /* Line Heights */
+  --line-height-heading: 1.1;
+  --line-height-tight: 1.2;
+  --line-height-body: 1.6;
+
+  /* Spacing */
+  --spacing-logo: 1.5rem;
+}
+
+.dark {
+  --background: oklch(17.25% 0.028 273); /* black-500 */
+  --foreground: oklch(100.00% 0.000 0); /* white-50 */
+
+  --card: oklch(36.97% 0.017 277); /* black-400 */
+  --card-foreground: oklch(100.00% 0.000 0); /* white-50 */
+
+  --popover: oklch(36.97% 0.017 277); /* black-400 */
+  --popover-foreground: oklch(100.00% 0.000 0); /* white-50 */
+
+  --primary: oklch(53.67% 0.265 281); /* blue-500 */
+  --primary-foreground: oklch(100.00% 0.000 0); /* white-50 */
+
+  --secondary: oklch(71.59% 0.155 306); /* purple-500 */
+  --secondary-foreground: oklch(100.00% 0.000 0); /* white-50 */
+
+  --muted: oklch(48.33% 0.015 276); /* black-300 */
+  --muted-foreground: oklch(75.40% 0.000 0); /* white-700 */
+
+  --accent: oklch(78.56% 0.148 224); /* sky-500 */
+  --accent-foreground: oklch(100.00% 0.000 0); /* white-50 */
+
+  --destructive: oklch(63.71% 0.210 29); /* red-500 */
+  --destructive-foreground: oklch(100.00% 0.000 0); /* white-50 */
+
+  --border: oklch(48.33% 0.015 276); /* black-300 */
+  --input: oklch(48.33% 0.015 276); /* black-300 */
+  --ring: oklch(61.52% 0.220 287); /* blue-400 */
+}
+
+/* ============================================
+   TAILWIND V4 @theme inline
+   Maps CSS variables to Tailwind utilities
+   ============================================ */
+
+@theme inline {
+  /* Radius utilities */
   --radius-lg: var(--radius);
   --radius-md: calc(var(--radius) - 2px);
   --radius-sm: calc(var(--radius) - 4px);
 
-  --color-background: hsl(var(--background));
-  --color-foreground: hsl(var(--foreground));
+  /* ShadCN UI color mappings - No wrapper needed with @theme inline */
+  --color-background: var(--background);
+  --color-foreground: var(--foreground);
+  --color-card: var(--card);
+  --color-card-foreground: var(--card-foreground);
+  --color-popover: var(--popover);
+  --color-popover-foreground: var(--popover-foreground);
+  --color-primary: var(--primary);
+  --color-primary-foreground: var(--primary-foreground);
+  --color-secondary: var(--secondary);
+  --color-secondary-foreground: var(--secondary-foreground);
+  --color-muted: var(--muted);
+  --color-muted-foreground: var(--muted-foreground);
+  --color-accent: var(--accent);
+  --color-accent-foreground: var(--accent-foreground);
+  --color-destructive: var(--destructive);
+  --color-destructive-foreground: var(--destructive-foreground);
+  --color-border: var(--border);
+  --color-input: var(--input);
+  --color-ring: var(--ring);
+  --color-chart-1: var(--chart-1);
+  --color-chart-2: var(--chart-2);
+  --color-chart-3: var(--chart-3);
+  --color-chart-4: var(--chart-4);
+  --color-chart-5: var(--chart-5);
 
-  --color-card: hsl(var(--card));
-  --color-card-foreground: hsl(var(--card-foreground));
+  /* Brand color palette mappings */
+  --color-blue-50: var(--blue-50);
+  --color-blue-100: var(--blue-100);
+  --color-blue-200: var(--blue-200);
+  --color-blue-300: var(--blue-300);
+  --color-blue-400: var(--blue-400);
+  --color-blue-500: var(--blue-500);
+  --color-blue-600: var(--blue-600);
+  --color-blue-700: var(--blue-700);
+  --color-blue-800: var(--blue-800);
+  --color-blue-900: var(--blue-900);
 
-  --color-popover: hsl(var(--popover));
-  --color-popover-foreground: hsl(var(--popover-foreground));
+  --color-purple-50: var(--purple-50);
+  --color-purple-100: var(--purple-100);
+  --color-purple-200: var(--purple-200);
+  --color-purple-300: var(--purple-300);
+  --color-purple-400: var(--purple-400);
+  --color-purple-500: var(--purple-500);
+  --color-purple-600: var(--purple-600);
+  --color-purple-700: var(--purple-700);
+  --color-purple-800: var(--purple-800);
+  --color-purple-900: var(--purple-900);
 
-  --color-primary: hsl(var(--primary));
-  --color-primary-foreground: hsl(var(--primary-foreground));
+  --color-sky-50: var(--sky-50);
+  --color-sky-100: var(--sky-100);
+  --color-sky-200: var(--sky-200);
+  --color-sky-300: var(--sky-300);
+  --color-sky-400: var(--sky-400);
+  --color-sky-500: var(--sky-500);
+  --color-sky-600: var(--sky-600);
+  --color-sky-700: var(--sky-700);
+  --color-sky-800: var(--sky-800);
+  --color-sky-900: var(--sky-900);
 
-  --color-secondary: hsl(var(--secondary));
-  --color-secondary-foreground: hsl(var(--secondary-foreground));
+  --color-green-50: var(--green-50);
+  --color-green-100: var(--green-100);
+  --color-green-200: var(--green-200);
+  --color-green-300: var(--green-300);
+  --color-green-400: var(--green-400);
+  --color-green-500: var(--green-500);
+  --color-green-600: var(--green-600);
+  --color-green-700: var(--green-700);
+  --color-green-800: var(--green-800);
+  --color-green-900: var(--green-900);
 
-  --color-muted: hsl(var(--muted));
-  --color-muted-foreground: hsl(var(--muted-foreground));
+  --color-white-50: var(--white-50);
+  --color-white-100: var(--white-100);
+  --color-white-200: var(--white-200);
+  --color-white-300: var(--white-300);
+  --color-white-400: var(--white-400);
+  --color-white-500: var(--white-500);
+  --color-white-600: var(--white-600);
+  --color-white-700: var(--white-700);
+  --color-white-800: var(--white-800);
+  --color-white-900: var(--white-900);
 
-  --color-accent: hsl(var(--accent));
-  --color-accent-foreground: hsl(var(--accent-foreground));
+  --color-black-50: var(--black-50);
+  --color-black-100: var(--black-100);
+  --color-black-200: var(--black-200);
+  --color-black-300: var(--black-300);
+  --color-black-400: var(--black-400);
+  --color-black-500: var(--black-500);
+  --color-black-600: var(--black-600);
+  --color-black-700: var(--black-700);
+  --color-black-800: var(--black-800);
+  --color-black-900: var(--black-900);
 
-  --color-destructive: hsl(var(--destructive));
-  --color-destructive-foreground: hsl(var(--destructive-foreground));
+  --color-red-50: var(--red-50);
+  --color-red-100: var(--red-100);
+  --color-red-200: var(--red-200);
+  --color-red-300: var(--red-300);
+  --color-red-400: var(--red-400);
+  --color-red-500: var(--red-500);
+  --color-red-600: var(--red-600);
+  --color-red-700: var(--red-700);
+  --color-red-800: var(--red-800);
+  --color-red-900: var(--red-900);
 
-  --color-border: hsl(var(--border));
-  --color-input: hsl(var(--input));
-  --color-ring: hsl(var(--ring));
+  --color-orange-50: var(--orange-50);
+  --color-orange-100: var(--orange-100);
+  --color-orange-200: var(--orange-200);
+  --color-orange-300: var(--orange-300);
+  --color-orange-400: var(--orange-400);
+  --color-orange-500: var(--orange-500);
+  --color-orange-600: var(--orange-600);
+  --color-orange-700: var(--orange-700);
+  --color-orange-800: var(--orange-800);
+  --color-orange-900: var(--orange-900);
 
-  --color-chart-1: hsl(var(--chart-1));
-  --color-chart-2: hsl(var(--chart-2));
-  --color-chart-3: hsl(var(--chart-3));
-  --color-chart-4: hsl(var(--chart-4));
-  --color-chart-5: hsl(var(--chart-5));
+  --color-sgreen-50: var(--sgreen-50);
+  --color-sgreen-100: var(--sgreen-100);
+  --color-sgreen-200: var(--sgreen-200);
+  --color-sgreen-300: var(--sgreen-300);
+  --color-sgreen-400: var(--sgreen-400);
+  --color-sgreen-500: var(--sgreen-500);
+  --color-sgreen-600: var(--sgreen-600);
+  --color-sgreen-700: var(--sgreen-700);
+  --color-sgreen-800: var(--sgreen-800);
+  --color-sgreen-900: var(--sgreen-900);
 }
 
-/*
-  The default border color has changed to `currentcolor` in Tailwind CSS v4,
-  so we've added these compatibility styles to make sure everything still
-  looks the same as it did with Tailwind CSS v3.
+/* ============================================
+   BASE STYLES
+   ============================================ */
 
-  If we ever want to remove these styles, we need to add an explicit border
-  color utility to any element that depends on these defaults.
-*/
 @layer base {
+  /* Tailwind v4 border color compatibility */
   *,
   ::after,
   ::before,
   ::backdrop,
   ::file-selector-button {
-    border-color: var(--color-gray-200, currentcolor);
+    border-color: var(--color-border, currentcolor);
   }
-}
 
-@layer base {
-  :root {
-    --background: 0 0% 100%;
-    --foreground: 0 0% 3.9%;
-    --card: 0 0% 100%;
-    --card-foreground: 0 0% 3.9%;
-    --popover: 0 0% 100%;
-    --popover-foreground: 0 0% 3.9%;
-    --primary: 0 0% 9%;
-    --primary-foreground: 0 0% 98%;
-    --secondary: 0 0% 96.1%;
-    --secondary-foreground: 0 0% 9%;
-    --muted: 0 0% 96.1%;
-    --muted-foreground: 0 0% 45.1%;
-    --accent: 0 0% 96.1%;
-    --accent-foreground: 0 0% 9%;
-    --destructive: 0 84.2% 60.2%;
-    --destructive-foreground: 0 0% 98%;
-    --border: 0 0% 89.8%;
-    --input: 0 0% 89.8%;
-    --ring: 0 0% 3.9%;
-    --chart-1: 12 76% 61%;
-    --chart-2: 173 58% 39%;
-    --chart-3: 197 37% 24%;
-    --chart-4: 43 74% 66%;
-    --chart-5: 27 87% 67%;
-    --radius: 0.5rem
-  }
-  .dark {
-    --background: 0 0% 3.9%;
-    --foreground: 0 0% 98%;
-    --card: 0 0% 3.9%;
-    --card-foreground: 0 0% 98%;
-    --popover: 0 0% 3.9%;
-    --popover-foreground: 0 0% 98%;
-    --primary: 0 0% 98%;
-    --primary-foreground: 0 0% 9%;
-    --secondary: 0 0% 14.9%;
-    --secondary-foreground: 0 0% 98%;
-    --muted: 0 0% 14.9%;
-    --muted-foreground: 0 0% 63.9%;
-    --accent: 0 0% 14.9%;
-    --accent-foreground: 0 0% 98%;
-    --destructive: 0 62.8% 30.6%;
-    --destructive-foreground: 0 0% 98%;
-    --border: 0 0% 14.9%;
-    --input: 0 0% 14.9%;
-    --ring: 0 0% 83.1%;
-    --chart-1: 220 70% 50%;
-    --chart-2: 160 60% 45%;
-    --chart-3: 30 80% 55%;
-    --chart-4: 280 65% 60%;
-    --chart-5: 340 75% 55%
-  }
-}
-
-@layer base {
+  /* Base element styles */
   * {
     @apply border-border;
   }
+
   body {
     @apply bg-background text-foreground;
+    font-family: var(--font-secondary);
+    font-size: 16px;
+    line-height: var(--line-height-body);
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+  }
+
+  /* Headings use Inter Tight as specified in brand guidelines */
+  h1, h2, h3, h4, h5, h6 {
+    font-family: var(--font-primary);
+    font-weight: var(--font-weight-bold);
+  }
+
+  h1 {
+    font-size: var(--font-size-h1);
+    line-height: var(--line-height-heading);
+  }
+
+  h2 {
+    font-size: var(--font-size-h2);
+    line-height: var(--line-height-tight);
+  }
+
+  h3 {
+    font-size: var(--font-size-h3);
+    line-height: var(--line-height-tight);
+  }
+
+  h4 {
+    font-size: var(--font-size-h4);
+    line-height: var(--line-height-tight);
+  }
+
+  h5 {
+    font-size: var(--font-size-h5);
+    line-height: var(--line-height-tight);
+  }
+
+  h6 {
+    font-size: var(--font-size-h6);
+    line-height: var(--line-height-tight);
+  }
+
+  /* Body text uses Inter */
+  p {
+    font-family: var(--font-secondary);
+    line-height: var(--line-height-body);
+  }
+
+  /* Code elements */
+  code, pre {
+    font-family: var(--font-mono);
+  }
+
+  /* Selection colors */
+  ::selection {
+    background-color: var(--blue-500);
+    color: var(--white-50);
+  }
+}
+
+/* ============================================
+   CUSTOM UTILITIES
+   ============================================ */
+
+@layer utilities {
+  /* Logo safe area utility */
+  .logo-safe {
+    padding: var(--spacing-logo);
+  }
+
+  /* Font family utilities */
+  .font-display {
+    font-family: var(--font-primary);
+  }
+
+  .font-body {
+    font-family: var(--font-secondary);
   }
 }
