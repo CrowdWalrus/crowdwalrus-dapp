@@ -65,10 +65,8 @@ export default function NewCampaignPage() {
 
               <div className="flex flex-col gap-8">
                 {/* Campaign Name */}
-                <div>
-                  <Label htmlFor="campaign-name" className="block pb-4">
-                    Title *
-                  </Label>
+                <div className="flex flex-col gap-4">
+                  <Label htmlFor="campaign-name">Title *</Label>
                   <Input
                     id="campaign-name"
                     placeholder="Enter your campaign name"
@@ -76,10 +74,8 @@ export default function NewCampaignPage() {
                 </div>
 
                 {/* Description */}
-                <div>
-                  <Label htmlFor="description" className="block pb-4">
-                    Short description *
-                  </Label>
+                <div className="flex flex-col gap-4">
+                  <Label htmlFor="description">Short description *</Label>
                   <Textarea
                     id="description"
                     placeholder="Brief description of your campaign"
@@ -103,7 +99,7 @@ export default function NewCampaignPage() {
                   <Label htmlFor="cover-image" className="block pb-4">
                     Cover image *
                   </Label>
-                  <Input id="cover-image" type="file" accept="image/*" />
+                  <Input id="cover-image" type="file" accept="image/*" className="py-1.5" />
                   <p className="text-sm text-muted-foreground pt-2 pb-3">
                     Upload an image minimum 946x432px resolution. JPEG and PNG
                     format. Max up to 5MB.
