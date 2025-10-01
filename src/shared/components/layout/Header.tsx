@@ -1,14 +1,14 @@
 import {
   useCurrentAccount,
   ConnectButton,
-  useSwitchAccount,
   useDisconnectWallet,
 } from "@mysten/dapp-kit";
 import { Link } from "react-router-dom";
 import { Button } from "@/shared/components/ui/button";
-import { ChevronDownIcon } from "@radix-ui/react-icons";
-import { PlusIcon, Wallet, WalletMinimal } from "lucide-react";
+
+import { PlusIcon, WalletMinimal } from "lucide-react";
 import { useRef } from "react";
+import { ROUTES } from "@/shared/config/routes";
 
 export function Header() {
   const account = useCurrentAccount();
@@ -68,7 +68,7 @@ export function Header() {
           {/* Actions */}
           <div className="flex gap-4 items-center">
             <Button asChild>
-              <Link to="/campaigns/new">
+              <Link to={ROUTES.CAMPAIGNS_NEW}>
                 <PlusIcon />
                 Launch Campaign
               </Link>
