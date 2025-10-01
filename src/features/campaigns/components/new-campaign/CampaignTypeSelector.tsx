@@ -1,4 +1,3 @@
-import { Label } from "@/shared/components/ui/label";
 import { RadioGroup, RadioGroupItem } from "@/shared/components/ui/radio-group";
 
 interface CampaignTypeSelectorProps {
@@ -11,34 +10,45 @@ export function CampaignTypeSelector({
   onChange,
 }: CampaignTypeSelectorProps) {
   return (
-    <section className="mb-12">
-      <h2 className="text-2xl font-semibold mb-8">Campaign Type *</h2>
+    <section className="flex flex-col gap-8">
+      <h2 className="text-2xl font-bold leading-[1.6] text-[#0c0f1c]">
+        Campaign Type <span className="text-[#f5827a]">*</span>
+      </h2>
 
       <RadioGroup value={value} onValueChange={onChange} className="flex gap-6">
-        <div className="flex items-start space-x-3 flex-1">
-          <RadioGroupItem value="flexible" id="flexible" className="mt-1" />
-          <div className="space-y-1">
-            <Label htmlFor="flexible" className="font-medium cursor-pointer">
-              Flexible
-            </Label>
-            <p className="text-sm text-muted-foreground">
-              You will receive all funds raised, even if you don't reach your
-              goal
-            </p>
+        <label
+          htmlFor="nonprofit"
+          className="flex items-start gap-2 bg-white border border-[#e5e5e5] rounded-[10px] px-3 py-2 cursor-pointer hover:border-neutral-300 transition-colors flex-1"
+        >
+          <div className="pt-[2.5px]">
+            <RadioGroupItem value="nonprofit" id="nonprofit" />
           </div>
-        </div>
+          <div className="flex flex-col gap-0">
+            <span className="text-sm leading-[1.5] font-normal text-[#404040] tracking-[0.07px]">
+              Non-Profit
+            </span>
+            <span className="text-xs leading-[1.5] font-normal text-[#737373] tracking-[0.18px]">
+              100% of donations go to your cause.
+            </span>
+          </div>
+        </label>
 
-        <div className="flex items-start space-x-3 flex-1">
-          <RadioGroupItem value="fixed" id="fixed" className="mt-1" />
-          <div className="space-y-1">
-            <Label htmlFor="fixed" className="font-medium cursor-pointer">
-              Fixed (All-or-Nothing)
-            </Label>
-            <p className="text-sm text-muted-foreground">
-              You only receive funds if you reach your goal by the deadline
-            </p>
+        <label
+          htmlFor="commercial"
+          className="flex items-start gap-2 bg-white border border-[#e5e5e5] rounded-[10px] px-3 py-2 cursor-pointer hover:border-neutral-300 transition-colors flex-1"
+        >
+          <div className="pt-[2.5px]">
+            <RadioGroupItem value="commercial" id="commercial" />
           </div>
-        </div>
+          <div className="flex flex-col gap-0">
+            <span className="text-sm leading-[1.5] font-normal text-[#404040] tracking-[0.07px]">
+              Commercial
+            </span>
+            <span className="text-xs leading-[1.5] font-normal text-[#737373] tracking-[0.18px]">
+              You'll be charged a 5% platform fee on funds raised.
+            </span>
+          </div>
+        </label>
       </RadioGroup>
     </section>
   );
