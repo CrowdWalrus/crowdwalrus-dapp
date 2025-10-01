@@ -1,7 +1,5 @@
 import { useState } from "react";
 import { Link } from "react-router-dom";
-import { Upload, X, Plus } from "lucide-react";
-import { toast } from "sonner";
 import { ROUTES } from "@/shared/config/routes";
 import {
   Breadcrumb,
@@ -16,130 +14,43 @@ import { Input } from "@/shared/components/ui/input";
 import { Label } from "@/shared/components/ui/label";
 import { Textarea } from "@/shared/components/ui/textarea";
 import { Separator } from "@/shared/components/ui/separator";
-import { RadioGroup, RadioGroupItem } from "@/shared/components/ui/radio-group";
-import { Checkbox } from "@/shared/components/ui/checkbox";
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/shared/components/ui/select";
 import { Alert, AlertDescription } from "@/shared/components/ui/alert";
-import { Card, CardContent } from "@/shared/components/ui/card";
+import {
+  CampaignCoverImageUpload,
+  CampaignTypeSelector,
+  CampaignCategorySelector,
+  CampaignTimeline,
+  CampaignFundingTargetSection,
+  CampaignSocialsSection,
+  CampaignDetailsEditor,
+  CampaignStorageRegistrationCard,
+  CampaignTermsAndConditionsSection,
+  type Social,
+  type StorageCost,
+} from "@/features/campaigns/components/new-campaign";
 
 export default function NewCampaignPage() {
   const [coverImage, setCoverImage] = useState<string | null>(null);
-  const [isDragging, setIsDragging] = useState(false);
+  const [campaignType, setCampaignType] = useState("flexible");
+  const [categories, setCategories] = useState<string[]>([]);
+  const [startDate, setStartDate] = useState("");
+  const [endDate, setEndDate] = useState("");
+  const [targetAmount, setTargetAmount] = useState("");
+  const [walletAddress, setWalletAddress] = useState("");
+  const [socials, setSocials] = useState<Social[]>([
+    { platform: "website", url: "" },
+    { platform: "twitter", url: "" },
+    { platform: "instagram", url: "" },
+  ]);
+  const [campaignDetails, setCampaignDetails] = useState("");
+  const [termsAccepted, setTermsAccepted] = useState(false);
 
-  const validateImage = (file: File): Promise<string | null> => {
-    return new Promise((resolve) => {
-      // Check file type
-      if (!file.type.match(/^image\/(jpeg|png)$/)) {
-        resolve("Please upload a JPEG or PNG image.");
-        return;
-      }
-
-      // Check file size (5MB = 5 * 1024 * 1024 bytes)
-      if (file.size > 5 * 1024 * 1024) {
-        resolve("Image size must be less than 5MB.");
-        return;
-      }
-
-      // Check dimensions
-      const img = new Image();
-      const objectUrl = URL.createObjectURL(file);
-
-      img.onload = () => {
-        URL.revokeObjectURL(objectUrl);
-        if (img.width < 946 || img.height < 432) {
-          resolve("Image must be at least 946x432px.");
-        } else {
-          resolve(null);
-        }
-      };
-
-      img.onerror = () => {
-        URL.revokeObjectURL(objectUrl);
-        resolve("Failed to load image.");
-      };
-
-      img.src = objectUrl;
-    });
-  };
-
-  const processFile = async (file: File) => {
-    const error = await validateImage(file);
-    if (error) {
-      toast.error(error);
-      return false;
-    }
-
-    const reader = new FileReader();
-    reader.onload = (event) => {
-      setCoverImage(event.target?.result as string);
-    };
-    reader.readAsDataURL(file);
-    return true;
-  };
-
-  const handleImageChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0];
-
-    if (!file) {
-      setCoverImage(null);
-      return;
-    }
-
-    const success = await processFile(file);
-    if (!success) {
-      setCoverImage(null);
-      e.target.value = "";
-    }
-  };
-
-  const handleDragOver = (e: React.DragEvent<HTMLDivElement>) => {
-    e.preventDefault();
-    e.stopPropagation();
-    setIsDragging(true);
-  };
-
-  const handleDragLeave = (e: React.DragEvent<HTMLDivElement>) => {
-    e.preventDefault();
-    e.stopPropagation();
-    setIsDragging(false);
-  };
-
-  const handleDrop = async (e: React.DragEvent<HTMLDivElement>) => {
-    e.preventDefault();
-    e.stopPropagation();
-    setIsDragging(false);
-
-    const file = e.dataTransfer.files?.[0];
-    if (!file) return;
-
-    const success = await processFile(file);
-    if (success) {
-      const fileInput = document.getElementById(
-        "cover-image",
-      ) as HTMLInputElement;
-      if (fileInput) {
-        const dataTransfer = new DataTransfer();
-        dataTransfer.items.add(file);
-        fileInput.files = dataTransfer.files;
-      }
-    }
-  };
-
-  const handleRemoveImage = () => {
-    setCoverImage(null);
-    const fileInput = document.getElementById(
-      "cover-image",
-    ) as HTMLInputElement;
-    if (fileInput) {
-      fileInput.value = "";
-    }
-  };
+  const storageCosts: StorageCost[] = [
+    { label: "Campaign metadata", amount: "0.0024 SUI" },
+    { label: "Cover image (2.3 MB)", amount: "0.0156 SUI" },
+    { label: "Campaign description", amount: "0.0048 SUI" },
+    { label: "Storage epoch (100 years)", amount: "2.5000 SUI" },
+  ];
 
   return (
     <div className="py-8">
@@ -209,249 +120,44 @@ export default function NewCampaignPage() {
                 </div>
 
                 {/* Cover Image */}
-                <div>
-                  <Label htmlFor="cover-image" className="block pb-4">
-                    Cover image *
-                  </Label>
-                  <Input
-                    id="cover-image"
-                    type="file"
-                    accept="image/jpeg,image/png"
-                    className="py-1.5"
-                    onChange={handleImageChange}
-                  />
-                  <p className="text-sm text-muted-foreground pt-2 pb-3">
-                    Upload an image minimum 946x432px resolution. JPEG and PNG
-                    format. Max up to 5MB.
-                  </p>
-                  <div
-                    className={`relative w-full h-[360px] rounded-3xl border-2 border-dashed flex items-center justify-center overflow-hidden transition-colors ${
-                      isDragging
-                        ? "border-primary bg-primary/10"
-                        : "border-border bg-muted/30"
-                    }`}
-                    onDragOver={handleDragOver}
-                    onDragLeave={handleDragLeave}
-                    onDrop={handleDrop}
-                  >
-                    {coverImage ? (
-                      <>
-                        <img
-                          src={coverImage}
-                          alt="Cover preview"
-                          className="w-full h-full object-cover"
-                        />
-                        <Button
-                          size="icon"
-                          variant="destructive"
-                          className="absolute top-5 right-5"
-                          onClick={handleRemoveImage}
-                          type="button"
-                        >
-                          <X className="h-4 w-4" />
-                        </Button>
-                      </>
-                    ) : (
-                      <div className="flex flex-col items-center gap-2 text-muted-foreground">
-                        <Upload className="h-12 w-12" />
-                        <p className="text-sm">
-                          {isDragging
-                            ? "Drop image here"
-                            : 'Drag and drop or click "Choose File" to upload'}
-                        </p>
-                      </div>
-                    )}
-                  </div>
-                </div>
+                <CampaignCoverImageUpload
+                  value={coverImage}
+                  onChange={setCoverImage}
+                />
               </div>
             </section>
 
             <Separator className="my-12" />
 
             {/* Campaign Type Section */}
-            <section className="mb-12">
-              <h2 className="text-2xl font-semibold mb-8">Campaign Type *</h2>
-
-              <RadioGroup defaultValue="flexible" className="flex gap-6">
-                <div className="flex items-start space-x-3 flex-1">
-                  <RadioGroupItem
-                    value="flexible"
-                    id="flexible"
-                    className="mt-1"
-                  />
-                  <div className="space-y-1">
-                    <Label
-                      htmlFor="flexible"
-                      className="font-medium cursor-pointer"
-                    >
-                      Flexible
-                    </Label>
-                    <p className="text-sm text-muted-foreground">
-                      You will receive all funds raised, even if you don't reach
-                      your goal
-                    </p>
-                  </div>
-                </div>
-
-                <div className="flex items-start space-x-3 flex-1">
-                  <RadioGroupItem value="fixed" id="fixed" className="mt-1" />
-                  <div className="space-y-1">
-                    <Label
-                      htmlFor="fixed"
-                      className="font-medium cursor-pointer"
-                    >
-                      Fixed (All-or-Nothing)
-                    </Label>
-                    <p className="text-sm text-muted-foreground">
-                      You only receive funds if you reach your goal by the
-                      deadline
-                    </p>
-                  </div>
-                </div>
-              </RadioGroup>
-            </section>
+            <CampaignTypeSelector
+              value={campaignType}
+              onChange={setCampaignType}
+            />
 
             {/* Select Category Section */}
-            <section className="mb-12">
-              <h2 className="text-2xl font-semibold mb-8">Select Category *</h2>
-              <p className="text-muted-foreground mb-6">
-                Pick a category that best describes your campaign. You can
-                select multiple category options.
-              </p>
-
-              <div className="grid grid-cols-2 gap-x-6 gap-y-6">
-                {/* Column 1 */}
-                <div className="space-y-6">
-                  <div className="flex items-center space-x-2">
-                    <Checkbox id="tech" />
-                    <Label
-                      htmlFor="tech"
-                      className="cursor-pointer font-normal"
-                    >
-                      Technology
-                    </Label>
-                  </div>
-                  <div className="flex items-center space-x-2">
-                    <Checkbox id="education" />
-                    <Label
-                      htmlFor="education"
-                      className="cursor-pointer font-normal"
-                    >
-                      Education
-                    </Label>
-                  </div>
-                  <div className="flex items-center space-x-2">
-                    <Checkbox id="community" />
-                    <Label
-                      htmlFor="community"
-                      className="cursor-pointer font-normal"
-                    >
-                      Community
-                    </Label>
-                  </div>
-                  <div className="flex items-center space-x-2">
-                    <Checkbox id="health" />
-                    <Label
-                      htmlFor="health"
-                      className="cursor-pointer font-normal"
-                    >
-                      Health
-                    </Label>
-                  </div>
-                </div>
-
-                {/* Column 2 */}
-                <div className="space-y-6">
-                  <div className="flex items-center space-x-2">
-                    <Checkbox id="environment" />
-                    <Label
-                      htmlFor="environment"
-                      className="cursor-pointer font-normal"
-                    >
-                      Environment
-                    </Label>
-                  </div>
-                  <div className="flex items-center space-x-2">
-                    <Checkbox id="arts" />
-                    <Label
-                      htmlFor="arts"
-                      className="cursor-pointer font-normal"
-                    >
-                      Arts
-                    </Label>
-                  </div>
-                  <div className="flex items-center space-x-2">
-                    <Checkbox id="sports" />
-                    <Label
-                      htmlFor="sports"
-                      className="cursor-pointer font-normal"
-                    >
-                      Sports
-                    </Label>
-                  </div>
-                  <div className="flex items-center space-x-2">
-                    <Checkbox id="other" />
-                    <Label
-                      htmlFor="other"
-                      className="cursor-pointer font-normal"
-                    >
-                      Other
-                    </Label>
-                  </div>
-                </div>
-              </div>
-            </section>
+            <CampaignCategorySelector
+              value={categories}
+              onChange={setCategories}
+            />
 
             <Separator className="my-12" />
 
             {/* Campaign Timeline Section */}
-            <section className="mb-12">
-              <h2 className="text-2xl font-semibold mb-8">
-                Campaign Timeline *
-              </h2>
-              <p className="text-muted-foreground mb-6">
-                Set a timeline for your campaign to start and end
-              </p>
-
-              <div className="flex gap-4">
-                <div className="flex-1">
-                  <Input type="date" placeholder="Start date" />
-                </div>
-                <div className="flex-1">
-                  <Input type="date" placeholder="End date" />
-                </div>
-              </div>
-            </section>
+            <CampaignTimeline
+              startDate={startDate}
+              endDate={endDate}
+              onStartDateChange={setStartDate}
+              onEndDateChange={setEndDate}
+            />
 
             {/* Funding Target Section */}
-            <section className="mb-12">
-              <h2 className="text-2xl font-semibold mb-8">Funding Target *</h2>
-
-              <div className="space-y-6">
-                <div className="space-y-2">
-                  <Label htmlFor="target-amount">Target amount (SUI)</Label>
-                  <Input
-                    id="target-amount"
-                    type="number"
-                    placeholder="Enter target amount"
-                  />
-                </div>
-
-                <div className="space-y-2">
-                  <Label htmlFor="wallet-address">
-                    Recipient wallet address *
-                  </Label>
-                  <Input
-                    id="wallet-address"
-                    placeholder="0x..."
-                    className="font-mono"
-                  />
-                  <p className="text-sm text-muted-foreground">
-                    This is the wallet that will receive all donation funds
-                  </p>
-                </div>
-              </div>
-            </section>
+            <CampaignFundingTargetSection
+              targetAmount={targetAmount}
+              walletAddress={walletAddress}
+              onTargetAmountChange={setTargetAmount}
+              onWalletAddressChange={setWalletAddress}
+            />
 
             <Separator className="my-12" />
 
@@ -462,151 +168,28 @@ export default function NewCampaignPage() {
               </h2>
 
               {/* Add Socials */}
-              <div className="mb-10">
-                <h3 className="text-lg font-medium mb-6">Add socials</h3>
-                <div className="space-y-4">
-                  <div className="flex gap-4">
-                    <Select defaultValue="website">
-                      <SelectTrigger className="w-40">
-                        <SelectValue />
-                      </SelectTrigger>
-                      <SelectContent>
-                        <SelectItem value="website">Website</SelectItem>
-                        <SelectItem value="twitter">Twitter</SelectItem>
-                        <SelectItem value="instagram">Instagram</SelectItem>
-                        <SelectItem value="facebook">Facebook</SelectItem>
-                        <SelectItem value="linkedin">LinkedIn</SelectItem>
-                      </SelectContent>
-                    </Select>
-                    <Input placeholder="https://" className="flex-1" />
-                  </div>
-
-                  <div className="flex gap-4">
-                    <Select defaultValue="twitter">
-                      <SelectTrigger className="w-40">
-                        <SelectValue />
-                      </SelectTrigger>
-                      <SelectContent>
-                        <SelectItem value="website">Website</SelectItem>
-                        <SelectItem value="twitter">Twitter</SelectItem>
-                        <SelectItem value="instagram">Instagram</SelectItem>
-                        <SelectItem value="facebook">Facebook</SelectItem>
-                        <SelectItem value="linkedin">LinkedIn</SelectItem>
-                      </SelectContent>
-                    </Select>
-                    <Input placeholder="https://" className="flex-1" />
-                  </div>
-
-                  <div className="flex gap-4">
-                    <Select defaultValue="instagram">
-                      <SelectTrigger className="w-40">
-                        <SelectValue />
-                      </SelectTrigger>
-                      <SelectContent>
-                        <SelectItem value="website">Website</SelectItem>
-                        <SelectItem value="twitter">Twitter</SelectItem>
-                        <SelectItem value="instagram">Instagram</SelectItem>
-                        <SelectItem value="facebook">Facebook</SelectItem>
-                        <SelectItem value="linkedin">LinkedIn</SelectItem>
-                      </SelectContent>
-                    </Select>
-                    <Input placeholder="https://" className="flex-1" />
-                  </div>
-
-                  <Button variant="outline" size="sm" className="w-40">
-                    <Plus className="h-4 w-4" />
-                    Add more
-                  </Button>
-                </div>
-              </div>
+              <CampaignSocialsSection value={socials} onChange={setSocials} />
 
               {/* Rich Text Editor */}
-              <div>
-                <div className="mb-4">
-                  <Label htmlFor="campaign-details">Campaign details *</Label>
-                  <p className="text-sm text-muted-foreground mt-1">
-                    Add a detailed campaign description, images, links, and
-                    attachments.
-                  </p>
-                </div>
-                <div className="border border-border rounded-lg p-4 bg-muted/30 min-h-[400px]">
-                  <p className="text-muted-foreground">
-                    Rich text editor placeholder
-                  </p>
-                </div>
-              </div>
+              <CampaignDetailsEditor
+                value={campaignDetails}
+                onChange={setCampaignDetails}
+              />
             </section>
 
             <Separator className="my-12" />
 
             {/* Terms and Conditions Section */}
-            <section className="mb-12">
-              <h3 className="text-lg font-medium mb-6">Terms and conditions</h3>
-
-              <div className="space-y-4">
-                <div className="flex items-start space-x-2">
-                  <Checkbox id="terms" className="mt-1" />
-                  <Label htmlFor="terms" className="cursor-pointer font-normal">
-                    By publishing campaign at CrowdWalrus you agree to our Terms
-                    and Conditions.
-                  </Label>
-                </div>
-
-                <Alert>
-                  <AlertDescription>
-                    Please review your campaign details carefully before
-                    registration. Once registered, some details cannot be
-                    changed without additional transactions.
-                  </AlertDescription>
-                </Alert>
-              </div>
-            </section>
+            <CampaignTermsAndConditionsSection
+              accepted={termsAccepted}
+              onAcceptedChange={setTermsAccepted}
+            />
 
             {/* Storage Registration Section */}
-            <section className="mb-12">
-              <div className="mb-6">
-                <h2 className="text-2xl font-semibold mb-2">
-                  Storage registration
-                </h2>
-                <p className="text-muted-foreground">
-                  Review your storage costs, which are based on the files and
-                  content occupying space.
-                </p>
-              </div>
-
-              <Card>
-                <CardContent className="p-6">
-                  <div className="space-y-4">
-                    <div className="flex justify-between py-3 border-b border-border">
-                      <span className="font-medium">Campaign metadata</span>
-                      <span className="font-mono">0.0024 SUI</span>
-                    </div>
-                    <div className="flex justify-between py-3 border-b border-border">
-                      <span className="font-medium">Cover image (2.3 MB)</span>
-                      <span className="font-mono">0.0156 SUI</span>
-                    </div>
-                    <div className="flex justify-between py-3 border-b border-border">
-                      <span className="font-medium">Campaign description</span>
-                      <span className="font-mono">0.0048 SUI</span>
-                    </div>
-                    <div className="flex justify-between py-3 border-b border-border">
-                      <span className="font-medium">
-                        Storage epoch (100 years)
-                      </span>
-                      <span className="font-mono">2.5000 SUI</span>
-                    </div>
-                    <div className="flex justify-between pt-4">
-                      <span className="text-lg font-semibold">
-                        Total storage cost
-                      </span>
-                      <span className="text-lg font-bold font-mono">
-                        2.5228 SUI
-                      </span>
-                    </div>
-                  </div>
-                </CardContent>
-              </Card>
-            </section>
+            <CampaignStorageRegistrationCard
+              costs={storageCosts}
+              totalCost="2.5228 SUI"
+            />
 
             <Separator className="my-12" />
 

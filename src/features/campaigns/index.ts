@@ -17,7 +17,6 @@ export type {
 export {
   CampaignCreationStep,
   CampaignCreationError,
-  ValidationError,
   WalrusUploadError,
   TransactionExecutionError,
 } from "./types/campaign";
