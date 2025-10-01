@@ -128,7 +128,7 @@ export function CampaignCoverImageUpload({
   return (
     <div>
       <Label htmlFor="cover-image" className="block pb-4">
-        Cover image *
+        Cover image <span className="text-red-300">*</span>
       </Label>
       <Input
         id="cover-image"

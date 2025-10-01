@@ -20,7 +20,7 @@ export function CampaignCategorySelector({
 
   return (
     <section className="mb-12">
-      <h2 className="text-2xl font-semibold mb-8">Select Category *</h2>
+      <h2 className="text-2xl font-semibold mb-8">Select Category <span className="text-red-300">*</span></h2>
       <p className="text-muted-foreground mb-6">
         Pick a category that best describes your campaign. You can select
         multiple category options.

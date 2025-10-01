@@ -9,7 +9,7 @@ export function CampaignDetailsEditor({}: CampaignDetailsEditorProps) {
   return (
     <div>
       <div className="mb-4">
-        <Label htmlFor="campaign-details">Campaign details *</Label>
+        <Label htmlFor="campaign-details">Campaign details <span className="text-red-300">*</span></Label>
         <p className="text-sm text-muted-foreground mt-1">
           Add a detailed campaign description, images, links, and attachments.
         </p>

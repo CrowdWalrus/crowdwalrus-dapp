@@ -12,7 +12,7 @@ export function CampaignTypeSelector({
   return (
     <section className="flex flex-col gap-8">
       <h2 className="text-2xl font-bold leading-[1.6] text-[#0c0f1c]">
-        Campaign Type <span className="text-[#f5827a]">*</span>
+        Campaign Type <span className="text-red-300">*</span>
       </h2>
 
       <RadioGroup value={value} onValueChange={onChange} className="flex gap-6">

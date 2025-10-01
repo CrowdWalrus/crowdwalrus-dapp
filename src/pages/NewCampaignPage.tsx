@@ -91,7 +91,7 @@ export default function NewCampaignPage() {
               <div className="flex flex-col gap-8">
                 {/* Campaign Name */}
                 <div className="flex flex-col gap-4">
-                  <Label htmlFor="campaign-name">Title *</Label>
+                  <Label htmlFor="campaign-name">Title <span className="text-red-300">*</span></Label>
                   <Input
                     id="campaign-name"
                     placeholder="Enter your campaign name"
@@ -100,7 +100,7 @@ export default function NewCampaignPage() {
 
                 {/* Description */}
                 <div className="flex flex-col gap-4">
-                  <Label htmlFor="description">Short description *</Label>
+                  <Label htmlFor="description">Short description <span className="text-red-300">*</span></Label>
                   <Textarea
                     id="description"
                     placeholder="Brief description of your campaign"
@@ -111,7 +111,7 @@ export default function NewCampaignPage() {
                 {/* Subdomain */}
                 <div>
                   <Label htmlFor="subdomain" className="block pb-4">
-                    Sub-name *
+                    Sub-name <span className="text-red-300">*</span>
                   </Label>
                   <Input id="subdomain" placeholder="yourcampaign" />
                   <p className="text-sm text-muted-foreground pt-2">

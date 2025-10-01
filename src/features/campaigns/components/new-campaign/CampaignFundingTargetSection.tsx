@@ -16,7 +16,7 @@ export function CampaignFundingTargetSection({
 }: CampaignFundingTargetSectionProps) {
   return (
     <section className="mb-12">
-      <h2 className="text-2xl font-semibold mb-8">Funding Target *</h2>
+      <h2 className="text-2xl font-semibold mb-8">Funding Target <span className="text-red-300">*</span></h2>
 
       <div className="space-y-6">
         <div className="space-y-2">
@@ -31,7 +31,7 @@ export function CampaignFundingTargetSection({
         </div>
 
         <div className="space-y-2">
-          <Label htmlFor="wallet-address">Recipient wallet address *</Label>
+          <Label htmlFor="wallet-address">Recipient wallet address <span className="text-red-300">*</span></Label>
           <Input
             id="wallet-address"
             placeholder="0x..."

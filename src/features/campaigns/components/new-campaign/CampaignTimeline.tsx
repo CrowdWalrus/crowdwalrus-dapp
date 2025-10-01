@@ -15,7 +15,7 @@ export function CampaignTimeline({
 }: CampaignTimelineProps) {
   return (
     <section className="mb-12">
-      <h2 className="text-2xl font-semibold mb-8">Campaign Timeline *</h2>
+      <h2 className="text-2xl font-semibold mb-8">Campaign Timeline <span className="text-red-300">*</span></h2>
       <p className="text-muted-foreground mb-6">
         Set a timeline for your campaign to start and end
       </p>
