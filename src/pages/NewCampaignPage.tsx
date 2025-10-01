@@ -1,6 +1,7 @@
 import { useState } from "react";
 import { Link } from "react-router-dom";
 import { Upload, X, Plus } from "lucide-react";
+import { toast } from "sonner";
 import { ROUTES } from "@/shared/config/routes";
 import {
   Breadcrumb,
@@ -29,7 +30,6 @@ import { Card, CardContent } from "@/shared/components/ui/card";
 
 export default function NewCampaignPage() {
   const [coverImage, setCoverImage] = useState<string | null>(null);
-  const [imageError, setImageError] = useState<string | null>(null);
 
   const validateImage = (file: File): Promise<string | null> => {
     return new Promise((resolve) => {
@@ -69,7 +69,6 @@ export default function NewCampaignPage() {
 
   const handleImageChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
-    setImageError(null);
 
     if (!file) {
       setCoverImage(null);
@@ -78,7 +77,7 @@ export default function NewCampaignPage() {
 
     const error = await validateImage(file);
     if (error) {
-      setImageError(error);
+      toast.error(error);
       setCoverImage(null);
       e.target.value = "";
       return;
@@ -93,7 +92,6 @@ export default function NewCampaignPage() {
 
   const handleRemoveImage = () => {
     setCoverImage(null);
-    setImageError(null);
     const fileInput = document.getElementById(
       "cover-image",
     ) as HTMLInputElement;
@@ -185,11 +183,6 @@ export default function NewCampaignPage() {
                     Upload an image minimum 946x432px resolution. JPEG and PNG
                     format. Max up to 5MB.
                   </p>
-                  {imageError && (
-                    <Alert variant="destructive" className="mb-3">
-                      <AlertDescription>{imageError}</AlertDescription>
-                    </Alert>
-                  )}
                   <div className="relative w-full h-[360px] rounded-3xl border-2 border-dashed border-border bg-muted/30 flex items-center justify-center overflow-hidden">
                     {coverImage ? (
                       <>
