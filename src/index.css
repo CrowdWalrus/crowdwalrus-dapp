@@ -475,29 +475,27 @@
 }
 
 /* ============================================
-   CONTAINER UTILITY - Tailwind v4 Override
-   Force centering with margin-inline auto
+   CONTAINER UTILITY - Outside layers for higher specificity
+   Placed after @layer utilities to override Tailwind's mx-auto
    ============================================ */
 
-@layer utilities {
-  .container {
-    width: 100% !important;
-    margin-inline: auto !important;
+.container {
+  width: 100%;
+  margin-inline: auto;
 
-    @media (width >= 40rem) {
-      max-width: 40rem !important;
-    }
-    @media (width >= 48rem) {
-      max-width: 48rem !important;
-    }
-    @media (width >= 64rem) {
-      max-width: 64rem !important;
-    }
-    @media (width >= 80rem) {
-      max-width: 80rem !important;
-    }
-    @media (width >= 93rem) {
-      max-width: 1488px !important; /* Figma design */
-    }
+  @media (width >= 40rem) {
+    max-width: 40rem;
+  }
+  @media (width >= 48rem) {
+    max-width: 48rem;
+  }
+  @media (width >= 64rem) {
+    max-width: 64rem;
+  }
+  @media (width >= 80rem) {
+    max-width: 80rem;
+  }
+  @media (width >= 93rem) {
+    max-width: 1488px; /* Figma design */
   }
 }
