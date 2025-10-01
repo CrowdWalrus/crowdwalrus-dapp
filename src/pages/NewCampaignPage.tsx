@@ -1,3 +1,4 @@
+import { useState } from "react";
 import { Link } from "react-router-dom";
 import { Upload, X, Plus } from "lucide-react";
 import { ROUTES } from "@/shared/config/routes";
@@ -27,6 +28,80 @@ import { Alert, AlertDescription } from "@/shared/components/ui/alert";
 import { Card, CardContent } from "@/shared/components/ui/card";
 
 export default function NewCampaignPage() {
+  const [coverImage, setCoverImage] = useState<string | null>(null);
+  const [imageError, setImageError] = useState<string | null>(null);
+
+  const validateImage = (file: File): Promise<string | null> => {
+    return new Promise((resolve) => {
+      // Check file type
+      if (!file.type.match(/^image\/(jpeg|png)$/)) {
+        resolve("Please upload a JPEG or PNG image.");
+        return;
+      }
+
+      // Check file size (5MB = 5 * 1024 * 1024 bytes)
+      if (file.size > 5 * 1024 * 1024) {
+        resolve("Image size must be less than 5MB.");
+        return;
+      }
+
+      // Check dimensions
+      const img = new Image();
+      const objectUrl = URL.createObjectURL(file);
+
+      img.onload = () => {
+        URL.revokeObjectURL(objectUrl);
+        if (img.width < 946 || img.height < 432) {
+          resolve("Image must be at least 946x432px.");
+        } else {
+          resolve(null);
+        }
+      };
+
+      img.onerror = () => {
+        URL.revokeObjectURL(objectUrl);
+        resolve("Failed to load image.");
+      };
+
+      img.src = objectUrl;
+    });
+  };
+
+  const handleImageChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    setImageError(null);
+
+    if (!file) {
+      setCoverImage(null);
+      return;
+    }
+
+    const error = await validateImage(file);
+    if (error) {
+      setImageError(error);
+      setCoverImage(null);
+      e.target.value = "";
+      return;
+    }
+
+    const reader = new FileReader();
+    reader.onload = (event) => {
+      setCoverImage(event.target?.result as string);
+    };
+    reader.readAsDataURL(file);
+  };
+
+  const handleRemoveImage = () => {
+    setCoverImage(null);
+    setImageError(null);
+    const fileInput = document.getElementById(
+      "cover-image",
+    ) as HTMLInputElement;
+    if (fileInput) {
+      fileInput.value = "";
+    }
+  };
+
   return (
     <div className="py-8">
       <div className="container">
@@ -99,24 +174,48 @@ export default function NewCampaignPage() {
                   <Label htmlFor="cover-image" className="block pb-4">
                     Cover image *
                   </Label>
-                  <Input id="cover-image" type="file" accept="image/*" className="py-1.5" />
+                  <Input
+                    id="cover-image"
+                    type="file"
+                    accept="image/jpeg,image/png"
+                    className="py-1.5"
+                    onChange={handleImageChange}
+                  />
                   <p className="text-sm text-muted-foreground pt-2 pb-3">
                     Upload an image minimum 946x432px resolution. JPEG and PNG
                     format. Max up to 5MB.
                   </p>
-                  <div className="relative w-full h-[360px] rounded-lg border-2 border-dashed border-border bg-muted/30 flex items-center justify-center overflow-hidden">
-                    <img
-                      src="https://images.unsplash.com/photo-1497633762265-9d179a990aa6?w=946&h=432&fit=crop"
-                      alt="Cover preview"
-                      className="w-full h-full object-cover"
-                    />
-                    <Button
-                      size="icon"
-                      variant="destructive"
-                      className="absolute top-5 right-5"
-                    >
-                      <X className="h-4 w-4" />
-                    </Button>
+                  {imageError && (
+                    <Alert variant="destructive" className="mb-3">
+                      <AlertDescription>{imageError}</AlertDescription>
+                    </Alert>
+                  )}
+                  <div className="relative w-full h-[360px] rounded-3xl border-2 border-dashed border-border bg-muted/30 flex items-center justify-center overflow-hidden">
+                    {coverImage ? (
+                      <>
+                        <img
+                          src={coverImage}
+                          alt="Cover preview"
+                          className="w-full h-full object-cover"
+                        />
+                        <Button
+                          size="icon"
+                          variant="destructive"
+                          className="absolute top-5 right-5"
+                          onClick={handleRemoveImage}
+                          type="button"
+                        >
+                          <X className="h-4 w-4" />
+                        </Button>
+                      </>
+                    ) : (
+                      <div className="flex flex-col items-center gap-2 text-muted-foreground">
+                        <Upload className="h-12 w-12" />
+                        <p className="text-sm">
+                          Click "Choose File" to upload an image
+                        </p>
+                      </div>
+                    )}
                   </div>
                 </div>
               </div>
