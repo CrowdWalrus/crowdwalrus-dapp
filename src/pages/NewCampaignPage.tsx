@@ -50,7 +50,7 @@ export default function NewCampaignPage() {
         <div className="w-full max-w-3xl px-4">
           {/* Page Header */}
           <div className="flex flex-col gap-16">
-            <div className="text-center mb-16">
+            <div className="flex flex-col items-center text-center gap-4 mb-16">
               <h1 className="text-4xl font-bold mb-4">Launch Campaign</h1>
               <p className="text-muted-foreground text-base">
                 Enter your campaign details. You can edit campaign details
@@ -100,8 +100,11 @@ export default function NewCampaignPage() {
 
                 {/* Cover Image */}
                 <div>
-                  <Label htmlFor="cover-image">Cover image *</Label>
-                  <p className="text-sm text-muted-foreground mb-3">
+                  <Label htmlFor="cover-image" className="block pb-4">
+                    Cover image *
+                  </Label>
+                  <Input id="cover-image" type="file" accept="image/*" />
+                  <p className="text-sm text-muted-foreground pt-2 pb-3">
                     Upload an image minimum 946x432px resolution. JPEG and PNG
                     format. Max up to 5MB.
                   </p>
