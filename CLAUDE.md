@@ -32,9 +32,9 @@ pnpm lint
 ### Provider Hierarchy
 
 The application is wrapped in a specific provider hierarchy
-(src/main.tsx:16-29):
+(src/app/providers/AppProviders.tsx:16-28):
 
-1. `Theme` (Radix UI) - Dark mode by default
+1. `Theme` (Radix UI) - Light mode by default
 2. `QueryClientProvider` (React Query) - For data fetching
 3. `SuiClientProvider` - Configures Sui network (devnet, testnet, mainnet)
 4. `WalletProvider` - Handles wallet connections with autoConnect
@@ -42,17 +42,17 @@ The application is wrapped in a specific provider hierarchy
 
 ### Network Configuration
 
-Sui network configuration is centralized in src/networkConfig.ts. It exports:
+Sui network configuration is centralized in src/shared/config/networkConfig.ts. It exports:
 
 - `networkConfig` - Network endpoints for devnet, testnet, mainnet
 - `useNetworkVariable` - Hook for network-specific values
 - `useNetworkVariables` - Hook for multiple network variables
 
-Default network is testnet (src/main.tsx:20).
+Default network is testnet (src/app/providers/AppProviders.tsx:19).
 
 ### Routing Structure
 
-Routes are defined in src/App.tsx using React Router:
+Routes are defined in src/app/router/routes.tsx using React Router:
 
 - `/` - HomePage with wallet status and owned objects
 - `/test` - TestPage (example/template page)
@@ -61,10 +61,10 @@ New pages should be created in `src/pages/` and follow the same pattern.
 
 ### Key Components
 
-- **WalletStatus** (src/WalletStatus.tsx) - Displays connected wallet address
-  and shows OwnedObjects
-- **OwnedObjects** (src/OwnedObjects.tsx) - Queries and displays Sui objects
-  owned by connected wallet using `useSuiClientQuery`
+- **WalletStatus** (src/features/wallet/components/WalletStatus.tsx) - Displays
+  connected wallet address and shows OwnedObjects
+- **OwnedObjects** (src/features/wallet/components/OwnedObjects.tsx) - Queries
+  and displays Sui objects owned by connected wallet using `useSuiClientQuery`
 
 ### Sui dApp Kit Hooks
 
