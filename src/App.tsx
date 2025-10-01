@@ -1,8 +1,7 @@
 import { ConnectButton } from "@mysten/dapp-kit";
 import { Box, Container, Flex, Heading } from "@radix-ui/themes";
-import { Routes, Route, Link } from "react-router-dom";
-import { HomePage } from "./pages/HomePage";
-import { TestPage } from "./pages/TestPage";
+import { Link } from "react-router-dom";
+import { AppRoutes } from "./app/router";
 
 function App() {
   return (
@@ -27,10 +26,7 @@ function App() {
         </Flex>
       </Flex>
       <Container>
-        <Routes>
-          <Route path="/" element={<HomePage />} />
-          <Route path="/test" element={<TestPage />} />
-        </Routes>
+        <AppRoutes />
       </Container>
     </>
   );

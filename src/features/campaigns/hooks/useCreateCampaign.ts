@@ -38,7 +38,7 @@ import {
   validateCampaignFormData,
   extractCampaignIdFromEffects,
 } from '@/services/campaign-transaction';
-import { getContractConfig } from '@/config/contracts';
+import { getContractConfig } from '@/shared/config/contracts';
 import {
   CampaignCreationStep,
   CampaignCreationError,
@@ -46,7 +46,7 @@ import {
   type CampaignFormData,
   type CreateCampaignResult,
   type CampaignCreationProgress,
-} from '@/types/campaign';
+} from '@/features/campaigns/types/campaign';
 import { useState } from 'react';
 
 /**

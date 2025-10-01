@@ -1,5 +1,5 @@
 import { Container } from "@radix-ui/themes";
-import { WalletStatus } from "../WalletStatus";
+import { WalletStatus } from "@/features/wallet/components/WalletStatus";
 
 export function HomePage() {
   return (

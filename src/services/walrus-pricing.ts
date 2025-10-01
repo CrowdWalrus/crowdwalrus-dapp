@@ -6,7 +6,7 @@
  */
 
 import type { SuiClient } from "@mysten/sui/client";
-import { getContractConfig } from "@/config/contracts";
+import { getContractConfig } from "@/shared/config/contracts";
 
 /**
  * Pricing information from Walrus system

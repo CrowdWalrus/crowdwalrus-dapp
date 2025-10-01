@@ -12,8 +12,8 @@ import {
   type WalrusUploadResult,
   type StorageCostEstimate,
   type CampaignFormData,
-} from "@/types/campaign";
-import { getContractConfig } from "@/config/contracts";
+} from "@/features/campaigns/types/campaign";
+import { getContractConfig } from "@/shared/config/contracts";
 import {
   calculateCampaignStorageCost,
   type CampaignStorageCost,

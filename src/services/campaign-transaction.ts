@@ -6,8 +6,8 @@
  */
 
 import { Transaction } from "@mysten/sui/transactions";
-import type { CampaignFormData, CampaignMetadata } from "@/types/campaign";
-import { getContractConfig, CLOCK_OBJECT_ID } from "@/config/contracts";
+import type { CampaignFormData, CampaignMetadata } from "@/features/campaigns/types/campaign";
+import { getContractConfig, CLOCK_OBJECT_ID } from "@/shared/config/contracts";
 
 /**
  * Build a transaction to create a new campaign on Sui

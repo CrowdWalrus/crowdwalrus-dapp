@@ -5,14 +5,64 @@
  * Fetches campaign data from Sui blockchain and Walrus storage
  */
 
-import { useState, useEffect } from 'react';
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
-import { Button } from '@/components/ui/button';
-import { useMyCampaigns, type CampaignData } from '@/hooks/useMyCampaigns';
+import { useState, useEffect } from "react";
+import { useQuery } from "@tanstack/react-query";
+import {
+  Card,
+  CardContent,
+  CardDescription,
+  CardHeader,
+  CardTitle,
+} from "@/shared/components/ui/card";
+import { Button } from "@/shared/components/ui/button";
+import { useMyCampaigns, type CampaignData } from "@/features/campaigns/hooks/useMyCampaigns";
 
 interface CampaignCardProps {
   campaign: CampaignData;
-  network: 'devnet' | 'testnet' | 'mainnet';
+  network: "devnet" | "testnet" | "mainnet";
+}
+
+/**
+ * Hook to fetch image from Walrus as blob and create object URL
+ */
+function useWalrusImage(imageUrl: string) {
+  return useQuery({
+    queryKey: ["walrus-image", imageUrl],
+    queryFn: async () => {
+      if (!imageUrl) return null;
+
+      const response = await fetch(imageUrl);
+      if (!response.ok) {
+        throw new Error(`Failed to fetch image: ${response.statusText}`);
+      }
+      const blob = await response.blob();
+      return URL.createObjectURL(blob);
+    },
+    enabled: !!imageUrl,
+    staleTime: 5 * 60 * 1000, // Consider data fresh for 5 minutes
+    gcTime: 10 * 60 * 1000, // Keep in cache for 10 minutes
+  });
+}
+
+/**
+ * Hook to fetch campaign description from Walrus
+ */
+function useWalrusDescription(descriptionUrl: string) {
+  return useQuery({
+    queryKey: ["walrus-description", descriptionUrl],
+    queryFn: async () => {
+      if (!descriptionUrl) return "";
+
+      const response = await fetch(descriptionUrl);
+      if (!response.ok) {
+        throw new Error(`Failed to fetch description: ${response.statusText}`);
+      }
+      return await response.text();
+    },
+    enabled: !!descriptionUrl,
+    staleTime: 5 * 60 * 1000, // Consider data fresh for 5 minutes
+    gcTime: 10 * 60 * 1000, // Keep in cache for 10 minutes
+  });
 }
 
 /**
@@ -20,88 +70,53 @@ interface CampaignCardProps {
  */
 function CampaignCard({ campaign, network }: CampaignCardProps) {
   const [imageError, setImageError] = useState(false);
-  const [description, setDescription] = useState<string>('');
-  const [loadingDescription, setLoadingDescription] = useState(false);
-  const [imageObjectUrl, setImageObjectUrl] = useState<string>('');
-  const [loadingImage, setLoadingImage] = useState(true);
 
   // Debug: Log cover image URL
-  console.log('Campaign:', campaign.name);
-  console.log('Cover Image URL:', campaign.coverImageUrl);
-  console.log('Walrus Quilt ID:', campaign.walrusQuiltId);
+  console.log("Campaign:", campaign.name);
+  console.log("Cover Image URL:", campaign.coverImageUrl);
+  console.log("Walrus Quilt ID:", campaign.walrusQuiltId);
 
-  // Fetch image as blob to bypass COEP restrictions
+  // Fetch image using React Query
+  const {
+    data: imageObjectUrl,
+    isLoading: loadingImage,
+    error: imageQueryError,
+  } = useWalrusImage(campaign.coverImageUrl);
+
+  // Fetch description using React Query
+  const { data: description, isLoading: loadingDescription } =
+    useWalrusDescription(campaign.descriptionUrl);
+
+  // Handle image error
+  if (imageQueryError) {
+    if (!imageError) {
+      console.error("Error fetching image:", imageQueryError);
+      setImageError(true);
+    }
+  }
+
+  // Cleanup object URL on unmount or URL change
   useEffect(() => {
-    let objectUrl: string | null = null;
-
-    const fetchImage = async () => {
-      if (!campaign.coverImageUrl) {
-        setLoadingImage(false);
-        return;
-      }
-
-      try {
-        setLoadingImage(true);
-        const response = await fetch(campaign.coverImageUrl);
-        if (!response.ok) {
-          throw new Error(`Failed to fetch image: ${response.statusText}`);
-        }
-        const blob = await response.blob();
-        objectUrl = URL.createObjectURL(blob);
-        setImageObjectUrl(objectUrl);
-        setLoadingImage(false);
-        console.log('Image fetched successfully:', campaign.coverImageUrl);
-      } catch (error) {
-        console.error('Error fetching image:', error);
-        setImageError(true);
-        setLoadingImage(false);
-      }
-    };
-
-    fetchImage();
-
-    // Cleanup object URL on unmount or URL change
     return () => {
-      if (objectUrl) {
-        URL.revokeObjectURL(objectUrl);
+      if (imageObjectUrl) {
+        URL.revokeObjectURL(imageObjectUrl);
       }
     };
-  }, [campaign.coverImageUrl]);
+  }, [imageObjectUrl]);
 
   // Format dates
   const formatDate = (timestamp: number) => {
-    return new Date(timestamp * 1000).toLocaleDateString('en-US', {
-      year: 'numeric',
-      month: 'short',
-      day: 'numeric',
+    return new Date(timestamp * 1000).toLocaleDateString("en-US", {
+      year: "numeric",
+      month: "short",
+      day: "numeric",
     });
   };
 
-  // Fetch description from Walrus
-  useEffect(() => {
-    const fetchDescription = async () => {
-      if (!campaign.descriptionUrl) return;
-
-      setLoadingDescription(true);
-      try {
-        const response = await fetch(campaign.descriptionUrl);
-        if (response.ok) {
-          const html = await response.text();
-          setDescription(html);
-        }
-      } catch (error) {
-        console.error('Error fetching description:', error);
-      } finally {
-        setLoadingDescription(false);
-      }
-    };
-
-    fetchDescription();
-  }, [campaign.descriptionUrl]);
-
   // Determine subdomain suffix
-  const subdomainSuffix = network === 'testnet' ? '.crowdwalrus-test.sui' : '.crowdwalrus.sui';
-  const fullSubdomain = campaign.subdomainName.includes('.sui')
+  const subdomainSuffix =
+    network === "testnet" ? ".crowdwalrus-test.sui" : ".crowdwalrus.sui";
+  const fullSubdomain = campaign.subdomainName.includes(".sui")
     ? campaign.subdomainName
     : campaign.subdomainName + subdomainSuffix;
 
@@ -121,9 +136,13 @@ function CampaignCard({ campaign, network }: CampaignCardProps) {
           />
         ) : (
           <div className="w-full h-full flex flex-col items-center justify-center bg-gray-300 text-gray-600 p-4">
-            <p className="text-sm font-semibold">{imageError ? 'Image failed to load' : 'No image'}</p>
+            <p className="text-sm font-semibold">
+              {imageError ? "Image failed to load" : "No image"}
+            </p>
             {imageError && campaign.coverImageUrl && (
-              <p className="text-xs mt-2 break-all text-center">{campaign.coverImageUrl}</p>
+              <p className="text-xs mt-2 break-all text-center">
+                {campaign.coverImageUrl}
+              </p>
             )}
           </div>
         )}
@@ -133,7 +152,9 @@ function CampaignCard({ campaign, network }: CampaignCardProps) {
         <div className="flex items-start justify-between gap-2">
           <div className="flex-1">
             <CardTitle className="text-xl">{campaign.name}</CardTitle>
-            <CardDescription className="mt-1">{campaign.shortDescription}</CardDescription>
+            <CardDescription className="mt-1">
+              {campaign.shortDescription}
+            </CardDescription>
           </div>
           <div className="flex flex-col gap-1">
             {campaign.validated && (
@@ -144,11 +165,11 @@ function CampaignCard({ campaign, network }: CampaignCardProps) {
             <span
               className={`px-2 py-1 text-xs font-semibold rounded ${
                 campaign.isActive
-                  ? 'bg-blue-100 text-blue-800'
-                  : 'bg-gray-100 text-gray-800'
+                  ? "bg-blue-100 text-blue-800"
+                  : "bg-gray-100 text-gray-800"
               }`}
             >
-              {campaign.isActive ? 'Active' : 'Inactive'}
+              {campaign.isActive ? "Active" : "Inactive"}
             </span>
           </div>
         </div>
@@ -186,7 +207,9 @@ function CampaignCard({ campaign, network }: CampaignCardProps) {
         {/* Walrus Description Preview */}
         {description && (
           <div className="pt-2 border-t">
-            <p className="text-xs text-muted-foreground mb-1">Description (from Walrus)</p>
+            <p className="text-xs text-muted-foreground mb-1">
+              Description (from Walrus)
+            </p>
             <div
               className="text-sm bg-gray-50 px-3 py-2 rounded max-h-32 overflow-y-auto prose prose-sm"
               dangerouslySetInnerHTML={{ __html: description }}
@@ -196,12 +219,16 @@ function CampaignCard({ campaign, network }: CampaignCardProps) {
 
         {loadingDescription && (
           <div className="pt-2 border-t">
-            <p className="text-xs text-muted-foreground">Loading description from Walrus...</p>
+            <p className="text-xs text-muted-foreground">
+              Loading description from Walrus...
+            </p>
           </div>
         )}
 
         {/* Social Links */}
-        {(campaign.socialTwitter || campaign.socialDiscord || campaign.socialWebsite) && (
+        {(campaign.socialTwitter ||
+          campaign.socialDiscord ||
+          campaign.socialWebsite) && (
           <div className="pt-2 border-t">
             <p className="text-xs text-muted-foreground mb-2">Social Links</p>
             <div className="flex flex-wrap gap-2">
@@ -251,7 +278,7 @@ function CampaignCard({ campaign, network }: CampaignCardProps) {
         <div>
           <p className="text-xs text-muted-foreground mb-1">Walrus Blob ID</p>
           <p className="text-xs font-mono bg-gray-50 px-2 py-1 rounded break-all">
-            {campaign.walrusQuiltId || 'Not available'}
+            {campaign.walrusQuiltId || "Not available"}
           </p>
         </div>
       </CardContent>
@@ -263,8 +290,9 @@ function CampaignCard({ campaign, network }: CampaignCardProps) {
  * Main CampaignList component
  */
 export function CampaignList() {
-  const network = 'testnet' as const; // TODO: Make this configurable
-  const { campaigns, isPending, error, hasNoCampaigns, refetch } = useMyCampaigns(network);
+  const network = "testnet" as const; // TODO: Make this configurable
+  const { campaigns, isPending, error, hasNoCampaigns, refetch } =
+    useMyCampaigns(network);
 
   // Loading state
   if (isPending) {
@@ -282,7 +310,9 @@ export function CampaignList() {
     return (
       <Card className="border-red-500">
         <CardContent className="pt-6">
-          <p className="text-red-600 font-semibold mb-2">Error loading campaigns</p>
+          <p className="text-red-600 font-semibold mb-2">
+            Error loading campaigns
+          </p>
           <p className="text-sm text-muted-foreground mb-4">{error.message}</p>
           <Button variant="outline" onClick={() => refetch()}>
             Retry
@@ -298,7 +328,8 @@ export function CampaignList() {
       <Card>
         <CardContent className="pt-6">
           <p className="text-muted-foreground">
-            No campaigns have been created yet. Be the first to create a campaign!
+            No campaigns have been created yet. Be the first to create a
+            campaign!
           </p>
         </CardContent>
       </Card>
@@ -312,7 +343,7 @@ export function CampaignList() {
         <div>
           <h2 className="text-2xl font-bold">All Campaigns</h2>
           <p className="text-sm text-muted-foreground mt-1">
-            {campaigns.length} campaign{campaigns.length !== 1 ? 's' : ''} found
+            {campaigns.length} campaign{campaigns.length !== 1 ? "s" : ""} found
           </p>
         </div>
         <Button variant="outline" onClick={() => refetch()}>
@@ -322,7 +353,11 @@ export function CampaignList() {
 
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
         {campaigns.map((campaign) => (
-          <CampaignCard key={campaign.id} campaign={campaign} network={network} />
+          <CampaignCard
+            key={campaign.id}
+            campaign={campaign}
+            network={network}
+          />
         ))}
       </div>
     </div>
