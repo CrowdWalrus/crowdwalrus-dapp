@@ -9,6 +9,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/shared/components/ui/select";
+
 import XSocial from "@/shared/icons/socials/XSocial";
 import FacebookSocial from "@/shared/icons/socials/FacebookSocial";
 import GithubSocial from "@/shared/icons/socials/GithubSocial";
@@ -67,7 +68,11 @@ const PLATFORM_CONFIG = {
 } as const;
 
 export function CampaignSocialsSection() {
-  const { control, watch } = useFormContext();
+  const {
+    control,
+    watch,
+    formState: { errors },
+  } = useFormContext();
   const { fields, append, remove } = useFieldArray({
     control,
     name: "socials",
@@ -88,59 +93,70 @@ export function CampaignSocialsSection() {
           const config =
             PLATFORM_CONFIG[platformValue as keyof typeof PLATFORM_CONFIG];
 
+          const urlError = (errors?.socials as any)?.[index]?.url;
+
           return (
-            <div key={field.id} className="flex gap-4 items-center w-full">
-              <Controller
-                control={control}
-                name={`socials.${index}.platform`}
-                render={({ field: controllerField }) => (
-                  <Select
-                    value={controllerField.value}
-                    onValueChange={controllerField.onChange}
-                  >
-                    <SelectTrigger className="w-40">
-                      <SelectValue />
-                    </SelectTrigger>
-                    <SelectContent>
-                      {Object.entries(PLATFORM_CONFIG).map(
-                        ([value, config]) => {
-                          const ItemIcon = config.icon;
-                          return (
-                            <SelectItem key={value} value={value}>
-                              <div className="flex gap-3 items-center">
-                                {ItemIcon ? (
-                                  <ItemIcon className="size-5 shrink-0" />
-                                ) : (
-                                  <div className="size-5 shrink-0" />
-                                )}
-                                <span>{config.label}</span>
-                              </div>
-                            </SelectItem>
-                          );
-                        },
-                      )}
-                    </SelectContent>
-                  </Select>
-                )}
-              />
-              <Controller
-                control={control}
-                name={`socials.${index}.url`}
-                render={({ field: controllerField }) => (
-                  <Input
-                    placeholder={config?.placeholder || "https://"}
-                    className="flex-1"
-                    {...controllerField}
+            <div key={field.id} className="flex flex-col gap-2 w-full">
+              <div className="flex gap-4 items-start w-full">
+                <Controller
+                  control={control}
+                  name={`socials.${index}.platform`}
+                  render={({ field: controllerField }) => (
+                    <Select
+                      value={controllerField.value}
+                      onValueChange={controllerField.onChange}
+                    >
+                      <SelectTrigger className="w-40">
+                        <SelectValue />
+                      </SelectTrigger>
+                      <SelectContent>
+                        {Object.entries(PLATFORM_CONFIG).map(
+                          ([value, config]) => {
+                            const ItemIcon = config.icon;
+                            return (
+                              <SelectItem key={value} value={value}>
+                                <div className="flex gap-3 items-center">
+                                  {ItemIcon ? (
+                                    <ItemIcon className="size-5 shrink-0" />
+                                  ) : (
+                                    <div className="size-5 shrink-0" />
+                                  )}
+                                  <span>{config.label}</span>
+                                </div>
+                              </SelectItem>
+                            );
+                          },
+                        )}
+                      </SelectContent>
+                    </Select>
+                  )}
+                />
+                <div className="flex-1 flex flex-col gap-2">
+                  <Controller
+                    control={control}
+                    name={`socials.${index}.url`}
+                    render={({ field: controllerField }) => (
+                      <Input
+                        placeholder={config?.placeholder || "https://"}
+                        className="w-full"
+                        {...controllerField}
+                      />
+                    )}
                   />
-                )}
-              />
-              <button
-                type="button"
-                onClick={() => remove(index)}
-                className="shrink-0 size-5 flex items-center justify-center text-red-300 hover:text-red-400 transition-colors"
-              >
-                <X className="size-[15.417px]" />
-              </button>
+                  {urlError && (
+                    <p className="text-sm font-medium text-destructive">
+                      {urlError.message as string}
+                    </p>
+                  )}
+                </div>
+                <button
+                  type="button"
+                  onClick={() => remove(index)}
+                  className="shrink-0 size-5 flex items-center justify-center text-red-300 hover:text-red-400 transition-colors mt-3"
+                >
+                  <X className="size-[15.417px]" />
+                </button>
+              </div>
             </div>
           );
         })}
