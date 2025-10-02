@@ -1,6 +1,7 @@
 import { Alert, AlertDescription } from "@/shared/components/ui/alert";
 import { Checkbox } from "@/shared/components/ui/checkbox";
 import { Label } from "@/shared/components/ui/label";
+import { AlertCircleIcon } from "lucide-react";
 
 interface CampaignTermsAndConditionsSectionProps {
   accepted: boolean;
@@ -33,9 +34,10 @@ export function CampaignTermsAndConditionsSection({
 
         <Alert className="p-4 gap-4 rounded-lg border-neutral-200">
           <AlertDescription className="text-sm text-neutral-700 leading-[1.5]">
-            Please review your campaign details carefully before registration.
-            Once registered, some details cannot be changed without additional
-            transactions.
+            <span className="flex items-center gap-2">
+              <AlertCircleIcon className="mt-1" size={16} />
+              <span>Fields marked as * are mandatory to fill.</span>
+            </span>
           </AlertDescription>
         </Alert>
       </div>
