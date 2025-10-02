@@ -37,8 +37,8 @@
   --destructive: oklch(63.71% 0.21 29); /* red-500 */
   --destructive-foreground: oklch(100% 0 0); /* white-50 */
 
-  --border: oklch(90.97% 0 0); /* white-600 */
-  --input: oklch(90.97% 0 0); /* white-600 */
+  --border: oklch(92.19% 0 0);
+  --input: oklch(92.19% 0 0);
   --ring: oklch(53.67% 0.265 281); /* blue-500 */
 
   --chart-1: oklch(53.67% 0.265 281); /* blue-500 */

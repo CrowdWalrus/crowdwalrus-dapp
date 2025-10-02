@@ -18,7 +18,7 @@ export function CampaignTypeSelector({
       <RadioGroup value={value} onValueChange={onChange} className="flex gap-6">
         <label
           htmlFor="nonprofit"
-          className="flex items-start gap-2 bg-white border border-[#e5e5e5] rounded-[10px] px-3 py-2 cursor-pointer hover:border-neutral-300 transition-colors flex-1"
+          className="flex items-start gap-2 bg-white border border-border rounded-[10px] px-3 py-2 cursor-pointer hover:border-neutral-300 transition-colors flex-1"
         >
           <div className="pt-[2.5px]">
             <RadioGroupItem value="nonprofit" id="nonprofit" />
@@ -35,7 +35,7 @@ export function CampaignTypeSelector({
 
         <label
           htmlFor="commercial"
-          className="flex items-start gap-2 bg-white border border-[#e5e5e5] rounded-[10px] px-3 py-2 cursor-pointer hover:border-neutral-300 transition-colors flex-1"
+          className="flex items-start gap-2 bg-white border border-border rounded-[10px] px-3 py-2 cursor-pointer hover:border-neutral-300 transition-colors flex-1"
         >
           <div className="pt-[2.5px]">
             <RadioGroupItem value="commercial" id="commercial" />
