@@ -31,7 +31,7 @@
   --muted: oklch(97.61% 0 0); /* white-500 */
   --muted-foreground: oklch(48.33% 0.015 276); /* black-300 */
 
-  --accent: oklch(78.56% 0.148 224); /* sky-500 */
+  --accent: oklch(97.61% 0 0); /* sky-500 */
   --accent-foreground: oklch(17.25% 0.028 273); /* black-500 */
 
   --destructive: oklch(63.71% 0.21 29); /* red-500 */
