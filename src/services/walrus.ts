@@ -281,7 +281,11 @@ export async function calculateStorageCost(
     storageCostWal: cost.storageCostWal,
     uploadCostWal: cost.uploadCostWal,
     totalCostWal: cost.totalCostWal,
-    estimatedCost: cost.totalCostWal.toFixed(6), // Legacy field
+    subsidizedStorageCost: cost.subsidizedStorageCost,
+    subsidizedUploadCost: cost.subsidizedUploadCost,
+    subsidizedTotalCost: cost.subsidizedTotalCost,
+    subsidyRate: cost.pricing.subsidyRate,
+    estimatedCost: cost.subsidizedTotalCost.toFixed(6), // Legacy field (now shows subsidized cost)
     breakdown: {
       htmlSize: descriptionSize,
       imagesSize,
@@ -298,18 +302,20 @@ export async function calculateStorageCost(
  * @deprecated This uses placeholder pricing. Use calculateStorageCost instead.
  */
 function estimateStorageCostSimple(rawSize: number, epochs: number): string {
-  // Fallback estimate using hardcoded Mainnet pricing (as of March 2025)
-  // Storage: 100,000 FROST/MB, Upload: 20,000 FROST/MB
+  // Fallback estimate using Testnet pricing (as of January 2025)
+  // Storage: 102,400 FROST/MB (100 FROST/KiB), Upload: 2,048,000 FROST/MB (2000 FROST/KiB)
   // 1 WAL = 1 billion FROST
 
   const METADATA_SIZE_MB = 64; // 64MB metadata per blob
   const ENCODING_MULTIPLIER = 5; // 5x encoding overhead
+  const STORAGE_PRICE_PER_MB = 102_400; // Testnet pricing
+  const UPLOAD_PRICE_PER_MB = 2_048_000; // Testnet pricing
 
   const rawSizeMb = rawSize / (1024 * 1024);
   const encodedSizeMb = (rawSizeMb * ENCODING_MULTIPLIER) + METADATA_SIZE_MB;
 
-  const storageCostFrost = encodedSizeMb * 100_000 * epochs;
-  const uploadCostFrost = encodedSizeMb * 20_000;
+  const storageCostFrost = encodedSizeMb * STORAGE_PRICE_PER_MB * epochs;
+  const uploadCostFrost = encodedSizeMb * UPLOAD_PRICE_PER_MB;
   const totalCostFrost = storageCostFrost + uploadCostFrost;
 
   const totalCostWal = totalCostFrost / 1_000_000_000;

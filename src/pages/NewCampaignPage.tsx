@@ -200,12 +200,20 @@ export default function NewCampaignPage() {
         },
         {
           label: `Storage (${costEstimate.epochs} epochs)`,
-          amount: `${costEstimate.storageCostWal.toFixed(6)} WAL`,
+          amount: `${costEstimate.subsidizedStorageCost.toFixed(6)} WAL`,
         },
         {
           label: "Upload cost",
-          amount: `${costEstimate.uploadCostWal.toFixed(6)} WAL`,
+          amount: `${costEstimate.subsidizedUploadCost.toFixed(6)} WAL`,
         },
+        ...(costEstimate.subsidyRate && costEstimate.subsidyRate > 0
+          ? [
+              {
+                label: `Subsidy discount (${(costEstimate.subsidyRate * 100).toFixed(0)}%)`,
+                amount: `-${(costEstimate.totalCostWal - costEstimate.subsidizedTotalCost).toFixed(6)} WAL`,
+              },
+            ]
+          : []),
       ]
     : [
         { label: "Campaign metadata", amount: "Calculate first" },
@@ -215,7 +223,7 @@ export default function NewCampaignPage() {
       ];
 
   const totalCost = costEstimate
-    ? `${costEstimate.totalCostWal.toFixed(6)} WAL`
+    ? `${costEstimate.subsidizedTotalCost.toFixed(6)} WAL`
     : "Calculate first";
 
   return (

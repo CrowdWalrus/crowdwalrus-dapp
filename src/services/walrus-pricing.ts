@@ -17,17 +17,30 @@ export interface WalrusPricing {
   uploadPerMb: number; // FROST per MB (one-time)
   timestamp: number; // When this pricing was fetched
   network: 'testnet' | 'mainnet';
+  subsidyRate?: number; // Subsidy rate (0-1, e.g., 0.80 for 80% discount)
 }
 
 /**
- * Fallback pricing constants (Mainnet as of March 2025)
+ * Fallback pricing constants
  * Used when system object query fails
+ * Note: Testnet and Mainnet have different pricing
  */
-const FALLBACK_PRICING: WalrusPricing = {
+const FALLBACK_PRICING_MAINNET: WalrusPricing = {
   storagePerMbPerEpoch: 100_000, // 100,000 FROST per MB per epoch
   uploadPerMb: 20_000, // 20,000 FROST per MB
   timestamp: Date.now(),
   network: 'mainnet',
+  subsidyRate: 0, // Mainnet currently has 0% subsidy (as of Jan 2025)
+};
+
+const FALLBACK_PRICING_TESTNET: WalrusPricing = {
+  storagePerMbPerEpoch: 102_400, // 102,400 FROST per MB per epoch (100 per KiB)
+  uploadPerMb: 2_048_000, // 2,048,000 FROST per MB (2000 per KiB)
+  timestamp: Date.now(),
+  network: 'testnet',
+  // Testnet has implicit ~80% subsidy (pricing is arbitrary for testing)
+  // Subsidy object doesn't exist on testnet but costs are effectively subsidized
+  subsidyRate: 0.80,
 };
 
 /**
@@ -42,6 +55,52 @@ const CACHE_TTL_MS = 5 * 60 * 1000; // 5 minutes
 const pricingCache: Record<string, PricingCache> = {};
 
 /**
+ * Query Walrus subsidy object for discount rate
+ */
+async function querySubsidyRate(
+  suiClient: SuiClient,
+  network: 'testnet' | 'mainnet',
+): Promise<number> {
+  const config = getContractConfig(network);
+  const subsidyObjectId = config.walrus.subsidyObjectId;
+  const fallback = network === 'testnet' ? FALLBACK_PRICING_TESTNET : FALLBACK_PRICING_MAINNET;
+
+  // Testnet doesn't have a subsidy object - use fallback (implicit subsidy)
+  if (!subsidyObjectId || subsidyObjectId === '') {
+    return fallback.subsidyRate || 0;
+  }
+
+  try {
+    const subsidyObject = await suiClient.getObject({
+      id: subsidyObjectId,
+      options: {
+        showContent: true,
+      },
+    });
+
+    if (!subsidyObject.data?.content || subsidyObject.data.content.dataType !== 'moveObject') {
+      throw new Error('Invalid subsidy object structure');
+    }
+
+    const fields = subsidyObject.data.content.fields as any;
+
+    // Try buyer_subsidy_rate first, fall back to system_subsidy_rate
+    const subsidyRateBasisPoints = fields.buyer_subsidy_rate ?? fields.system_subsidy_rate ?? 0;
+
+    // Convert from basis points (if > 1) or use directly (if 0-1)
+    // Basis points: 8000 = 80%, but if already decimal: 0.8 = 80%
+    const subsidyRate = subsidyRateBasisPoints > 1
+      ? subsidyRateBasisPoints / 10000
+      : subsidyRateBasisPoints;
+
+    return subsidyRate;
+  } catch (error) {
+    console.warn(`Failed to query subsidy rate for ${network}:`, error);
+    return fallback.subsidyRate || 0;
+  }
+}
+
+/**
  * Query Walrus system object for current pricing
  */
 async function querySystemPricing(
@@ -51,45 +110,72 @@ async function querySystemPricing(
   // Get system object ID from centralized config
   const config = getContractConfig(network);
   const systemObjectId = config.walrus.systemObjectId;
+  const fallback = network === 'testnet' ? FALLBACK_PRICING_TESTNET : FALLBACK_PRICING_MAINNET;
 
   try {
-    // Query the Walrus system object
-    const systemObject = await suiClient.getObject({
-      id: systemObjectId,
-      options: {
-        showContent: true,
-      },
+    // The pricing is stored in a dynamic field called SystemStateInnerV1
+    // First get the dynamic fields of the system object
+    const dynamicFields = await suiClient.getDynamicFields({
+      parentId: systemObjectId,
     });
 
-    if (!systemObject.data?.content || systemObject.data.content.dataType !== 'moveObject') {
-      throw new Error('Invalid system object structure');
+    if (!dynamicFields.data || dynamicFields.data.length === 0) {
+      throw new Error('No dynamic fields found in system object');
     }
 
-    const fields = systemObject.data.content.fields as any;
+    // Get the SystemStateInnerV1 dynamic field (usually the first one)
+    const systemStateField = dynamicFields.data.find(f =>
+      f.objectType?.includes('system_state_inner::SystemStateInnerV1')
+    );
 
-    // Extract pricing from system object fields
-    // The exact field names may vary - adjust based on actual Walrus Move struct
-    const storagePerMbPerEpoch = fields.storage_price_per_kib
-      ? Math.round(Number(fields.storage_price_per_kib) * 1024)
-      : FALLBACK_PRICING.storagePerMbPerEpoch;
+    if (!systemStateField) {
+      throw new Error('SystemStateInnerV1 field not found');
+    }
 
-    const uploadPerMb = fields.write_price_per_kib
-      ? Math.round(Number(fields.write_price_per_kib) * 1024)
-      : FALLBACK_PRICING.uploadPerMb;
+    // Get the actual field object with pricing data
+    const fieldObject = await suiClient.getDynamicFieldObject({
+      parentId: systemObjectId,
+      name: systemStateField.name,
+    });
+
+    if (!fieldObject.data?.content || fieldObject.data.content.dataType !== 'moveObject') {
+      throw new Error('Invalid system state inner structure');
+    }
+
+    const fields = (fieldObject.data.content.fields as any)?.value?.fields;
+
+    if (!fields) {
+      throw new Error('System state inner fields not found');
+    }
+
+    // Extract pricing from system state inner fields
+    // Pricing is per KiB (unit size), we convert to per MB
+    const storagePerUnitSize = fields.storage_price_per_unit_size
+      ? Number(fields.storage_price_per_unit_size)
+      : fallback.storagePerMbPerEpoch / 1024;
+
+    const writePerUnitSize = fields.write_price_per_unit_size
+      ? Number(fields.write_price_per_unit_size)
+      : fallback.uploadPerMb / 1024;
+
+    // Convert from per-KiB to per-MB (multiply by 1024)
+    const storagePerMbPerEpoch = Math.round(storagePerUnitSize * 1024);
+    const uploadPerMb = Math.round(writePerUnitSize * 1024);
+
+    // Query subsidy rate
+    const subsidyRate = await querySubsidyRate(suiClient, network);
 
     return {
       storagePerMbPerEpoch,
       uploadPerMb,
       timestamp: Date.now(),
       network,
+      subsidyRate,
     };
   } catch (error) {
     console.warn(`Failed to query Walrus system object for ${network}:`, error);
     console.warn('Using fallback pricing estimates');
-    return {
-      ...FALLBACK_PRICING,
-      network,
-    };
+    return fallback;
   }
 }
 
@@ -204,10 +290,15 @@ export interface CampaignStorageCost {
   encodedSize: number;    // Size after encoding (5x + metadata)
   metadataSize: number;   // Fixed metadata overhead
 
-  // Costs in WAL
+  // Costs in WAL (before subsidy)
   storageCostWal: number; // Storage cost (per epoch)
   uploadCostWal: number;  // One-time upload cost
-  totalCostWal: number;   // Total cost
+  totalCostWal: number;   // Total cost before subsidy
+
+  // Subsidized costs
+  subsidizedStorageCost: number; // Storage cost after subsidy
+  subsidizedUploadCost: number;  // Upload cost after subsidy
+  subsidizedTotalCost: number;   // Total cost after subsidy (what user actually pays)
 
   // Epochs
   epochs: number;
@@ -231,6 +322,14 @@ export async function calculateCampaignStorageCost(
   const uploadCostWal = calculateUploadCost(encodedSize, pricing);
   const totalCostWal = storageCostWal + uploadCostWal;
 
+  // Apply subsidy rate
+  const subsidyRate = pricing.subsidyRate || 0;
+  const subsidyMultiplier = 1 - subsidyRate; // e.g., 0.80 subsidy means user pays 0.20
+
+  const subsidizedStorageCost = storageCostWal * subsidyMultiplier;
+  const subsidizedUploadCost = uploadCostWal * subsidyMultiplier;
+  const subsidizedTotalCost = totalCostWal * subsidyMultiplier;
+
   return {
     rawSize: rawSizeBytes,
     encodedSize,
@@ -238,6 +337,9 @@ export async function calculateCampaignStorageCost(
     storageCostWal,
     uploadCostWal,
     totalCostWal,
+    subsidizedStorageCost,
+    subsidizedUploadCost,
+    subsidizedTotalCost,
     epochs,
     pricing,
   };

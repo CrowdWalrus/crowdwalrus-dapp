@@ -24,6 +24,7 @@ export interface WalrusConfig {
   uploadRelay?: string;
   aggregatorUrl: string;
   systemObjectId: string; // Walrus system object on Sui for pricing queries
+  subsidyObjectId: string; // Walrus subsidy object for discounted pricing
 }
 
 /**
@@ -62,6 +63,8 @@ const DEVNET_CONFIG: NetworkContractConfig = {
     aggregatorUrl: 'https://aggregator.walrus-testnet.walrus.space/v1',
     // Devnet uses testnet system object
     systemObjectId: '0x98ebc47370603fe81d9e15491b2f1443d619d1dab720d586e429ed233e1255c1',
+    // Testnet doesn't have a subsidy object - subsidies are implicit in pricing
+    subsidyObjectId: '',
   },
   storageDefaults: {
     defaultEpochs: 100, // ~100 days on devnet (1 day per epoch)
@@ -92,6 +95,8 @@ const TESTNET_CONFIG: NetworkContractConfig = {
     uploadRelay: 'https://relay.walrus.site',
     aggregatorUrl: 'https://aggregator.walrus-testnet.walrus.space/v1',
     systemObjectId: '0x98ebc47370603fe81d9e15491b2f1443d619d1dab720d586e429ed233e1255c1',
+    // Testnet doesn't have a subsidy object - subsidies are implicit in pricing
+    subsidyObjectId: '',
   },
   storageDefaults: {
     defaultEpochs: 3, // Just 3 days for testing (1 day per epoch on testnet)
@@ -122,6 +127,7 @@ const MAINNET_CONFIG: NetworkContractConfig = {
     uploadRelay: 'https://relay.walrus.site',
     aggregatorUrl: 'https://aggregator.walrus.space/v1',
     systemObjectId: '0x2134d52768ea07e8c43570ef975eb3e4c27a39fa6396bef985b5abc58d03ddd2',
+    subsidyObjectId: '0xb606eb177899edc2130c93bf65985af7ec959a2755dc126c953755e59324209e',
   },
   storageDefaults: {
     defaultEpochs: 100, // ~3.8 years on mainnet (14 days per epoch)
