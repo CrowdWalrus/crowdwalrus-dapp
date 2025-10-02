@@ -449,8 +449,8 @@
 
   /* Selection colors */
   ::selection {
-    background-color: var(--blue-500);
-    color: var(--white-50);
+    background-color: var(--white-600);
+    color: var(--black-500);
   }
 }
 
