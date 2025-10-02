@@ -28,6 +28,7 @@ import {
   type Social,
   type StorageCost,
 } from "@/features/campaigns/components/new-campaign";
+import { AlertCircleIcon } from "lucide-react";
 
 export default function NewCampaignPage() {
   const [coverImage, setCoverImage] = useState<string | null>(null);
@@ -196,12 +197,14 @@ export default function NewCampaignPage() {
             <Separator />
 
             {/* Final Submit Section */}
-            <section className="mb-8">
+            <section className="flex flex-col gap-6">
               <Alert className="mb-6">
-                <AlertDescription>
-                  Registering your campaign will require a blockchain
-                  transaction. Make sure you have enough SUI in your wallet to
-                  cover gas fees and storage costs.
+                <AlertDescription className="flex items-center gap-2">
+                  <span className="flex items-center gap-2">
+                    <AlertCircleIcon className="size-4" />
+                    You can publish campaign after completing the “Register
+                    Storage” step
+                  </span>
                 </AlertDescription>
               </Alert>
 
