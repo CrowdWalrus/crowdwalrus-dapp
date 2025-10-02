@@ -5,7 +5,7 @@ import { createNetworkConfig } from "@mysten/dapp-kit";
  * Default network for the application
  * Change this single value to switch between testnet and mainnet
  */
-export const DEFAULT_NETWORK = "mainnet" as const;
+export const DEFAULT_NETWORK = "testnet" as const;
 
 const { networkConfig, useNetworkVariable, useNetworkVariables } =
   createNetworkConfig({
