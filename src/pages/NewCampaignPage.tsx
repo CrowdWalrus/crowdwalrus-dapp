@@ -28,6 +28,7 @@ import {
   type Social,
   type StorageCost,
 } from "@/features/campaigns/components/new-campaign";
+import { AlertCircleIcon } from "lucide-react";
 
 export default function NewCampaignPage() {
   const [coverImage, setCoverImage] = useState<string | null>(null);
@@ -91,7 +92,9 @@ export default function NewCampaignPage() {
               <div className="flex flex-col gap-8">
                 {/* Campaign Name */}
                 <div className="flex flex-col gap-4">
-                  <Label htmlFor="campaign-name">Title <span className="text-red-300">*</span></Label>
+                  <Label htmlFor="campaign-name">
+                    Title <span className="text-red-300">*</span>
+                  </Label>
                   <Input
                     id="campaign-name"
                     placeholder="Enter your campaign name"
@@ -100,7 +103,9 @@ export default function NewCampaignPage() {
 
                 {/* Description */}
                 <div className="flex flex-col gap-4">
-                  <Label htmlFor="description">Short description <span className="text-red-300">*</span></Label>
+                  <Label htmlFor="description">
+                    Short description <span className="text-red-300">*</span>
+                  </Label>
                   <Textarea
                     id="description"
                     placeholder="Brief description of your campaign"
@@ -127,7 +132,7 @@ export default function NewCampaignPage() {
               </div>
             </section>
 
-            <Separator className="my-12" />
+            <Separator />
 
             {/* Campaign Type Section */}
             <CampaignTypeSelector
@@ -141,7 +146,7 @@ export default function NewCampaignPage() {
               onChange={setCategories}
             />
 
-            <Separator className="my-12" />
+            <Separator />
 
             {/* Campaign Timeline Section */}
             <CampaignTimeline
@@ -159,13 +164,11 @@ export default function NewCampaignPage() {
               onWalletAddressChange={setWalletAddress}
             />
 
-            <Separator className="my-12" />
+            <Separator />
 
             {/* Additional Details Section */}
-            <section className="mb-12">
-              <h2 className="text-2xl font-semibold mb-8">
-                Additional Details
-              </h2>
+            <section className="flex flex-col gap-8 mb-12">
+              <h2 className="text-2xl font-semibold">Additional Details</h2>
 
               {/* Add Socials */}
               <CampaignSocialsSection value={socials} onChange={setSocials} />
@@ -177,7 +180,7 @@ export default function NewCampaignPage() {
               />
             </section>
 
-            <Separator className="my-12" />
+            <Separator />
 
             {/* Terms and Conditions Section */}
             <CampaignTermsAndConditionsSection
@@ -191,15 +194,17 @@ export default function NewCampaignPage() {
               totalCost="2.5228 SUI"
             />
 
-            <Separator className="my-12" />
+            <Separator />
 
             {/* Final Submit Section */}
-            <section className="mb-8">
+            <section className="flex flex-col gap-6">
               <Alert className="mb-6">
-                <AlertDescription>
-                  Registering your campaign will require a blockchain
-                  transaction. Make sure you have enough SUI in your wallet to
-                  cover gas fees and storage costs.
+                <AlertDescription className="flex items-center gap-2">
+                  <span className="flex items-center gap-2">
+                    <AlertCircleIcon className="size-4" />
+                    You can publish campaign after completing the “Register
+                    Storage” step
+                  </span>
                 </AlertDescription>
               </Alert>
 
