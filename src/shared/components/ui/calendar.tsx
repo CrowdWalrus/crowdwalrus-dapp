@@ -102,11 +102,11 @@ function Calendar({
           defaultClassNames.day,
         ),
         range_start: cn(
-          "bg-accent rounded-l-md",
+          "bg-white-600 rounded-l-md",
           defaultClassNames.range_start,
         ),
         range_middle: cn("rounded-none", defaultClassNames.range_middle),
-        range_end: cn("bg-accent rounded-r-md", defaultClassNames.range_end),
+        range_end: cn("bg-white-600 rounded-r-md", defaultClassNames.range_end),
         today: cn(
           "bg-white-600 text-black-500 rounded-md data-[selected=true]:rounded-none",
           defaultClassNames.today,
