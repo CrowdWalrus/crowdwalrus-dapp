@@ -1,21 +1,25 @@
+import { useFormContext, Controller } from "react-hook-form";
 import { RadioGroup, RadioGroupItem } from "@/shared/components/ui/radio-group";
+import { FormMessage } from "@/shared/components/ui/form";
 
-interface CampaignTypeSelectorProps {
-  value: string;
-  onChange: (value: string) => void;
-}
+export function CampaignTypeSelector() {
+  const { control } = useFormContext();
 
-export function CampaignTypeSelector({
-  value,
-  onChange,
-}: CampaignTypeSelectorProps) {
   return (
-    <section className="flex flex-col gap-8">
-      <h2 className="text-2xl font-bold leading-[1.6]">
-        Campaign Type <span className="text-red-300">*</span>
-      </h2>
+    <Controller
+      control={control}
+      name="campaignType"
+      render={({ field: { onChange, value }, fieldState: { error } }) => (
+        <section className="flex flex-col gap-8">
+          <h2 className="text-2xl font-bold leading-[1.6]">
+            Campaign Type <span className="text-red-300">*</span>
+          </h2>
 
-      <RadioGroup value={value} onValueChange={onChange} className="flex gap-6">
+          <RadioGroup
+            value={value}
+            onValueChange={onChange}
+            className="flex gap-6"
+          >
         <label
           htmlFor="nonprofit"
           className="flex items-start gap-2 bg-white border border-border rounded-[10px] px-3 py-2 cursor-pointer hover:border-neutral-300 transition-colors flex-1"
@@ -49,7 +53,10 @@ export function CampaignTypeSelector({
             </span>
           </div>
         </label>
-      </RadioGroup>
-    </section>
+          </RadioGroup>
+          {error && <FormMessage>{error.message}</FormMessage>}
+        </section>
+      )}
+    />
   );
 }

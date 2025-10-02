@@ -3,10 +3,7 @@ export { CampaignTypeSelector } from "./CampaignTypeSelector";
 export { CampaignCategorySelector } from "./CampaignCategorySelector";
 export { CampaignTimeline } from "./CampaignTimeline";
 export { CampaignFundingTargetSection } from "./CampaignFundingTargetSection";
-export {
-  CampaignSocialsSection,
-  type Social,
-} from "./CampaignSocialsSection";
+export { CampaignSocialsSection } from "./CampaignSocialsSection";
 export { CampaignDetailsEditor } from "./CampaignDetailsEditor";
 export {
   CampaignStorageRegistrationCard,

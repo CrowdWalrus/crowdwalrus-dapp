@@ -1,42 +1,47 @@
+import { useFormContext, Controller } from "react-hook-form";
 import { Checkbox } from "@/shared/components/ui/checkbox";
 import { Label } from "@/shared/components/ui/label";
+import { FormMessage } from "@/shared/components/ui/form";
 
-interface CampaignCategorySelectorProps {
-  value: string[];
-  onChange: (value: string[]) => void;
-}
+export function CampaignCategorySelector() {
+  const { control } = useFormContext();
 
-export function CampaignCategorySelector({
-  value,
-  onChange,
-}: CampaignCategorySelectorProps) {
-  const handleCheckboxChange = (category: string, checked: boolean) => {
+  const handleCheckboxChange = (
+    category: string,
+    checked: boolean,
+    currentValue: string[],
+    onChange: (value: string[]) => void,
+  ) => {
     if (checked) {
-      onChange([...value, category]);
+      onChange([...currentValue, category]);
     } else {
-      onChange(value.filter((c) => c !== category));
+      onChange(currentValue.filter((c) => c !== category));
     }
   };
 
   return (
-    <div className="flex flex-col gap-8">
-      <p className="font-bold text-2xl leading-[1.6]">
-        <span>Select Category </span>
-        <span className="font-normal text-[#f5827a]">*</span>
-      </p>
-      <div className="flex flex-col gap-4">
-        <p className="font-medium text-base leading-[1.6]">
-          Pick a category that best describes your campaign. You can select
-          multiple category options.
-        </p>
-        <div className="flex gap-6">
+    <Controller
+      control={control}
+      name="categories"
+      render={({ field: { onChange, value }, fieldState: { error } }) => (
+        <div className="flex flex-col gap-8">
+          <p className="font-bold text-2xl leading-[1.6]">
+            <span>Select Category </span>
+            <span className="font-normal text-[#f5827a]">*</span>
+          </p>
+          <div className="flex flex-col gap-4">
+            <p className="font-medium text-base leading-[1.6]">
+              Pick a category that best describes your campaign. You can select
+              multiple category options.
+            </p>
+            <div className="flex gap-6">
           <div className="flex flex-col gap-6">
             <div className="flex gap-2 h-6 items-center w-60">
               <Checkbox
                 id="arts"
                 checked={value.includes("arts")}
                 onCheckedChange={(checked) =>
-                  handleCheckboxChange("arts", checked as boolean)
+                  handleCheckboxChange("arts", checked as boolean, value, onChange)
                 }
               />
               <Label
@@ -51,7 +56,7 @@ export function CampaignCategorySelector({
                 id="community"
                 checked={value.includes("community")}
                 onCheckedChange={(checked) =>
-                  handleCheckboxChange("community", checked as boolean)
+                  handleCheckboxChange("community", checked as boolean, value, onChange)
                 }
               />
               <Label
@@ -66,7 +71,7 @@ export function CampaignCategorySelector({
                 id="education"
                 checked={value.includes("education")}
                 onCheckedChange={(checked) =>
-                  handleCheckboxChange("education", checked as boolean)
+                  handleCheckboxChange("education", checked as boolean, value, onChange)
                 }
               />
               <Label
@@ -81,7 +86,7 @@ export function CampaignCategorySelector({
                 id="environment"
                 checked={value.includes("environment")}
                 onCheckedChange={(checked) =>
-                  handleCheckboxChange("environment", checked as boolean)
+                  handleCheckboxChange("environment", checked as boolean, value, onChange)
                 }
               />
               <Label
@@ -98,7 +103,7 @@ export function CampaignCategorySelector({
                 id="health"
                 checked={value.includes("health")}
                 onCheckedChange={(checked) =>
-                  handleCheckboxChange("health", checked as boolean)
+                  handleCheckboxChange("health", checked as boolean, value, onChange)
                 }
               />
               <Label
@@ -113,7 +118,7 @@ export function CampaignCategorySelector({
                 id="ngo"
                 checked={value.includes("ngo")}
                 onCheckedChange={(checked) =>
-                  handleCheckboxChange("ngo", checked as boolean)
+                  handleCheckboxChange("ngo", checked as boolean, value, onChange)
                 }
               />
               <Label
@@ -128,7 +133,7 @@ export function CampaignCategorySelector({
                 id="tech"
                 checked={value.includes("tech")}
                 onCheckedChange={(checked) =>
-                  handleCheckboxChange("tech", checked as boolean)
+                  handleCheckboxChange("tech", checked as boolean, value, onChange)
                 }
               />
               <Label
@@ -143,7 +148,7 @@ export function CampaignCategorySelector({
                 id="other"
                 checked={value.includes("other")}
                 onCheckedChange={(checked) =>
-                  handleCheckboxChange("other", checked as boolean)
+                  handleCheckboxChange("other", checked as boolean, value, onChange)
                 }
               />
               <Label
@@ -153,9 +158,12 @@ export function CampaignCategorySelector({
                 Others
               </Label>
             </div>
+            </div>
+            </div>
+            {error && <FormMessage>{error.message}</FormMessage>}
           </div>
         </div>
-      </div>
-    </div>
+      )}
+    />
   );
 }

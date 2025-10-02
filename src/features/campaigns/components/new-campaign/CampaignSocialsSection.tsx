@@ -1,3 +1,4 @@
+import { useFormContext, useFieldArray, Controller } from "react-hook-form";
 import { Plus, Globe, X } from "lucide-react";
 import { Button } from "@/shared/components/ui/button";
 import { Input } from "@/shared/components/ui/input";
@@ -16,16 +17,6 @@ import DiscordSocial from "@/shared/icons/socials/DiscordSocial";
 import InstagramSocial from "@/shared/icons/socials/InstagramSocial";
 import LinkedInSocial from "@/shared/icons/socials/LinkedInSocial";
 import SlackSocial from "@/shared/icons/socials/SlackSocial";
-
-export interface Social {
-  platform: string;
-  url: string;
-}
-
-interface CampaignSocialsSectionProps {
-  value: Social[];
-  onChange: (socials: Social[]) => void;
-}
 
 const PLATFORM_CONFIG = {
   website: {
@@ -75,78 +66,77 @@ const PLATFORM_CONFIG = {
   },
 } as const;
 
-export function CampaignSocialsSection({
-  value,
-  onChange,
-}: CampaignSocialsSectionProps) {
+export function CampaignSocialsSection() {
+  const { control, watch } = useFormContext();
+  const { fields, append, remove } = useFieldArray({
+    control,
+    name: "socials",
+  });
+
   const handleAddMore = () => {
-    onChange([...value, { platform: "website", url: "" }]);
+    append({ platform: "website", url: "" });
   };
 
-  const handlePlatformChange = (index: number, platform: string) => {
-    const newSocials = [...value];
-    newSocials[index].platform = platform;
-    onChange(newSocials);
-  };
-
-  const handleUrlChange = (index: number, url: string) => {
-    const newSocials = [...value];
-    newSocials[index].url = url;
-    onChange(newSocials);
-  };
-
-  const handleRemove = (index: number) => {
-    const newSocials = value.filter((_, i) => i !== index);
-    onChange(newSocials);
-  };
+  const socials = watch("socials");
 
   return (
     <div className="flex flex-col gap-4">
       <p className="font-medium text-base leading-[1.6]">Add socials</p>
       <div className="flex flex-col gap-4 w-full">
-        {value.map((social, index) => {
+        {fields.map((field, index) => {
+          const platformValue = socials?.[index]?.platform || "website";
           const config =
-            PLATFORM_CONFIG[social.platform as keyof typeof PLATFORM_CONFIG];
-          const Icon = config?.icon;
+            PLATFORM_CONFIG[platformValue as keyof typeof PLATFORM_CONFIG];
 
           return (
-            <div key={index} className="flex gap-4 items-center w-full">
-              <Select
-                value={social.platform}
-                onValueChange={(platform) =>
-                  handlePlatformChange(index, platform)
-                }
-              >
-                <SelectTrigger className="w-40">
-                  <SelectValue />
-                </SelectTrigger>
-                <SelectContent>
-                  {Object.entries(PLATFORM_CONFIG).map(([value, config]) => {
-                    const ItemIcon = config.icon;
-                    return (
-                      <SelectItem key={value} value={value}>
-                        <div className="flex gap-3 items-center">
-                          {ItemIcon ? (
-                            <ItemIcon className="size-5 shrink-0" />
-                          ) : (
-                            <div className="size-5 shrink-0" />
-                          )}
-                          <span>{config.label}</span>
-                        </div>
-                      </SelectItem>
-                    );
-                  })}
-                </SelectContent>
-              </Select>
-              <Input
-                placeholder={config?.placeholder || "https://"}
-                className="flex-1"
-                value={social.url}
-                onChange={(e) => handleUrlChange(index, e.target.value)}
+            <div key={field.id} className="flex gap-4 items-center w-full">
+              <Controller
+                control={control}
+                name={`socials.${index}.platform`}
+                render={({ field: controllerField }) => (
+                  <Select
+                    value={controllerField.value}
+                    onValueChange={controllerField.onChange}
+                  >
+                    <SelectTrigger className="w-40">
+                      <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {Object.entries(PLATFORM_CONFIG).map(
+                        ([value, config]) => {
+                          const ItemIcon = config.icon;
+                          return (
+                            <SelectItem key={value} value={value}>
+                              <div className="flex gap-3 items-center">
+                                {ItemIcon ? (
+                                  <ItemIcon className="size-5 shrink-0" />
+                                ) : (
+                                  <div className="size-5 shrink-0" />
+                                )}
+                                <span>{config.label}</span>
+                              </div>
+                            </SelectItem>
+                          );
+                        },
+                      )}
+                    </SelectContent>
+                  </Select>
+                )}
+              />
+              <Controller
+                control={control}
+                name={`socials.${index}.url`}
+                render={({ field: controllerField }) => (
+                  <Input
+                    placeholder={config?.placeholder || "https://"}
+                    className="flex-1"
+                    {...controllerField}
+                  />
+                )}
               />
               <button
                 type="button"
-                onClick={() => handleRemove(index)}
+                onClick={() => remove(index)}
                 className="shrink-0 size-5 flex items-center justify-center text-red-300 hover:text-red-400 transition-colors"
               >
                 <X className="size-[15.417px]" />
