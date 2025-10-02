@@ -133,13 +133,21 @@ export interface StorageCostEstimate {
   // Duration
   epochs: number;         // Storage duration in epochs
 
-  // Costs in WAL tokens
+  // Costs in WAL tokens (before subsidy)
   storageCostWal: number; // Storage cost (epochs × size)
   uploadCostWal: number;  // One-time upload/write cost
-  totalCostWal: number;   // Total cost in WAL
+  totalCostWal: number;   // Total cost in WAL before subsidy
+
+  // Subsidized costs (what user actually pays)
+  subsidizedStorageCost: number; // Storage cost after subsidy
+  subsidizedUploadCost: number;  // Upload cost after subsidy
+  subsidizedTotalCost: number;   // Total cost after subsidy
+
+  // Subsidy information
+  subsidyRate?: number;   // Subsidy rate (0-1, e.g., 0.80 for 80%)
 
   // Legacy field for backward compatibility (deprecated)
-  estimatedCost: string;  // Total cost in WAL as string
+  estimatedCost: string;  // Total cost in WAL as string (now shows subsidized cost)
 
   // Breakdown by file type
   breakdown: {
