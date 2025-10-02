@@ -1,7 +1,18 @@
 import { Link } from "react-router-dom";
 import { useForm, FormProvider } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
+import { useState } from "react";
 import { ROUTES } from "@/shared/config/routes";
+import { useCurrentAccount } from "@mysten/dapp-kit";
+import {
+  useCreateCampaign,
+  useEstimateStorageCost,
+} from "@/features/campaigns/hooks/useCreateCampaign";
+import { transformNewCampaignFormData } from "@/features/campaigns/utils/transformFormData";
+import type {
+  CampaignCreationProgress,
+  CreateCampaignResult,
+} from "@/features/campaigns/types/campaign";
 import {
   Breadcrumb,
   BreadcrumbList,
@@ -42,13 +53,19 @@ import {
 import { AlertCircleIcon } from "lucide-react";
 
 export default function NewCampaignPage() {
+  const currentAccount = useCurrentAccount();
+  const { mutate: createCampaign, isPending, currentStep, error } = useCreateCampaign();
+  const { mutate: estimateCost, data: costEstimate } = useEstimateStorageCost();
+  const [progressMessage, setProgressMessage] = useState("");
+  const [campaignResult, setCampaignResult] = useState<CreateCampaignResult | null>(null);
+
   const form = useForm<NewCampaignFormData>({
     resolver: zodResolver(newCampaignSchema),
     defaultValues: {
       campaignName: "",
       description: "",
       subdomain: "",
-      coverImage: "",
+      coverImage: null as any, // Will be File | null
       campaignType: "",
       categories: [],
       startDate: "",
@@ -67,15 +84,124 @@ export default function NewCampaignPage() {
 
   const onSubmit = (data: NewCampaignFormData) => {
     console.log("Form submitted:", data);
-    // TODO: Implement campaign registration logic
+
+    if (!currentAccount) {
+      alert("Please connect your wallet first!");
+      return;
+    }
+
+    if (!data.coverImage) {
+      alert("Please select a cover image!");
+      return;
+    }
+
+    // Transform form data to campaign format
+    const campaignFormData = transformNewCampaignFormData(data);
+
+    console.log("=== CAMPAIGN CREATION START ===");
+    console.log("Connected Wallet:", currentAccount.address);
+    console.log("Network:", "testnet");
+    console.log("\n--- Form Data ---");
+    console.log("Name:", campaignFormData.name);
+    console.log("Short Description:", campaignFormData.short_description);
+    console.log("Subdomain:", campaignFormData.subdomain_name);
+    console.log("Category:", campaignFormData.category);
+    console.log("Funding Goal:", campaignFormData.funding_goal, "SUI");
+    console.log("Start Date:", campaignFormData.start_date.toISOString());
+    console.log("End Date:", campaignFormData.end_date.toISOString());
+    console.log("Cover Image:", {
+      name: campaignFormData.cover_image.name,
+      size: campaignFormData.cover_image.size,
+      type: campaignFormData.cover_image.type,
+    });
+    console.log("Social Twitter:", campaignFormData.social_twitter || "Not provided");
+    console.log("Social Discord:", campaignFormData.social_discord || "Not provided");
+    console.log("Social Website:", campaignFormData.social_website || "Not provided");
+    console.log("================================\n");
+
+    createCampaign(
+      {
+        formData: campaignFormData,
+        options: {
+          network: "testnet",
+          onProgress: (progress: CampaignCreationProgress) => {
+            console.log(`[Progress] ${progress.step}: ${progress.message}`);
+            setProgressMessage(progress.message);
+          },
+        },
+      },
+      {
+        onSuccess: (result) => {
+          console.log("\n=== CAMPAIGN CREATED SUCCESSFULLY ===");
+          console.log("Campaign ID:", result.campaignId);
+          console.log("Transaction Digest:", result.transactionDigest);
+          console.log("Walrus Blob ID:", result.walrusBlobId);
+          console.log("Subdomain:", result.subdomain);
+          console.log("Description URL:", result.walrusDescriptionUrl);
+          console.log("Cover Image URL:", result.walrusCoverImageUrl);
+          console.log("=====================================\n");
+          setCampaignResult(result);
+        },
+        onError: (error) => {
+          console.error("\n=== CAMPAIGN CREATION FAILED ===");
+          console.error("Error:", error);
+          console.error("================================\n");
+        },
+      }
+    );
   };
 
-  const storageCosts: StorageCost[] = [
-    { label: "Campaign metadata", amount: "0.0024 SUI" },
-    { label: "Cover image (2.3 MB)", amount: "0.0156 SUI" },
-    { label: "Campaign description", amount: "0.0048 SUI" },
-    { label: "Storage epoch (100 years)", amount: "2.5000 SUI" },
-  ];
+  // Function to estimate storage costs
+  const handleEstimateCost = () => {
+    const formValues = form.getValues();
+
+    // Only estimate if we have required data
+    if (!formValues.coverImage || !formValues.campaignDetails) {
+      alert("Please upload a cover image and add campaign details first");
+      return;
+    }
+
+    try {
+      const campaignFormData = transformNewCampaignFormData(formValues);
+      estimateCost(campaignFormData);
+    } catch (error) {
+      console.error("Error estimating cost:", error);
+    }
+  };
+
+  const storageCosts: StorageCost[] = costEstimate
+    ? [
+        {
+          label: "HTML content",
+          amount: `${(costEstimate.breakdown.htmlSize / 1024).toFixed(2)} KB`,
+        },
+        {
+          label: "Cover image",
+          amount: `${(costEstimate.breakdown.imagesSize / 1024 / 1024).toFixed(2)} MB`,
+        },
+        {
+          label: "Encoded size (with redundancy)",
+          amount: `${(costEstimate.encodedSize / 1024 / 1024).toFixed(2)} MB`,
+        },
+        {
+          label: `Storage (${costEstimate.epochs} epochs)`,
+          amount: `${costEstimate.storageCostWal.toFixed(6)} WAL`,
+        },
+        {
+          label: "Upload cost",
+          amount: `${costEstimate.uploadCostWal.toFixed(6)} WAL`,
+        },
+      ]
+    : [
+        { label: "Campaign metadata", amount: "Calculate first" },
+        { label: "Cover image", amount: "Calculate first" },
+        { label: "Campaign description", amount: "Calculate first" },
+        { label: "Storage epoch", amount: "Calculate first" },
+      ];
+
+  const totalCost = costEstimate
+    ? `${costEstimate.totalCostWal.toFixed(6)} WAL`
+    : "Calculate first";
 
   return (
     <FormProvider {...form}>
@@ -103,6 +229,70 @@ export default function NewCampaignPage() {
               <form onSubmit={form.handleSubmit(onSubmit)}>
                 {/* Page Header */}
                 <div className="flex flex-col gap-16">
+                  {/* Wallet Status */}
+                  {!currentAccount && (
+                    <Alert className="border-yellow-500">
+                      <AlertDescription className="flex items-center gap-2">
+                        <AlertCircleIcon className="size-4" />
+                        Please connect your wallet to create a campaign
+                      </AlertDescription>
+                    </Alert>
+                  )}
+
+                  {/* Progress Display */}
+                  {isPending && (
+                    <Alert className="border-blue-500">
+                      <AlertDescription>
+                        <p className="font-semibold">Status: {currentStep}</p>
+                        <p className="text-sm text-muted-foreground">{progressMessage}</p>
+                      </AlertDescription>
+                    </Alert>
+                  )}
+
+                  {/* Error Display */}
+                  {error && (
+                    <Alert className="border-red-500">
+                      <AlertDescription className="flex items-center gap-2">
+                        <AlertCircleIcon className="size-4" />
+                        <p className="text-red-600 font-semibold">Error: {error.message}</p>
+                      </AlertDescription>
+                    </Alert>
+                  )}
+
+                  {/* Success Display */}
+                  {campaignResult && (
+                    <Alert className="border-green-500">
+                      <AlertDescription>
+                        <p className="text-green-600 font-semibold mb-4">
+                          Campaign Created Successfully!
+                        </p>
+                        <div className="space-y-2 text-sm">
+                          <p>
+                            <strong>Campaign ID:</strong> {campaignResult.campaignId}
+                          </p>
+                          <p>
+                            <strong>Subdomain:</strong> {campaignResult.subdomain}
+                          </p>
+                          <p>
+                            <strong>Transaction:</strong>{" "}
+                            {campaignResult.transactionDigest}
+                          </p>
+                          <p>
+                            <strong>Walrus Blob ID:</strong> {campaignResult.walrusBlobId}
+                          </p>
+                          <p>
+                            <strong>Description URL:</strong>{" "}
+                            {campaignResult.walrusDescriptionUrl}
+                          </p>
+                          <p>
+                            <strong>Cover Image URL:</strong>{" "}
+                            {campaignResult.walrusCoverImageUrl}
+                          </p>
+                        </div>
+                      </AlertDescription>
+                    </Alert>
+                  )}
+
                   <div className="flex flex-col items-center text-center gap-4 mb-16">
                     <h1 className="text-4xl font-bold mb-4">Launch Campaign</h1>
                     <p className="text-muted-foreground text-base">
@@ -220,7 +410,11 @@ export default function NewCampaignPage() {
                   {/* Storage Registration Section */}
                   <CampaignStorageRegistrationCard
                     costs={storageCosts}
-                    totalCost="2.5228 SUI"
+                    totalCost={totalCost}
+                    onCalculate={handleEstimateCost}
+                    isCalculating={false}
+                    walBalance="N/A (WAL coin type not configured)"
+                    hasInsufficientBalance={false}
                   />
 
                   <Separator />
@@ -238,8 +432,13 @@ export default function NewCampaignPage() {
                     </Alert>
 
                     <div className="flex justify-end">
-                      <Button type="submit" size="lg" className="min-w-[168px]">
-                        Register Campaign
+                      <Button
+                        type="submit"
+                        size="lg"
+                        className="min-w-[168px]"
+                        disabled={isPending || !currentAccount}
+                      >
+                        {isPending ? "Creating..." : "Register Campaign"}
                       </Button>
                     </div>
                   </section>

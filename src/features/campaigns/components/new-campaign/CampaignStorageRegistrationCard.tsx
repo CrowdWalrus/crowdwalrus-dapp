@@ -18,22 +18,23 @@ export interface StorageCost {
 interface CampaignStorageRegistrationCardProps {
   costs: StorageCost[];
   totalCost: string;
+  onCalculate?: () => void;
+  isCalculating?: boolean;
+  walBalance?: string;
+  hasInsufficientBalance?: boolean;
 }
 
 export function CampaignStorageRegistrationCard({
   costs,
   totalCost,
+  onCalculate,
+  isCalculating = false,
+  walBalance = "0 WAL",
+  hasInsufficientBalance = false,
 }: CampaignStorageRegistrationCardProps) {
   // Mock data - replace with actual data from your state/props
   const registrationPeriod = "1 year (10 USD)";
-  const walrusStorageFees = "110,098 WAL";
-  const registrationExpiry = "Sep 26, 2026";
-  const totalDue = "110,098 WAL";
-  const totalDueUSD = "~$10.10";
-  const walBalance = "1.09 WAL";
-  const walRate = "1 WAL = $0.38394 USD";
-  const hasInsufficientBalance = true;
-  console.log(costs, totalCost);
+  const walRate = "1 WAL = ~$0.38 USD";
   return (
     <section className="flex flex-col gap-8 mb-12">
       <div className="flex flex-col gap-2">
@@ -63,17 +64,33 @@ export function CampaignStorageRegistrationCard({
             </Select>
           </div>
 
+          {/* Calculate Cost Button */}
+          {onCalculate && (
+            <div className="flex justify-end">
+              <Button
+                type="button"
+                variant="outline"
+                className="bg-white border-black-50"
+                onClick={onCalculate}
+                disabled={isCalculating}
+              >
+                {isCalculating ? "Calculating..." : "Calculate Storage Cost"}
+              </Button>
+            </div>
+          )}
+
           {/* Storage Fees Card */}
           <Card className="bg-white border-black-50">
             <CardContent className="p-4 flex flex-col gap-4">
-              <div className="flex items-center justify-between text-sm text-[#3d3f49]">
-                <span className="font-normal">Walrus storage fees</span>
-                <span className="font-medium">{walrusStorageFees}</span>
-              </div>
-              <div className="flex items-center justify-between text-sm text-[#3d3f49]">
-                <span className="font-normal">Registration expires</span>
-                <span className="font-medium">{registrationExpiry}</span>
-              </div>
+              {costs.map((cost, index) => (
+                <div
+                  key={index}
+                  className="flex items-center justify-between text-sm text-[#3d3f49]"
+                >
+                  <span className="font-normal">{cost.label}</span>
+                  <span className="font-medium">{cost.amount}</span>
+                </div>
+              ))}
               <div className="h-px bg-[#e7e7e8]" />
               <div className="flex items-center justify-between pt-1 rounded-lg">
                 <span className="text-sm font-semibold text-[#0c0f1c]">
@@ -81,10 +98,7 @@ export function CampaignStorageRegistrationCard({
                 </span>
                 <div className="flex items-center gap-1">
                   <span className="text-sm font-semibold text-[#3d3f49]">
-                    {totalDue}
-                  </span>
-                  <span className="text-xs font-normal text-[#5c5e67]">
-                    {totalDueUSD}
+                    {totalCost}
                   </span>
                 </div>
               </div>

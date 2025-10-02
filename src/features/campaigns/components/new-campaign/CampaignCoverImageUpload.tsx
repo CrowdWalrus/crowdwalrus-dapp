@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useFormContext, Controller } from "react-hook-form";
 import { Upload, X } from "lucide-react";
 import { toast } from "sonner";
@@ -9,6 +9,7 @@ import { FormLabel, FormMessage } from "@/shared/components/ui/form";
 export function CampaignCoverImageUpload() {
   const { control } = useFormContext();
   const [isDragging, setIsDragging] = useState(false);
+  const [previewUrl, setPreviewUrl] = useState<string | null>(null);
 
   const validateImage = (file: File): Promise<string | null> => {
     return new Promise((resolve) => {
@@ -48,7 +49,7 @@ export function CampaignCoverImageUpload() {
 
   const processFile = async (
     file: File,
-    onChange: (value: string) => void,
+    onChange: (value: File) => void,
   ) => {
     const error = await validateImage(file);
     if (error) {
@@ -56,28 +57,45 @@ export function CampaignCoverImageUpload() {
       return false;
     }
 
-    const reader = new FileReader();
-    reader.onload = (event) => {
-      onChange(event.target?.result as string);
-    };
-    reader.readAsDataURL(file);
+    // Clean up old preview URL
+    if (previewUrl) {
+      URL.revokeObjectURL(previewUrl);
+    }
+
+    // Create new preview URL
+    const newPreviewUrl = URL.createObjectURL(file);
+    setPreviewUrl(newPreviewUrl);
+
+    // Set the File object in the form
+    onChange(file);
     return true;
   };
 
+  // Cleanup preview URL on unmount
+  useEffect(() => {
+    return () => {
+      if (previewUrl) {
+        URL.revokeObjectURL(previewUrl);
+      }
+    };
+  }, [previewUrl]);
+
   const handleImageChange = async (
     e: React.ChangeEvent<HTMLInputElement>,
-    onChange: (value: string) => void,
+    onChange: (value: File | null) => void,
   ) => {
     const file = e.target.files?.[0];
 
     if (!file) {
-      onChange("");
+      onChange(null);
+      setPreviewUrl(null);
       return;
     }
 
-    const success = await processFile(file, onChange);
+    const success = await processFile(file, onChange as (value: File) => void);
     if (!success) {
-      onChange("");
+      onChange(null);
+      setPreviewUrl(null);
       e.target.value = "";
     }
   };
@@ -96,7 +114,7 @@ export function CampaignCoverImageUpload() {
 
   const handleDrop = async (
     e: React.DragEvent<HTMLDivElement>,
-    onChange: (value: string) => void,
+    onChange: (value: File | null) => void,
   ) => {
     e.preventDefault();
     e.stopPropagation();
@@ -105,7 +123,7 @@ export function CampaignCoverImageUpload() {
     const file = e.dataTransfer.files?.[0];
     if (!file) return;
 
-    const success = await processFile(file, onChange);
+    const success = await processFile(file, onChange as (value: File) => void);
     if (success) {
       const fileInput = document.getElementById(
         "cover-image",
@@ -118,8 +136,14 @@ export function CampaignCoverImageUpload() {
     }
   };
 
-  const handleRemoveImage = (onChange: (value: string) => void) => {
-    onChange("");
+  const handleRemoveImage = (onChange: (value: File | null) => void) => {
+    // Clean up preview URL
+    if (previewUrl) {
+      URL.revokeObjectURL(previewUrl);
+      setPreviewUrl(null);
+    }
+
+    onChange(null);
     const fileInput = document.getElementById(
       "cover-image",
     ) as HTMLInputElement;
@@ -132,7 +156,7 @@ export function CampaignCoverImageUpload() {
     <Controller
       control={control}
       name="coverImage"
-      render={({ field: { onChange, value }, fieldState: { error } }) => (
+      render={({ field: { onChange }, fieldState: { error } }) => (
         <div>
           <FormLabel htmlFor="cover-image" className="block pb-4">
             Cover image <span className="text-red-300">*</span>
@@ -158,10 +182,10 @@ export function CampaignCoverImageUpload() {
             onDragLeave={handleDragLeave}
             onDrop={(e) => handleDrop(e, onChange)}
           >
-            {value ? (
+            {previewUrl ? (
               <>
                 <img
-                  src={value}
+                  src={previewUrl}
                   alt="Cover preview"
                   className="w-full h-full object-cover"
                 />

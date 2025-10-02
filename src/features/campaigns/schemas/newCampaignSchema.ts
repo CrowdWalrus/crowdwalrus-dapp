@@ -23,10 +23,12 @@ export const newCampaignSchema = z
         "Sub-name can only contain lowercase letters, numbers, and hyphens",
       ),
     coverImage: z
-      .string()
-      .min(1, "Cover image is required")
-      .refine((val) => val.startsWith("data:image/"), {
+      .instanceof(File, { message: "Cover image is required" })
+      .refine((file) => file.type.startsWith("image/"), {
         message: "Invalid image format",
+      })
+      .refine((file) => file.size <= 5 * 1024 * 1024, {
+        message: "Image size must be less than 5MB",
       }),
     campaignType: z
       .string()
