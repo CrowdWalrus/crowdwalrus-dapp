@@ -8,6 +8,7 @@
 import { useParams } from "react-router-dom";
 import { useQuery } from "@tanstack/react-query";
 import { useCampaign } from "@/features/campaigns/hooks/useCampaign";
+import { DEFAULT_NETWORK } from "@/shared/config/networkConfig";
 import {
   Card,
   CardContent,
@@ -64,7 +65,7 @@ function useWalrusDescription(descriptionUrl: string) {
 
 export function CampaignPage() {
   const { id } = useParams<{ id: string }>();
-  const network = "testnet" as const;
+  const network = DEFAULT_NETWORK;
 
   // Fetch campaign data
   const { campaign, isPending, error, refetch } = useCampaign(

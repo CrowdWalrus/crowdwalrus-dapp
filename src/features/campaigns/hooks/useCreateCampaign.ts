@@ -39,6 +39,7 @@ import {
   extractCampaignIdFromEffects,
 } from '@/services/campaign-transaction';
 import { getContractConfig } from '@/shared/config/contracts';
+import { DEFAULT_NETWORK } from '@/shared/config/networkConfig';
 import {
   CampaignCreationStep,
   CampaignCreationError,
@@ -103,7 +104,7 @@ export function useCreateCampaign() {
         );
       }
 
-      const network = options?.network || 'testnet';
+      const network = options?.network || DEFAULT_NETWORK;
       const config = getContractConfig(network);
       const storageEpochs =
         formData.storage_epochs || config.storageDefaults.defaultEpochs;
@@ -350,7 +351,7 @@ export function useCreateCampaign() {
  */
 export function useEstimateStorageCost() {
   const suiClient = useSuiClient();
-  const network = 'testnet' as const; // TODO: Make this configurable
+  const network = DEFAULT_NETWORK;
 
   return useMutation({
     mutationFn: async (formData: CampaignFormData) => {

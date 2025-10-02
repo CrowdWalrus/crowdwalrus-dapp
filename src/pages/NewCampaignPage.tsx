@@ -4,6 +4,7 @@ import { zodResolver } from "@hookform/resolvers/zod";
 import { useState } from "react";
 import { ROUTES } from "@/shared/config/routes";
 import { useCurrentAccount } from "@mysten/dapp-kit";
+import { DEFAULT_NETWORK } from "@/shared/config/networkConfig";
 import {
   useCreateCampaign,
   useEstimateStorageCost,
@@ -114,7 +115,7 @@ export default function NewCampaignPage() {
 
     console.log("=== CAMPAIGN CREATION START ===");
     console.log("Connected Wallet:", currentAccount.address);
-    console.log("Network:", "testnet");
+    console.log("Network:", DEFAULT_NETWORK);
     console.log("\n--- Form Data ---");
     console.log("Name:", campaignFormData.name);
     console.log("Short Description:", campaignFormData.short_description);
@@ -146,7 +147,7 @@ export default function NewCampaignPage() {
       {
         formData: campaignFormData,
         options: {
-          network: "testnet",
+          network: DEFAULT_NETWORK,
           onProgress: (progress: CampaignCreationProgress) => {
             console.log(`[Progress] ${progress.step}: ${progress.message}`);
             setProgressMessage(progress.message);

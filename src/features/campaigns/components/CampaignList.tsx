@@ -16,6 +16,7 @@ import {
 } from "@/shared/components/ui/card";
 import { Button } from "@/shared/components/ui/button";
 import { useMyCampaigns, type CampaignData } from "@/features/campaigns/hooks/useMyCampaigns";
+import { DEFAULT_NETWORK } from "@/shared/config/networkConfig";
 
 interface CampaignCardProps {
   campaign: CampaignData;
@@ -290,7 +291,7 @@ function CampaignCard({ campaign, network }: CampaignCardProps) {
  * Main CampaignList component
  */
 export function CampaignList() {
-  const network = "testnet" as const; // TODO: Make this configurable
+  const network = DEFAULT_NETWORK;
   const { campaigns, isPending, error, hasNoCampaigns, refetch } =
     useMyCampaigns(network);
 

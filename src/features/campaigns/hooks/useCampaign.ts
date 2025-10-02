@@ -9,13 +9,14 @@
  */
 
 import { useSuiClientQuery } from '@mysten/dapp-kit';
+import { DEFAULT_NETWORK } from '@/shared/config/networkConfig';
 import { getWalrusUrl } from '@/services/walrus';
 import { useMemo } from 'react';
 import type { CampaignData } from './useMyCampaigns';
 
 export function useCampaign(
   campaignId: string,
-  network: 'devnet' | 'testnet' | 'mainnet' = 'testnet'
+  network: 'devnet' | 'testnet' | 'mainnet' = DEFAULT_NETWORK
 ) {
   // Fetch single campaign object
   const {

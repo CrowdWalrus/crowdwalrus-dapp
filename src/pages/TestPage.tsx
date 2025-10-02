@@ -18,6 +18,7 @@ import {
   SelectValue,
 } from "@/shared/components/ui/select";
 import { useCurrentAccount } from "@mysten/dapp-kit";
+import { DEFAULT_NETWORK } from "@/shared/config/networkConfig";
 import { useCreateCampaign } from "@/features/campaigns/hooks/useCreateCampaign";
 import type {
   CampaignFormData,
@@ -101,7 +102,7 @@ export function TestPage() {
 
     console.log("=== CAMPAIGN CREATION START ===");
     console.log("Connected Wallet:", currentAccount.address);
-    console.log("Network:", "testnet");
+    console.log("Network:", DEFAULT_NETWORK);
     console.log("\n--- Form Data ---");
     console.log("Name:", formData.name);
     console.log("Short Description:", formData.short_description);
@@ -136,7 +137,7 @@ export function TestPage() {
       {
         formData,
         options: {
-          network: "testnet",
+          network: DEFAULT_NETWORK,
           onProgress: (progress: CampaignCreationProgress) => {
             console.log(`[Progress] ${progress.step}: ${progress.message}`);
             setProgressMessage(progress.message);

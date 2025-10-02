@@ -11,6 +11,7 @@
 
 import { useSuiClientQuery } from '@mysten/dapp-kit';
 import { getContractConfig } from '@/shared/config/contracts';
+import { DEFAULT_NETWORK } from '@/shared/config/networkConfig';
 import { getWalrusUrl } from '@/services/walrus';
 import { useMemo } from 'react';
 
@@ -42,7 +43,7 @@ export interface CampaignData {
   descriptionUrl: string;
 }
 
-export function useMyCampaigns(network: 'devnet' | 'testnet' | 'mainnet' = 'testnet') {
+export function useMyCampaigns(network: 'devnet' | 'testnet' | 'mainnet' = DEFAULT_NETWORK) {
   const config = getContractConfig(network);
 
   // Step 1: Query CampaignCreated events to get all campaign IDs
