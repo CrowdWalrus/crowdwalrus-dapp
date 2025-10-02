@@ -11,7 +11,7 @@ import { FormMessage } from "@/shared/components/ui/form";
 import { cn } from "@/shared/lib/utils";
 
 export function CampaignTimeline() {
-  const { watch, setValue, formState: { errors } } = useFormContext();
+  const { watch, setValue, trigger, formState: { errors } } = useFormContext();
   const [startDateOpen, setStartDateOpen] = useState(false);
   const [endDateOpen, setEndDateOpen] = useState(false);
 
@@ -20,20 +20,36 @@ export function CampaignTimeline() {
 
   const startDateObj = startDate ? new Date(startDate) : undefined;
   const endDateObj = endDate ? new Date(endDate) : undefined;
+  const today = new Date();
+  today.setHours(0, 0, 0, 0);
 
   const handleStartDateSelect = (date: Date | undefined) => {
-    setValue("startDate", date ? date.toISOString().split("T")[0] : "", {
+    const formattedDate = date
+      ? `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, "0")}-${String(date.getDate()).padStart(2, "0")}`
+      : "";
+    setValue("startDate", formattedDate, {
       shouldValidate: true,
     });
+    // Re-validate endDate to check the date range refinement
+    if (endDate) {
+      trigger("endDate");
+    }
     if (date) {
       setStartDateOpen(false);
     }
   };
 
   const handleEndDateSelect = (date: Date | undefined) => {
-    setValue("endDate", date ? date.toISOString().split("T")[0] : "", {
+    const formattedDate = date
+      ? `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, "0")}-${String(date.getDate()).padStart(2, "0")}`
+      : "";
+    setValue("endDate", formattedDate, {
       shouldValidate: true,
     });
+    // Re-validate startDate to check the date range refinement
+    if (startDate) {
+      trigger("startDate");
+    }
     if (date) {
       setEndDateOpen(false);
     }
@@ -48,7 +64,7 @@ export function CampaignTimeline() {
         <p className="text-base font-medium leading-[1.6]">
           Set a timeline for your campaign to start and end
         </p>
-        <div className="flex gap-6 items-center">
+        <div className="flex gap-6 items-start">
           <div className="flex flex-col gap-2">
             <Popover open={startDateOpen} onOpenChange={setStartDateOpen}>
               <PopoverTrigger asChild>
@@ -72,8 +88,9 @@ export function CampaignTimeline() {
                   mode="single"
                   selected={startDateObj}
                   onSelect={handleStartDateSelect}
-                  disabled={(date) => (endDateObj ? date > endDateObj : false)}
-                  initialFocus
+                  disabled={(date) =>
+                    date < today || (endDateObj ? date > endDateObj : false)
+                  }
                   className="w-[250px] scale-110"
                 />
               </PopoverContent>
@@ -107,7 +124,7 @@ export function CampaignTimeline() {
                   selected={endDateObj}
                   onSelect={handleEndDateSelect}
                   disabled={(date) =>
-                    startDateObj ? date < startDateObj : false
+                    date < today || (startDateObj ? date < startDateObj : false)
                   }
                   className="w-[250px] scale-110"
                 />
