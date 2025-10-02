@@ -1,11 +1,19 @@
 import { Label } from "@/shared/components/ui/label";
+import { Editor } from "@/components/blocks/editor-00/editor";
+import { SerializedEditorState } from "lexical";
 
 interface CampaignDetailsEditorProps {
   value: string;
   onChange: (value: string) => void;
 }
 
-export function CampaignDetailsEditor({}: CampaignDetailsEditorProps) {
+export function CampaignDetailsEditor({ value, onChange }: CampaignDetailsEditorProps) {
+  const handleEditorChange = (serializedState: SerializedEditorState) => {
+    onChange(JSON.stringify(serializedState));
+  };
+
+  const editorState = value ? JSON.parse(value) : undefined;
+
   return (
     <div>
       <div className="mb-4">
@@ -14,9 +22,10 @@ export function CampaignDetailsEditor({}: CampaignDetailsEditorProps) {
           Add a detailed campaign description, images, links, and attachments.
         </p>
       </div>
-      <div className="border border-border rounded-lg p-4 bg-muted/30 min-h-[400px]">
-        <p className="text-muted-foreground">Rich text editor placeholder</p>
-      </div>
+      <Editor
+        editorSerializedState={editorState}
+        onSerializedChange={handleEditorChange}
+      />
     </div>
   );
 }
