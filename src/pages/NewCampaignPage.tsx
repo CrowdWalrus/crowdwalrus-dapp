@@ -52,6 +52,30 @@ import {
 } from "@/features/campaigns/schemas/newCampaignSchema";
 import { AlertCircleIcon } from "lucide-react";
 
+// ============================================================================
+// TEST DEFAULT VALUES - Remove this block after testing
+// ============================================================================
+const TEST_DEFAULTS = {
+  campaignName: "Test Campaign for Ocean Cleanup",
+  description: "A revolutionary project to clean our oceans using AI-powered drones and sustainable practices.",
+  subdomain: "ocean-cleanup-2025",
+  coverImage: null as any,
+  campaignType: "donation",
+  categories: ["environment", "technology"],
+  startDate: "2025-11-01",
+  endDate: "2025-12-31",
+  targetAmount: "50000",
+  walletAddress: "",
+  socials: [
+    { platform: "website", url: "https://example.com" },
+    { platform: "twitter", url: "https://twitter.com/oceancleanup" },
+    { platform: "instagram", url: "https://instagram.com/oceancleanup" },
+  ],
+  campaignDetails: "", // Leave empty - fill manually in the rich text editor
+  termsAccepted: false,
+};
+// ============================================================================
+
 export default function NewCampaignPage() {
   const currentAccount = useCurrentAccount();
   const {
@@ -67,25 +91,7 @@ export default function NewCampaignPage() {
 
   const form = useForm<NewCampaignFormData>({
     resolver: zodResolver(newCampaignSchema),
-    defaultValues: {
-      campaignName: "",
-      description: "",
-      subdomain: "",
-      coverImage: null as any, // Will be File | null
-      campaignType: "",
-      categories: [],
-      startDate: "",
-      endDate: "",
-      targetAmount: "",
-      walletAddress: "",
-      socials: [
-        { platform: "website", url: "" },
-        { platform: "twitter", url: "" },
-        { platform: "instagram", url: "" },
-      ],
-      campaignDetails: "",
-      termsAccepted: false,
-    },
+    defaultValues: TEST_DEFAULTS, // Change to empty object {} when done testing
   });
 
   const onSubmit = (data: NewCampaignFormData) => {
