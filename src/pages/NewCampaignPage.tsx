@@ -166,7 +166,7 @@ export default function NewCampaignPage() {
             <Separator />
 
             {/* Additional Details Section */}
-            <section className="mb-12">
+            <section className="flex flex-col gap-8 mb-12">
               <h2 className="text-2xl font-semibold">Additional Details</h2>
 
               {/* Add Socials */}
