@@ -9,16 +9,13 @@ import { useParams } from "react-router-dom";
 import { useQuery } from "@tanstack/react-query";
 import { useCampaign } from "@/features/campaigns/hooks/useCampaign";
 import { DEFAULT_NETWORK } from "@/shared/config/networkConfig";
-import {
-  Card,
-  CardContent,
-  CardDescription,
-  CardHeader,
-  CardTitle,
-} from "@/shared/components/ui/card";
+import { Card, CardContent } from "@/shared/components/ui/card";
 import { Button } from "@/shared/components/ui/button";
-import { EditorViewer } from "@/shared/components/editor/blocks/editor-00/viewer";
-import { SerializedEditorState } from "lexical";
+import { CampaignBreadcrumb } from "@/features/campaigns/components/CampaignBreadcrumb";
+import { CampaignHero } from "@/features/campaigns/components/CampaignHero";
+import { CampaignTabs } from "@/features/campaigns/components/CampaignTabs";
+import { CampaignAbout } from "@/features/campaigns/components/CampaignAbout";
+import { DonationCard } from "@/features/campaigns/components/DonationCard";
 
 /**
  * Hook to fetch image from Walrus as blob and create object URL
@@ -74,36 +71,25 @@ export function CampaignPage() {
   );
 
   // Fetch cover image
-  const {
-    data: imageObjectUrl,
-    isLoading: loadingImage,
-    error: imageError,
-  } = useWalrusImage(campaign?.coverImageUrl || "");
+  const { data: imageObjectUrl, isLoading: loadingImage } = useWalrusImage(
+    campaign?.coverImageUrl || "",
+  );
 
   // Fetch description
   const { data: description, isLoading: loadingDescription } =
     useWalrusDescription(campaign?.descriptionUrl || "");
 
-  // Format dates
-  const formatDate = (timestamp: number) => {
-    return new Date(timestamp * 1000).toLocaleDateString("en-US", {
-      year: "numeric",
-      month: "long",
-      day: "numeric",
-      hour: "2-digit",
-      minute: "2-digit",
-    });
-  };
-
   // Loading state
   if (isPending) {
     return (
-      <div className="mt-5 pt-2 px-4 container max-w-4xl">
-        <Card>
-          <CardContent className="pt-6">
-            <p className="text-muted-foreground">Loading campaign...</p>
-          </CardContent>
-        </Card>
+      <div className="py-8">
+        <div className="container max-w-4xl">
+          <Card>
+            <CardContent className="pt-6">
+              <p className="text-muted-foreground">Loading campaign...</p>
+            </CardContent>
+          </Card>
+        </div>
       </div>
     );
   }
@@ -111,20 +97,22 @@ export function CampaignPage() {
   // Error state
   if (error) {
     return (
-      <div className="mt-5 pt-2 px-4 container max-w-4xl">
-        <Card className="border-red-500">
-          <CardContent className="pt-6">
-            <p className="text-red-600 font-semibold mb-2">
-              Error loading campaign
-            </p>
-            <p className="text-sm text-muted-foreground mb-4">
-              {error.message}
-            </p>
-            <Button variant="outline" onClick={() => refetch()}>
-              Retry
-            </Button>
-          </CardContent>
-        </Card>
+      <div className="py-8">
+        <div className="container max-w-4xl">
+          <Card className="border-red-500">
+            <CardContent className="pt-6">
+              <p className="text-red-600 font-semibold mb-2">
+                Error loading campaign
+              </p>
+              <p className="text-sm text-muted-foreground mb-4">
+                {error.message}
+              </p>
+              <Button variant="outline" onClick={() => refetch()}>
+                Retry
+              </Button>
+            </CardContent>
+          </Card>
+        </div>
       </div>
     );
   }
@@ -132,257 +120,102 @@ export function CampaignPage() {
   // Not found state
   if (!campaign) {
     return (
-      <div className="mt-5 pt-2 px-4 container max-w-4xl">
-        <Card className="border-yellow-500">
-          <CardContent className="pt-6">
-            <p className="text-yellow-600 font-semibold">Campaign not found</p>
-            <p className="text-sm text-muted-foreground mt-2">
-              Campaign ID: {id}
-            </p>
-          </CardContent>
-        </Card>
+      <div className="py-8">
+        <div className="container max-w-4xl">
+          <Card className="border-yellow-500">
+            <CardContent className="pt-6">
+              <p className="text-yellow-600 font-semibold">Campaign not found</p>
+              <p className="text-sm text-muted-foreground mt-2">
+                Campaign ID: {id}
+              </p>
+            </CardContent>
+          </Card>
+        </div>
       </div>
     );
   }
 
-  const subdomainSuffix =
-    network === "testnet" ? ".crowdwalrus-test.sui" : ".crowdwalrus.sui";
-  const fullSubdomain = campaign.subdomainName.includes(".sui")
-    ? campaign.subdomainName
-    : campaign.subdomainName + subdomainSuffix;
+  // Mock contributors count and amount raised (replace with real data)
+  const contributorsCount = 0;
+  const amountRaised = 0;
 
   return (
-    <div className="mt-5 pt-2 px-4 container max-w-4xl pb-8">
-      <h1 className="text-4xl font-bold mb-6">Campaign Details</h1>
+    <div className="py-8">
+      <div className="container">
+        {/* Breadcrumb */}
+        <div className="mb-8">
+          <CampaignBreadcrumb campaignName={campaign.name} />
+        </div>
+      </div>
 
-      {/* Cover Image */}
-      <Card className="mb-6">
-        <CardHeader>
-          <CardTitle>Cover Image</CardTitle>
-        </CardHeader>
-        <CardContent>
-          <div className="w-full h-96 bg-gray-200 overflow-hidden rounded-lg">
-            {loadingImage ? (
-              <div className="w-full h-full flex items-center justify-center bg-gray-300 text-gray-600">
-                <p className="text-sm">Loading image...</p>
-              </div>
-            ) : imageObjectUrl && !imageError ? (
-              <img
-                src={imageObjectUrl}
-                alt={campaign.name}
-                className="w-full h-full object-cover"
+      {/* Main content container */}
+      <div className="container mx-auto max-w-[1728px]">
+        {/* Page Title */}
+        <h1 className="font-['Inter_Tight'] text-5xl font-bold leading-[1.2] tracking-[0.48px] text-foreground mb-[60px]">
+          {campaign.name}
+        </h1>
+
+        {/* Two-column layout */}
+        <div className="flex gap-[62px] items-start">
+          {/* Left Column - Main Content */}
+          <div className="flex-1 max-w-[946px]">
+            {/* Hero Section */}
+            {imageObjectUrl && !loadingImage && (
+              <CampaignHero
+                coverImageUrl={imageObjectUrl}
+                campaignName={campaign.name}
+                shortDescription={campaign.shortDescription}
+                isActive={campaign.isActive}
+                validated={campaign.validated}
+                startDate={campaign.startDate}
+                category={campaign.category}
+                contributorsCount={contributorsCount}
+                publisherAddress={campaign.adminId}
+                socialTwitter={campaign.socialTwitter}
+                socialWebsite={campaign.socialWebsite}
               />
-            ) : (
-              <div className="w-full h-full flex flex-col items-center justify-center bg-gray-300 text-gray-600 p-4">
-                <p className="text-sm font-semibold">
-                  {imageError ? "Image failed to load" : "No image"}
-                </p>
-                {imageError && campaign.coverImageUrl && (
-                  <p className="text-xs mt-2 break-all text-center max-w-xl">
-                    {campaign.coverImageUrl}
-                  </p>
-                )}
+            )}
+
+            {/* Loading state for image */}
+            {loadingImage && (
+              <div className="w-full h-[432px] bg-muted rounded-[24px] flex items-center justify-center mb-6">
+                <p className="text-muted-foreground">Loading campaign...</p>
+              </div>
+            )}
+
+            {/* Tabs */}
+            <div className="my-10">
+              <CampaignTabs />
+            </div>
+
+            {/* About Section */}
+            {description && !loadingDescription && (
+              <CampaignAbout description={description} />
+            )}
+
+            {/* Loading state for description */}
+            {loadingDescription && (
+              <div className="py-8">
+                <p className="text-muted-foreground">Loading description...</p>
               </div>
             )}
           </div>
-        </CardContent>
-      </Card>
 
-      {/* Basic Information */}
-      <Card className="mb-6">
-        <CardHeader>
-          <div className="flex items-start justify-between gap-2">
-            <div className="flex-1">
-              <CardTitle className="text-2xl">{campaign.name}</CardTitle>
-              <CardDescription className="mt-2 text-base">
-                {campaign.shortDescription}
-              </CardDescription>
-            </div>
-            <div className="flex flex-col gap-2">
-              {campaign.validated && (
-                <span className="px-3 py-1 text-xs font-semibold bg-green-100 text-green-800 rounded">
-                  Validated
-                </span>
-              )}
-              <span
-                className={`px-3 py-1 text-xs font-semibold rounded ${
-                  campaign.isActive
-                    ? "bg-blue-100 text-blue-800"
-                    : "bg-gray-100 text-gray-800"
-                }`}
-              >
-                {campaign.isActive ? "Active" : "Inactive"}
-              </span>
-            </div>
+          {/* Right Column - Donation Card */}
+          <div className="w-[480px] shrink-0 sticky top-[38px]">
+            <DonationCard
+              campaignId={campaign.id}
+              validated={campaign.validated}
+              startDate={campaign.startDate}
+              amountRaised={amountRaised}
+              contributorsCount={contributorsCount}
+              fundingGoal={Number(campaign.fundingGoal)}
+              recipientAddress={campaign.adminId}
+              isActive={campaign.isActive}
+            />
           </div>
-        </CardHeader>
-        <CardContent className="space-y-4">
-          <div className="grid grid-cols-2 gap-4">
-            <div>
-              <p className="text-sm text-muted-foreground mb-1">Funding Goal</p>
-              <p className="text-lg font-semibold">
-                {campaign.fundingGoal} SUI
-              </p>
-            </div>
-            <div>
-              <p className="text-sm text-muted-foreground mb-1">Category</p>
-              <p className="text-lg font-semibold">{campaign.category}</p>
-            </div>
-            <div>
-              <p className="text-sm text-muted-foreground mb-1">Start Date</p>
-              <p className="text-sm">{formatDate(campaign.startDate)}</p>
-            </div>
-            <div>
-              <p className="text-sm text-muted-foreground mb-1">End Date</p>
-              <p className="text-sm">{formatDate(campaign.endDate)}</p>
-            </div>
-            <div>
-              <p className="text-sm text-muted-foreground mb-1">Created At</p>
-              <p className="text-sm">{formatDate(campaign.createdAt)}</p>
-            </div>
-          </div>
-        </CardContent>
-      </Card>
-
-      {/* Full Description */}
-      <Card className="mb-6">
-        <CardHeader>
-          <CardTitle>Description</CardTitle>
-        </CardHeader>
-        <CardContent>
-          {loadingDescription ? (
-            <p className="text-sm text-muted-foreground">
-              Loading description from Walrus...
-            </p>
-          ) : description ? (
-            (() => {
-              try {
-                const editorState: SerializedEditorState =
-                  JSON.parse(description);
-                return <EditorViewer editorSerializedState={editorState} />;
-              } catch (error) {
-                console.error("Failed to parse description JSON:", error);
-                return (
-                  <p className="text-sm text-red-600">
-                    Failed to load description content
-                  </p>
-                );
-              }
-            })()
-          ) : (
-            <p className="text-sm text-muted-foreground">
-              No description available
-            </p>
-          )}
-        </CardContent>
-      </Card>
-
-      {/* Social Links */}
-      {(campaign.socialTwitter ||
-        campaign.socialDiscord ||
-        campaign.socialWebsite) && (
-        <Card className="mb-6">
-          <CardHeader>
-            <CardTitle>Social Links</CardTitle>
-          </CardHeader>
-          <CardContent>
-            <div className="flex flex-wrap gap-3">
-              {campaign.socialTwitter && (
-                <a
-                  href={campaign.socialTwitter}
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  className="text-sm text-blue-600 hover:underline"
-                >
-                  Twitter/X →
-                </a>
-              )}
-              {campaign.socialDiscord && (
-                <a
-                  href={campaign.socialDiscord}
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  className="text-sm text-blue-600 hover:underline"
-                >
-                  Discord →
-                </a>
-              )}
-              {campaign.socialWebsite && (
-                <a
-                  href={campaign.socialWebsite}
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  className="text-sm text-blue-600 hover:underline"
-                >
-                  Website →
-                </a>
-              )}
-            </div>
-          </CardContent>
-        </Card>
-      )}
-
-      {/* Technical Details */}
-      <Card>
-        <CardHeader>
-          <CardTitle>Technical Details</CardTitle>
-          <CardDescription>Blockchain and storage information</CardDescription>
-        </CardHeader>
-        <CardContent className="space-y-4">
-          <div>
-            <p className="text-xs text-muted-foreground mb-1">Campaign ID</p>
-            <p className="text-xs font-mono bg-gray-50 px-3 py-2 rounded break-all">
-              {campaign.id}
-            </p>
-          </div>
-
-          <div>
-            <p className="text-xs text-muted-foreground mb-1">Admin ID</p>
-            <p className="text-xs font-mono bg-gray-50 px-3 py-2 rounded break-all">
-              {campaign.adminId}
-            </p>
-          </div>
-
-          <div>
-            <p className="text-xs text-muted-foreground mb-1">Subdomain</p>
-            <p className="text-xs font-mono bg-gray-50 px-3 py-2 rounded break-all">
-              {fullSubdomain}
-            </p>
-          </div>
-
-          <div>
-            <p className="text-xs text-muted-foreground mb-1">Walrus Blob ID</p>
-            <p className="text-xs font-mono bg-gray-50 px-3 py-2 rounded break-all">
-              {campaign.walrusQuiltId || "Not available"}
-            </p>
-          </div>
-
-          <div>
-            <p className="text-xs text-muted-foreground mb-1">Storage Epochs</p>
-            <p className="text-xs font-mono bg-gray-50 px-3 py-2 rounded">
-              {campaign.walrusStorageEpochs}
-            </p>
-          </div>
-
-          <div>
-            <p className="text-xs text-muted-foreground mb-1">
-              Cover Image URL
-            </p>
-            <p className="text-xs font-mono bg-gray-50 px-3 py-2 rounded break-all">
-              {campaign.coverImageUrl || "Not available"}
-            </p>
-          </div>
-
-          <div>
-            <p className="text-xs text-muted-foreground mb-1">
-              Description URL
-            </p>
-            <p className="text-xs font-mono bg-gray-50 px-3 py-2 rounded break-all">
-              {campaign.descriptionUrl || "Not available"}
-            </p>
-          </div>
-        </CardContent>
-      </Card>
+        </div>
+      </div>
     </div>
   );
 }
