@@ -44,11 +44,11 @@ export function CampaignTimeline({
 
   return (
     <section className="flex flex-col gap-8">
-      <h2 className="text-2xl font-bold leading-[1.6] text-[#0c0f1c]">
+      <h2 className="text-2xl font-bold leading-[1.6]">
         Campaign Timeline <span className="text-red-300">*</span>
       </h2>
       <div className="flex flex-col gap-4">
-        <p className="text-base font-medium leading-[1.6] text-[#0c0f1c]">
+        <p className="text-base font-medium leading-[1.6]">
           Set a timeline for your campaign to start and end
         </p>
         <div className="flex gap-6 items-center">

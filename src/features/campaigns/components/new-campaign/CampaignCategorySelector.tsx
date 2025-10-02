@@ -20,13 +20,14 @@ export function CampaignCategorySelector({
 
   return (
     <div className="flex flex-col gap-8">
-      <p className="font-bold text-2xl leading-[1.6] text-[#0c0f1c]">
+      <p className="font-bold text-2xl leading-[1.6]">
         <span>Select Category </span>
         <span className="font-normal text-[#f5827a]">*</span>
       </p>
       <div className="flex flex-col gap-4">
-        <p className="font-medium text-base leading-[1.6] text-[#0c0f1c]">
-          Pick a category that best describes your campaign. You can select multiple category options.
+        <p className="font-medium text-base leading-[1.6]">
+          Pick a category that best describes your campaign. You can select
+          multiple category options.
         </p>
         <div className="flex gap-6">
           <div className="flex flex-col gap-6">
@@ -38,7 +39,10 @@ export function CampaignCategorySelector({
                   handleCheckboxChange("arts", checked as boolean)
                 }
               />
-              <Label htmlFor="arts" className="cursor-pointer font-normal text-sm leading-[1.5] text-neutral-700 tracking-[0.07px]">
+              <Label
+                htmlFor="arts"
+                className="cursor-pointer font-normal text-sm leading-[1.5] text-neutral-700 tracking-[0.07px]"
+              >
                 Art & Culture
               </Label>
             </div>
@@ -50,7 +54,10 @@ export function CampaignCategorySelector({
                   handleCheckboxChange("community", checked as boolean)
                 }
               />
-              <Label htmlFor="community" className="cursor-pointer font-normal text-sm leading-[1.5] text-neutral-700 tracking-[0.07px]">
+              <Label
+                htmlFor="community"
+                className="cursor-pointer font-normal text-sm leading-[1.5] text-neutral-700 tracking-[0.07px]"
+              >
                 Community
               </Label>
             </div>
@@ -62,7 +69,10 @@ export function CampaignCategorySelector({
                   handleCheckboxChange("education", checked as boolean)
                 }
               />
-              <Label htmlFor="education" className="cursor-pointer font-normal text-sm leading-[1.5] text-neutral-700 tracking-[0.07px]">
+              <Label
+                htmlFor="education"
+                className="cursor-pointer font-normal text-sm leading-[1.5] text-neutral-700 tracking-[0.07px]"
+              >
                 Education
               </Label>
             </div>
@@ -74,7 +84,10 @@ export function CampaignCategorySelector({
                   handleCheckboxChange("environment", checked as boolean)
                 }
               />
-              <Label htmlFor="environment" className="cursor-pointer font-normal text-sm leading-[1.5] text-neutral-700 tracking-[0.07px]">
+              <Label
+                htmlFor="environment"
+                className="cursor-pointer font-normal text-sm leading-[1.5] text-neutral-700 tracking-[0.07px]"
+              >
                 Environment & Energy
               </Label>
             </div>
@@ -88,7 +101,10 @@ export function CampaignCategorySelector({
                   handleCheckboxChange("health", checked as boolean)
                 }
               />
-              <Label htmlFor="health" className="cursor-pointer font-normal text-sm leading-[1.5] text-neutral-700 tracking-[0.07px]">
+              <Label
+                htmlFor="health"
+                className="cursor-pointer font-normal text-sm leading-[1.5] text-neutral-700 tracking-[0.07px]"
+              >
                 Health & Wellness
               </Label>
             </div>
@@ -100,7 +116,10 @@ export function CampaignCategorySelector({
                   handleCheckboxChange("ngo", checked as boolean)
                 }
               />
-              <Label htmlFor="ngo" className="cursor-pointer font-normal text-sm leading-[1.5] text-neutral-700 tracking-[0.07px]">
+              <Label
+                htmlFor="ngo"
+                className="cursor-pointer font-normal text-sm leading-[1.5] text-neutral-700 tracking-[0.07px]"
+              >
                 NGO / NonProfits
               </Label>
             </div>
@@ -112,7 +131,10 @@ export function CampaignCategorySelector({
                   handleCheckboxChange("tech", checked as boolean)
                 }
               />
-              <Label htmlFor="tech" className="cursor-pointer font-normal text-sm leading-[1.5] text-neutral-700 tracking-[0.07px]">
+              <Label
+                htmlFor="tech"
+                className="cursor-pointer font-normal text-sm leading-[1.5] text-neutral-700 tracking-[0.07px]"
+              >
                 Technology
               </Label>
             </div>
@@ -124,7 +146,10 @@ export function CampaignCategorySelector({
                   handleCheckboxChange("other", checked as boolean)
                 }
               />
-              <Label htmlFor="other" className="cursor-pointer font-normal text-sm leading-[1.5] text-neutral-700 tracking-[0.07px]">
+              <Label
+                htmlFor="other"
+                className="cursor-pointer font-normal text-sm leading-[1.5] text-neutral-700 tracking-[0.07px]"
+              >
                 Others
               </Label>
             </div>

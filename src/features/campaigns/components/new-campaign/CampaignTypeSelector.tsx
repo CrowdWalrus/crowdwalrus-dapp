@@ -11,7 +11,7 @@ export function CampaignTypeSelector({
 }: CampaignTypeSelectorProps) {
   return (
     <section className="flex flex-col gap-8">
-      <h2 className="text-2xl font-bold leading-[1.6] text-[#0c0f1c]">
+      <h2 className="text-2xl font-bold leading-[1.6]">
         Campaign Type <span className="text-red-300">*</span>
       </h2>
 

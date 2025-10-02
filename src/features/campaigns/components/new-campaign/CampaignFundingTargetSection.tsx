@@ -16,7 +16,7 @@ export function CampaignFundingTargetSection({
 }: CampaignFundingTargetSectionProps) {
   return (
     <section className="flex flex-col gap-8">
-      <h2 className="font-bold text-2xl leading-[1.6] text-[#0c0f1c]">
+      <h2 className="font-bold text-2xl leading-[1.6]">
         Funding Target <span className="font-normal text-red-300">*</span>
       </h2>
 
@@ -24,7 +24,7 @@ export function CampaignFundingTargetSection({
         <div className="flex flex-col gap-4">
           <label
             htmlFor="target-amount"
-            className="font-medium text-base leading-[1.6] text-[#0c0f1c]"
+            className="font-medium text-base leading-[1.6]"
           >
             Add a max funding amount for your campaign
           </label>
@@ -45,7 +45,7 @@ export function CampaignFundingTargetSection({
           <div className="flex flex-col gap-4">
             <label
               htmlFor="wallet-address"
-              className="font-medium text-base leading-[1.6] text-[#0c0f1c]"
+              className="font-medium text-base leading-[1.6]"
             >
               Add a funding Sui address
             </label>
