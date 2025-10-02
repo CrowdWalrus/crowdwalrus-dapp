@@ -8,7 +8,7 @@ import {
   ParagraphNode,
   TextNode,
 } from "lexical"
-import { ImageNode } from "@/components/editor/nodes/ImageNode"
+import { ImageNode } from "@/shared/components/editor/nodes/ImageNode"
 
 export const nodes: ReadonlyArray<Klass<LexicalNode> | LexicalNodeReplacement> =
   [HeadingNode, ParagraphNode, TextNode, QuoteNode, ImageNode, ListNode, ListItemNode, LinkNode]

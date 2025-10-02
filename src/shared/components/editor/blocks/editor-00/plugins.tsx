@@ -3,11 +3,11 @@ import { RichTextPlugin } from "@lexical/react/LexicalRichTextPlugin"
 import { ListPlugin } from "@lexical/react/LexicalListPlugin"
 import { LinkPlugin as LexicalLinkPlugin } from "@lexical/react/LexicalLinkPlugin"
 
-import { ContentEditable } from "@/components/editor/editor-ui/content-editable"
-import { ToolbarPlugin } from "@/components/editor/plugins/ToolbarPlugin"
-import { ImagePlugin } from "@/components/editor/plugins/ImagePlugin"
-import { BlockFormatToolbarPlugin } from "@/components/editor/plugins/BlockFormatToolbarPlugin"
-import { LinkToolbarPlugin } from "@/components/editor/plugins/LinkPlugin"
+import { ContentEditable } from "@/shared/components/editor/editor-ui/content-editable"
+import { ToolbarPlugin } from "@/shared/components/editor/plugins/ToolbarPlugin"
+import { ImagePlugin } from "@/shared/components/editor/plugins/ImagePlugin"
+import { BlockFormatToolbarPlugin } from "@/shared/components/editor/plugins/BlockFormatToolbarPlugin"
+import { LinkToolbarPlugin } from "@/shared/components/editor/plugins/LinkPlugin"
 
 export function Plugins() {
   return (

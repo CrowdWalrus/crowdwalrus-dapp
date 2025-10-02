@@ -1,6 +1,6 @@
 import { useFormContext, Controller } from "react-hook-form";
 import { FormLabel, FormMessage } from "@/shared/components/ui/form";
-import { Editor } from "@/components/blocks/editor-00/editor";
+import { Editor } from "@/shared/components/editor/blocks/editor-00/editor";
 import { SerializedEditorState } from "lexical";
 
 export function CampaignDetailsEditor() {

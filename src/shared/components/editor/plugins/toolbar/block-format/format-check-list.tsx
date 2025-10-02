@@ -1,14 +1,14 @@
-import { INSERT_UNORDERED_LIST_COMMAND } from "@lexical/list"
+import { INSERT_CHECK_LIST_COMMAND } from "@lexical/list"
 import { $setBlocksType } from "@lexical/selection"
 import { $createParagraphNode, $getSelection, $isRangeSelection } from "lexical"
 
-import { useToolbarContext } from "@/components/editor/context/toolbar-context"
-import { blockTypeToBlockName } from "@/components/editor/plugins/toolbar/block-format/block-format-data"
+import { useToolbarContext } from "@/shared/components/editor/context/toolbar-context"
+import { blockTypeToBlockName } from "@/shared/components/editor/plugins/toolbar/block-format/block-format-data"
 import { SelectItem } from "@/shared/components/ui/select"
 
-const BLOCK_FORMAT_VALUE = "bullet"
+const BLOCK_FORMAT_VALUE = "check"
 
-export function FormatBulletedList() {
+export function FormatCheckList() {
   const { activeEditor, blockType } = useToolbarContext()
 
   const formatParagraph = () => {
@@ -20,16 +20,16 @@ export function FormatBulletedList() {
     })
   }
 
-  const formatBulletedList = () => {
-    if (blockType !== "bullet") {
-      activeEditor.dispatchCommand(INSERT_UNORDERED_LIST_COMMAND, undefined)
+  const formatCheckList = () => {
+    if (blockType !== "number") {
+      activeEditor.dispatchCommand(INSERT_CHECK_LIST_COMMAND, undefined)
     } else {
       formatParagraph()
     }
   }
 
   return (
-    <SelectItem value={BLOCK_FORMAT_VALUE} onPointerDown={formatBulletedList}>
+    <SelectItem value={BLOCK_FORMAT_VALUE} onPointerDown={formatCheckList}>
       <div className="flex items-center gap-1 font-normal">
         {blockTypeToBlockName[BLOCK_FORMAT_VALUE].icon}
         {blockTypeToBlockName[BLOCK_FORMAT_VALUE].label}

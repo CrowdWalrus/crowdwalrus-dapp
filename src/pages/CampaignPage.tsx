@@ -16,7 +16,7 @@ import {
   CardTitle,
 } from "@/shared/components/ui/card";
 import { Button } from "@/shared/components/ui/button";
-import { EditorViewer } from "@/components/blocks/editor-00/viewer";
+import { EditorViewer } from "@/shared/components/editor/blocks/editor-00/viewer";
 import { SerializedEditorState } from "lexical";
 
 /**

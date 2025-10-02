@@ -1,5 +1,5 @@
 import { useLexicalComposerContext } from "@lexical/react/LexicalComposerContext";
-import { $getSelection, $isRangeSelection, COMMAND_PRIORITY_LOW } from "lexical";
+import { $getSelection, $isRangeSelection } from "lexical";
 import { TOGGLE_LINK_COMMAND, $isLinkNode } from "@lexical/link";
 import { Link, Unlink } from "lucide-react";
 import { Button } from "@/shared/components/ui/button";

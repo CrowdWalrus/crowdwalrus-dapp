@@ -28,7 +28,7 @@ import {
 } from "lucide-react";
 import { Button } from "@/shared/components/ui/button";
 import { Separator } from "@/shared/components/ui/separator";
-import { useCallback, useState, useEffect } from "react";
+import { useState, useEffect } from "react";
 import {
   Select,
   SelectContent,

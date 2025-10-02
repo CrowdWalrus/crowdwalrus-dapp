@@ -11,8 +11,8 @@ import { ListPlugin } from "@lexical/react/LexicalListPlugin";
 import { LinkPlugin } from "@lexical/react/LexicalLinkPlugin";
 import { SerializedEditorState } from "lexical";
 
-import { editorTheme } from "@/components/editor/themes/editor-theme";
-import { ImagePlugin } from "@/components/editor/plugins/ImagePlugin";
+import { editorTheme } from "@/shared/components/editor/themes/editor-theme";
+import { ImagePlugin } from "@/shared/components/editor/plugins/ImagePlugin";
 import { nodes } from "./nodes";
 
 const viewerConfig: InitialConfigType = {

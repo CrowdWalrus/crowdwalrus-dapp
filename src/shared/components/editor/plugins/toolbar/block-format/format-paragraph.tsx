@@ -1,15 +1,14 @@
-import { INSERT_CHECK_LIST_COMMAND } from "@lexical/list"
 import { $setBlocksType } from "@lexical/selection"
 import { $createParagraphNode, $getSelection, $isRangeSelection } from "lexical"
 
-import { useToolbarContext } from "@/components/editor/context/toolbar-context"
-import { blockTypeToBlockName } from "@/components/editor/plugins/toolbar/block-format/block-format-data"
+import { useToolbarContext } from "@/shared/components/editor/context/toolbar-context"
+import { blockTypeToBlockName } from "@/shared/components/editor/plugins/toolbar/block-format/block-format-data"
 import { SelectItem } from "@/shared/components/ui/select"
 
-const BLOCK_FORMAT_VALUE = "check"
+const BLOCK_FORMAT_VALUE = "paragraph"
 
-export function FormatCheckList() {
-  const { activeEditor, blockType } = useToolbarContext()
+export function FormatParagraph() {
+  const { activeEditor } = useToolbarContext()
 
   const formatParagraph = () => {
     activeEditor.update(() => {
@@ -20,16 +19,8 @@ export function FormatCheckList() {
     })
   }
 
-  const formatCheckList = () => {
-    if (blockType !== "number") {
-      activeEditor.dispatchCommand(INSERT_CHECK_LIST_COMMAND, undefined)
-    } else {
-      formatParagraph()
-    }
-  }
-
   return (
-    <SelectItem value={BLOCK_FORMAT_VALUE} onPointerDown={formatCheckList}>
+    <SelectItem value={BLOCK_FORMAT_VALUE} onPointerDown={formatParagraph}>
       <div className="flex items-center gap-1 font-normal">
         {blockTypeToBlockName[BLOCK_FORMAT_VALUE].icon}
         {blockTypeToBlockName[BLOCK_FORMAT_VALUE].label}
