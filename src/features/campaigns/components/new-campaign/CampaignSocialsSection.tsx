@@ -23,47 +23,47 @@ const PLATFORM_CONFIG = {
   website: {
     label: "Website",
     icon: Globe,
-    placeholder: "www.yourwebsite.com",
+    placeholder: "https://www.yourwebsite.com",
   },
   twitter: {
     label: "Twitter (X)",
     icon: XSocial,
-    placeholder: "x.com/username",
+    placeholder: "https://x.com/username",
   },
   instagram: {
     label: "Instagram",
     icon: InstagramSocial,
-    placeholder: "instagram.com/username",
+    placeholder: "https://instagram.com/username",
   },
   facebook: {
     label: "Facebook",
     icon: FacebookSocial,
-    placeholder: "facebook.com/username",
+    placeholder: "https://facebook.com/username",
   },
   linkedin: {
     label: "LinkedIn",
     icon: LinkedInSocial,
-    placeholder: "linkedin.com/username",
+    placeholder: "https://linkedin.com/username",
   },
   discord: {
     label: "Discord",
     icon: DiscordSocial,
-    placeholder: "discord.gg/username",
+    placeholder: "https://discord.gg/username",
   },
   github: {
     label: "GitHub",
     icon: GithubSocial,
-    placeholder: "github.com/username",
+    placeholder: "https://github.com/username",
   },
   telegram: {
     label: "Telegram",
     icon: TelegramSocial,
-    placeholder: "t.me/username",
+    placeholder: "https://t.me/username",
   },
   slack: {
     label: "Slack",
     icon: SlackSocial,
-    placeholder: "slack.com/workspace",
+    placeholder: "https://slack.com/workspace",
   },
 } as const;
 

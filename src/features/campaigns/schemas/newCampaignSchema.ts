@@ -2,35 +2,7 @@ import { z } from "zod";
 
 export const socialSchema = z.object({
   platform: z.string(),
-  url: z.string().refine(
-    (val) => {
-      if (!val || val === "") return true;
-
-      // Check for spaces - URLs shouldn't have spaces
-      if (val.includes(" ")) return false;
-
-      try {
-        const urlToTest = val.startsWith("http") ? val : `https://${val}`;
-        const urlObj = new URL(urlToTest);
-
-        // Check that hostname has at least one dot (e.g., google.com, not just google)
-        if (!urlObj.hostname.includes(".")) return false;
-
-        // Check for consecutive dots
-        if (urlObj.hostname.includes("..")) return false;
-
-        // Check for valid hostname pattern (basic check)
-        const hostnamePattern =
-          /^[a-zA-Z0-9]([a-zA-Z0-9-]*[a-zA-Z0-9])?(\.[a-zA-Z0-9]([a-zA-Z0-9-]*[a-zA-Z0-9])?)*$/;
-        if (!hostnamePattern.test(urlObj.hostname)) return false;
-
-        return true;
-      } catch {
-        return false;
-      }
-    },
-    { message: "Please enter a valid URL" },
-  ),
+  url: z.union([z.string().url("Please enter a valid URL"), z.literal("")]),
 });
 
 export const newCampaignSchema = z
