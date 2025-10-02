@@ -57,7 +57,8 @@ import { AlertCircleIcon } from "lucide-react";
 // ============================================================================
 const TEST_DEFAULTS = {
   campaignName: "Test Campaign for Ocean Cleanup",
-  description: "A revolutionary project to clean our oceans using AI-powered drones and sustainable practices.",
+  description:
+    "A revolutionary project to clean our oceans using AI-powered drones and sustainable practices.",
   subdomain: "ocean-cleanup-2025",
   coverImage: null as any,
   campaignType: "donation",
@@ -65,7 +66,8 @@ const TEST_DEFAULTS = {
   startDate: "2025-11-01",
   endDate: "2025-12-31",
   targetAmount: "50000",
-  walletAddress: "",
+  walletAddress:
+    "0x4003168c48cb1ccb974723839b65f516d52ea646eee25f921617496e10df5761",
   socials: [
     { platform: "website", url: "https://example.com" },
     { platform: "twitter", url: "https://twitter.com/oceancleanup" },
