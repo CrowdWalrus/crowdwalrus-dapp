@@ -16,6 +16,8 @@ import {
   CardTitle,
 } from "@/shared/components/ui/card";
 import { Button } from "@/shared/components/ui/button";
+import { EditorViewer } from "@/components/blocks/editor-00/viewer";
+import { SerializedEditorState } from "lexical";
 
 /**
  * Hook to fetch image from Walrus as blob and create object URL
@@ -65,7 +67,10 @@ export function CampaignPage() {
   const network = "testnet" as const;
 
   // Fetch campaign data
-  const { campaign, isPending, error, refetch } = useCampaign(id || "", network);
+  const { campaign, isPending, error, refetch } = useCampaign(
+    id || "",
+    network,
+  );
 
   // Fetch cover image
   const {
@@ -75,10 +80,8 @@ export function CampaignPage() {
   } = useWalrusImage(campaign?.coverImageUrl || "");
 
   // Fetch description
-  const {
-    data: description,
-    isLoading: loadingDescription,
-  } = useWalrusDescription(campaign?.descriptionUrl || "");
+  const { data: description, isLoading: loadingDescription } =
+    useWalrusDescription(campaign?.descriptionUrl || "");
 
   // Format dates
   const formatDate = (timestamp: number) => {
@@ -110,8 +113,12 @@ export function CampaignPage() {
       <div className="mt-5 pt-2 px-4 container max-w-4xl">
         <Card className="border-red-500">
           <CardContent className="pt-6">
-            <p className="text-red-600 font-semibold mb-2">Error loading campaign</p>
-            <p className="text-sm text-muted-foreground mb-4">{error.message}</p>
+            <p className="text-red-600 font-semibold mb-2">
+              Error loading campaign
+            </p>
+            <p className="text-sm text-muted-foreground mb-4">
+              {error.message}
+            </p>
             <Button variant="outline" onClick={() => refetch()}>
               Retry
             </Button>
@@ -212,7 +219,9 @@ export function CampaignPage() {
           <div className="grid grid-cols-2 gap-4">
             <div>
               <p className="text-sm text-muted-foreground mb-1">Funding Goal</p>
-              <p className="text-lg font-semibold">{campaign.fundingGoal} SUI</p>
+              <p className="text-lg font-semibold">
+                {campaign.fundingGoal} SUI
+              </p>
             </div>
             <div>
               <p className="text-sm text-muted-foreground mb-1">Category</p>
@@ -245,10 +254,20 @@ export function CampaignPage() {
               Loading description from Walrus...
             </p>
           ) : description ? (
-            <div
-              className="prose prose-sm max-w-none"
-              dangerouslySetInnerHTML={{ __html: description }}
-            />
+            (() => {
+              try {
+                const editorState: SerializedEditorState =
+                  JSON.parse(description);
+                return <EditorViewer editorSerializedState={editorState} />;
+              } catch (error) {
+                console.error("Failed to parse description JSON:", error);
+                return (
+                  <p className="text-sm text-red-600">
+                    Failed to load description content
+                  </p>
+                );
+              }
+            })()
           ) : (
             <p className="text-sm text-muted-foreground">
               No description available
@@ -345,14 +364,18 @@ export function CampaignPage() {
           </div>
 
           <div>
-            <p className="text-xs text-muted-foreground mb-1">Cover Image URL</p>
+            <p className="text-xs text-muted-foreground mb-1">
+              Cover Image URL
+            </p>
             <p className="text-xs font-mono bg-gray-50 px-3 py-2 rounded break-all">
               {campaign.coverImageUrl || "Not available"}
             </p>
           </div>
 
           <div>
-            <p className="text-xs text-muted-foreground mb-1">Description URL</p>
+            <p className="text-xs text-muted-foreground mb-1">
+              Description URL
+            </p>
             <p className="text-xs font-mono bg-gray-50 px-3 py-2 rounded break-all">
               {campaign.descriptionUrl || "Not available"}
             </p>

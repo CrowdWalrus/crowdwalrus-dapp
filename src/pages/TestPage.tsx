@@ -1,18 +1,39 @@
 import { useState } from "react";
 import { Button } from "@/shared/components/ui/button";
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/shared/components/ui/card";
+import {
+  Card,
+  CardContent,
+  CardDescription,
+  CardHeader,
+  CardTitle,
+} from "@/shared/components/ui/card";
 import { Input } from "@/shared/components/ui/input";
 import { Label } from "@/shared/components/ui/label";
 import { Textarea } from "@/shared/components/ui/textarea";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/shared/components/ui/select";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/shared/components/ui/select";
 import { useCurrentAccount } from "@mysten/dapp-kit";
 import { useCreateCampaign } from "@/features/campaigns/hooks/useCreateCampaign";
-import type { CampaignFormData, CampaignCreationProgress } from "@/features/campaigns/types/campaign";
+import type {
+  CampaignFormData,
+  CampaignCreationProgress,
+} from "@/features/campaigns/types/campaign";
 import { CampaignList } from "@/features/campaigns/components/CampaignList";
 
 export function TestPage() {
   const currentAccount = useCurrentAccount();
-  const { mutate: createCampaign, isPending, currentStep, error, data } = useCreateCampaign();
+  const {
+    mutate: createCampaign,
+    isPending,
+    currentStep,
+    error,
+    data,
+  } = useCreateCampaign();
 
   // Default test values
   const getDefaultStartDate = () => {
@@ -29,16 +50,24 @@ export function TestPage() {
 
   // Form state (prefilled for testing)
   const [name, setName] = useState("Save the Ocean Campaign");
-  const [shortDescription, setShortDescription] = useState("Help us protect marine life and clean our oceans. Join us in making a difference for future generations!");
+  const [shortDescription, setShortDescription] = useState(
+    "Help us protect marine life and clean our oceans. Join us in making a difference for future generations!",
+  );
   const [subdomain, setSubdomain] = useState("save-the-ocean");
   const [category, setCategory] = useState("social");
   const [fundingGoal, setFundingGoal] = useState("10000");
   const [startDate, setStartDate] = useState(getDefaultStartDate());
   const [endDate, setEndDate] = useState(getDefaultEndDate());
-  const [fullDescription, setFullDescription] = useState("This is a comprehensive campaign to save our oceans. We will focus on cleaning up plastic waste, protecting endangered marine species, and educating communities about ocean conservation. Your contribution will directly support our cleanup efforts and research programs.");
+  const [fullDescription, setFullDescription] = useState(
+    "This is a comprehensive campaign to save our oceans. We will focus on cleaning up plastic waste, protecting endangered marine species, and educating communities about ocean conservation. Your contribution will directly support our cleanup efforts and research programs.",
+  );
   const [coverImage, setCoverImage] = useState<File | null>(null);
-  const [socialTwitter, setSocialTwitter] = useState("https://twitter.com/savetheocean");
-  const [socialDiscord, setSocialDiscord] = useState("https://discord.gg/savetheocean");
+  const [socialTwitter, setSocialTwitter] = useState(
+    "https://twitter.com/savetheocean",
+  );
+  const [socialDiscord, setSocialDiscord] = useState(
+    "https://discord.gg/savetheocean",
+  );
 
   // Progress tracking
   const [progressMessage, setProgressMessage] = useState("");
@@ -81,9 +110,19 @@ export function TestPage() {
     console.log("Funding Goal:", formData.funding_goal, "SUI");
     console.log("Start Date:", formData.start_date.toISOString());
     console.log("End Date:", formData.end_date.toISOString());
-    console.log("Start Date (Unix):", Math.floor(formData.start_date.getTime() / 1000));
-    console.log("End Date (Unix):", Math.floor(formData.end_date.getTime() / 1000));
-    console.log("Full Description Length:", formData.full_description.length, "chars");
+    console.log(
+      "Start Date (Unix):",
+      Math.floor(formData.start_date.getTime() / 1000),
+    );
+    console.log(
+      "End Date (Unix):",
+      Math.floor(formData.end_date.getTime() / 1000),
+    );
+    console.log(
+      "Full Description Length:",
+      formData.full_description.length,
+      "chars",
+    );
     console.log("Cover Image:", {
       name: coverImage.name,
       size: coverImage.size,
@@ -94,13 +133,16 @@ export function TestPage() {
     console.log("================================\n");
 
     createCampaign(
-      { formData, options: {
-        network: 'testnet',
-        onProgress: (progress: CampaignCreationProgress) => {
-          console.log(`[Progress] ${progress.step}: ${progress.message}`);
-          setProgressMessage(progress.message);
-        }
-      }},
+      {
+        formData,
+        options: {
+          network: "testnet",
+          onProgress: (progress: CampaignCreationProgress) => {
+            console.log(`[Progress] ${progress.step}: ${progress.message}`);
+            setProgressMessage(progress.message);
+          },
+        },
+      },
       {
         onSuccess: (result) => {
           console.log("\n=== CAMPAIGN CREATED SUCCESSFULLY ===");
@@ -117,7 +159,7 @@ export function TestPage() {
           console.error("Error:", error);
           console.error("================================\n");
         },
-      }
+      },
     );
   };
 
@@ -130,13 +172,17 @@ export function TestPage() {
 
   const handleReset = () => {
     setName("Save the Ocean Campaign");
-    setShortDescription("Help us protect marine life and clean our oceans. Join us in making a difference for future generations!");
+    setShortDescription(
+      "Help us protect marine life and clean our oceans. Join us in making a difference for future generations!",
+    );
     setSubdomain("save-the-ocean");
     setCategory("social");
     setFundingGoal("10000");
     setStartDate(getDefaultStartDate());
     setEndDate(getDefaultEndDate());
-    setFullDescription("This is a comprehensive campaign to save our oceans. We will focus on cleaning up plastic waste, protecting endangered marine species, and educating communities about ocean conservation. Your contribution will directly support our cleanup efforts and research programs.");
+    setFullDescription(
+      "This is a comprehensive campaign to save our oceans. We will focus on cleaning up plastic waste, protecting endangered marine species, and educating communities about ocean conservation. Your contribution will directly support our cleanup efforts and research programs.",
+    );
     setCoverImage(null);
     setSocialTwitter("https://twitter.com/savetheocean");
     setSocialDiscord("https://discord.gg/savetheocean");
@@ -144,15 +190,15 @@ export function TestPage() {
 
   return (
     <div className="mt-5 pt-2 px-4 container max-w-4xl">
-      <h1 className="text-4xl font-bold mb-6">
-        Create Campaign
-      </h1>
+      <h1 className="text-4xl font-bold mb-6">Create Campaign</h1>
 
       {/* Wallet Status */}
       {!currentAccount && (
         <Card className="mb-6 border-yellow-500">
           <CardContent className="pt-6">
-            <p className="text-yellow-600">Please connect your wallet to create a campaign</p>
+            <p className="text-yellow-600">
+              Please connect your wallet to create a campaign
+            </p>
           </CardContent>
         </Card>
       )}
@@ -180,14 +226,29 @@ export function TestPage() {
       {data && (
         <Card className="mb-6 border-green-500">
           <CardContent className="pt-6">
-            <p className="text-green-600 font-semibold mb-4">Campaign Created Successfully!</p>
+            <p className="text-green-600 font-semibold mb-4">
+              Campaign Created Successfully!
+            </p>
             <div className="space-y-2 text-sm">
-              <p><strong>Campaign ID:</strong> {data.campaignId}</p>
-              <p><strong>Subdomain:</strong> {data.subdomain}.crowdwalrus-test.sui</p>
-              <p><strong>Transaction:</strong> {data.transactionDigest}</p>
-              <p><strong>Walrus Blob ID:</strong> {data.walrusBlobId}</p>
-              <p><strong>Description URL:</strong> {data.walrusDescriptionUrl}</p>
-              <p><strong>Cover Image URL:</strong> {data.walrusCoverImageUrl}</p>
+              <p>
+                <strong>Campaign ID:</strong> {data.campaignId}
+              </p>
+              <p>
+                <strong>Subdomain:</strong> {data.subdomain}
+                .crowdwalrus-test.sui
+              </p>
+              <p>
+                <strong>Transaction:</strong> {data.transactionDigest}
+              </p>
+              <p>
+                <strong>Walrus Blob ID:</strong> {data.walrusBlobId}
+              </p>
+              <p>
+                <strong>Description URL:</strong> {data.walrusDescriptionUrl}
+              </p>
+              <p>
+                <strong>Cover Image URL:</strong> {data.walrusCoverImageUrl}
+              </p>
             </div>
           </CardContent>
         </Card>
@@ -199,7 +260,9 @@ export function TestPage() {
           <Card>
             <CardHeader>
               <CardTitle>Basic Information</CardTitle>
-              <CardDescription>Essential details about your campaign</CardDescription>
+              <CardDescription>
+                Essential details about your campaign
+              </CardDescription>
             </CardHeader>
             <CardContent className="space-y-4">
               <div className="space-y-2">
@@ -237,7 +300,8 @@ export function TestPage() {
                   required
                 />
                 <p className="text-sm text-muted-foreground">
-                  Your campaign will be accessible at: {subdomain || 'subdomain'}.crowdwalrus-test.sui
+                  Your campaign will be accessible at:{" "}
+                  {subdomain || "subdomain"}.crowdwalrus-test.sui
                 </p>
               </div>
 
@@ -264,7 +328,9 @@ export function TestPage() {
           <Card>
             <CardHeader>
               <CardTitle>Fundraising Details</CardTitle>
-              <CardDescription>Set your funding goals and timeline</CardDescription>
+              <CardDescription>
+                Set your funding goals and timeline
+              </CardDescription>
             </CardHeader>
             <CardContent className="space-y-4">
               <div className="space-y-2">
@@ -311,7 +377,9 @@ export function TestPage() {
           <Card>
             <CardHeader>
               <CardTitle>Rich Content</CardTitle>
-              <CardDescription>Tell your campaign story with text and images</CardDescription>
+              <CardDescription>
+                Tell your campaign story with text and images
+              </CardDescription>
             </CardHeader>
             <CardContent className="space-y-4">
               <div className="space-y-2">
@@ -337,7 +405,8 @@ export function TestPage() {
                 />
                 {coverImage && (
                   <p className="text-sm text-muted-foreground">
-                    Selected: {coverImage.name} ({(coverImage.size / 1024).toFixed(2)} KB)
+                    Selected: {coverImage.name} (
+                    {(coverImage.size / 1024).toFixed(2)} KB)
                   </p>
                 )}
               </div>
@@ -348,7 +417,9 @@ export function TestPage() {
           <Card>
             <CardHeader>
               <CardTitle>Social Links</CardTitle>
-              <CardDescription>Connect with your backers (optional)</CardDescription>
+              <CardDescription>
+                Connect with your backers (optional)
+              </CardDescription>
             </CardHeader>
             <CardContent className="space-y-4">
               <div className="space-y-2">
@@ -385,10 +456,7 @@ export function TestPage() {
             >
               Reset Form
             </Button>
-            <Button
-              type="submit"
-              disabled={isPending || !currentAccount}
-            >
+            <Button type="submit" disabled={isPending || !currentAccount}>
               {isPending ? "Creating..." : "Create Campaign"}
             </Button>
           </div>

@@ -54,10 +54,16 @@ import { AlertCircleIcon } from "lucide-react";
 
 export default function NewCampaignPage() {
   const currentAccount = useCurrentAccount();
-  const { mutate: createCampaign, isPending, currentStep, error } = useCreateCampaign();
+  const {
+    mutate: createCampaign,
+    isPending,
+    currentStep,
+    error,
+  } = useCreateCampaign();
   const { mutate: estimateCost, data: costEstimate } = useEstimateStorageCost();
   const [progressMessage, setProgressMessage] = useState("");
-  const [campaignResult, setCampaignResult] = useState<CreateCampaignResult | null>(null);
+  const [campaignResult, setCampaignResult] =
+    useState<CreateCampaignResult | null>(null);
 
   const form = useForm<NewCampaignFormData>({
     resolver: zodResolver(newCampaignSchema),
@@ -114,9 +120,18 @@ export default function NewCampaignPage() {
       size: campaignFormData.cover_image.size,
       type: campaignFormData.cover_image.type,
     });
-    console.log("Social Twitter:", campaignFormData.social_twitter || "Not provided");
-    console.log("Social Discord:", campaignFormData.social_discord || "Not provided");
-    console.log("Social Website:", campaignFormData.social_website || "Not provided");
+    console.log(
+      "Social Twitter:",
+      campaignFormData.social_twitter || "Not provided",
+    );
+    console.log(
+      "Social Discord:",
+      campaignFormData.social_discord || "Not provided",
+    );
+    console.log(
+      "Social Website:",
+      campaignFormData.social_website || "Not provided",
+    );
     console.log("================================\n");
 
     createCampaign(
@@ -147,7 +162,7 @@ export default function NewCampaignPage() {
           console.error("Error:", error);
           console.error("================================\n");
         },
-      }
+      },
     );
   };
 
@@ -244,7 +259,9 @@ export default function NewCampaignPage() {
                     <Alert className="border-blue-500">
                       <AlertDescription>
                         <p className="font-semibold">Status: {currentStep}</p>
-                        <p className="text-sm text-muted-foreground">{progressMessage}</p>
+                        <p className="text-sm text-muted-foreground">
+                          {progressMessage}
+                        </p>
                       </AlertDescription>
                     </Alert>
                   )}
@@ -254,7 +271,9 @@ export default function NewCampaignPage() {
                     <Alert className="border-red-500">
                       <AlertDescription className="flex items-center gap-2">
                         <AlertCircleIcon className="size-4" />
-                        <p className="text-red-600 font-semibold">Error: {error.message}</p>
+                        <p className="text-red-600 font-semibold">
+                          Error: {error.message}
+                        </p>
                       </AlertDescription>
                     </Alert>
                   )}
@@ -268,17 +287,20 @@ export default function NewCampaignPage() {
                         </p>
                         <div className="space-y-2 text-sm">
                           <p>
-                            <strong>Campaign ID:</strong> {campaignResult.campaignId}
+                            <strong>Campaign ID:</strong>{" "}
+                            {campaignResult.campaignId}
                           </p>
                           <p>
-                            <strong>Subdomain:</strong> {campaignResult.subdomain}
+                            <strong>Subdomain:</strong>{" "}
+                            {campaignResult.subdomain}
                           </p>
                           <p>
                             <strong>Transaction:</strong>{" "}
                             {campaignResult.transactionDigest}
                           </p>
                           <p>
-                            <strong>Walrus Blob ID:</strong> {campaignResult.walrusBlobId}
+                            <strong>Walrus Blob ID:</strong>{" "}
+                            {campaignResult.walrusBlobId}
                           </p>
                           <p>
                             <strong>Description URL:</strong>{" "}
@@ -297,14 +319,16 @@ export default function NewCampaignPage() {
                     <h1 className="text-4xl font-bold mb-4">Launch Campaign</h1>
                     <p className="text-muted-foreground text-base">
                       Enter your campaign details. You can edit campaign details
-                      anytime after your publish your campaign, but the transaction
-                      will cost gas.
+                      anytime after your publish your campaign, but the
+                      transaction will cost gas.
                     </p>
                   </div>
 
                   {/* Campaign Details Section */}
                   <section className="flex flex-col mb-12 gap-8">
-                    <h2 className="text-2xl font-semibold mb-8">Campaign Details</h2>
+                    <h2 className="text-2xl font-semibold mb-8">
+                      Campaign Details
+                    </h2>
 
                     <div className="flex flex-col gap-8">
                       {/* Campaign Name */}
@@ -334,7 +358,8 @@ export default function NewCampaignPage() {
                         render={({ field }) => (
                           <FormItem>
                             <FormLabel>
-                              Short description <span className="text-red-300">*</span>
+                              Short description{" "}
+                              <span className="text-red-300">*</span>
                             </FormLabel>
                             <FormControl>
                               <Textarea
@@ -393,7 +418,9 @@ export default function NewCampaignPage() {
 
                   {/* Additional Details Section */}
                   <section className="flex flex-col gap-8 mb-12">
-                    <h2 className="text-2xl font-semibold">Additional Details</h2>
+                    <h2 className="text-2xl font-semibold">
+                      Additional Details
+                    </h2>
 
                     {/* Add Socials */}
                     <CampaignSocialsSection />
@@ -425,8 +452,8 @@ export default function NewCampaignPage() {
                       <AlertDescription className="flex items-center gap-2">
                         <span className="flex items-center gap-2">
                           <AlertCircleIcon className="size-4" />
-                          You can publish campaign after completing the "Register
-                          Storage" step
+                          You can publish campaign after completing the
+                          "Register Storage" step
                         </span>
                       </AlertDescription>
                     </Alert>
