@@ -1,5 +1,5 @@
 import { Input } from "@/shared/components/ui/input";
-import { Label } from "@/shared/components/ui/label";
+import { DollarSign } from "lucide-react";
 
 interface CampaignFundingTargetSectionProps {
   targetAmount: string;
@@ -15,31 +15,48 @@ export function CampaignFundingTargetSection({
   onWalletAddressChange,
 }: CampaignFundingTargetSectionProps) {
   return (
-    <section className="mb-12">
-      <h2 className="text-2xl font-semibold mb-8">Funding Target <span className="text-red-300">*</span></h2>
+    <section className="flex flex-col gap-8">
+      <h2 className="font-bold text-2xl leading-[1.6] text-[#0c0f1c]">
+        Funding Target <span className="font-normal text-red-300">*</span>
+      </h2>
 
-      <div className="space-y-6">
-        <div className="space-y-2">
-          <Label htmlFor="target-amount">Target amount (SUI)</Label>
-          <Input
-            id="target-amount"
-            type="number"
-            placeholder="Enter target amount"
-            value={targetAmount}
-            onChange={(e) => onTargetAmountChange(e.target.value)}
-          />
+      <div className="flex flex-col gap-8">
+        <div className="flex flex-col gap-4">
+          <label
+            htmlFor="target-amount"
+            className="font-medium text-base leading-[1.6] text-[#0c0f1c]"
+          >
+            Add a max funding amount for your campaign
+          </label>
+          <div className="relative">
+            <DollarSign className="absolute left-4 top-1/2 -translate-y-1/2 size-5 text-[#737373]" />
+            <Input
+              id="target-amount"
+              type="number"
+              placeholder="Enter amount"
+              value={targetAmount}
+              onChange={(e) => onTargetAmountChange(e.target.value)}
+              className="pl-12"
+            />
+          </div>
         </div>
 
-        <div className="space-y-2">
-          <Label htmlFor="wallet-address">Recipient wallet address <span className="text-red-300">*</span></Label>
-          <Input
-            id="wallet-address"
-            placeholder="0x..."
-            className="font-mono"
-            value={walletAddress}
-            onChange={(e) => onWalletAddressChange(e.target.value)}
-          />
-          <p className="text-sm text-muted-foreground">
+        <div className="flex flex-col gap-2">
+          <div className="flex flex-col gap-4">
+            <label
+              htmlFor="wallet-address"
+              className="font-medium text-base leading-[1.6] text-[#0c0f1c]"
+            >
+              Add a funding Sui address
+            </label>
+            <Input
+              id="wallet-address"
+              placeholder="0x8894E0a0c962CB723c1976a4421c95949bE2D4E3"
+              value={walletAddress}
+              onChange={(e) => onWalletAddressChange(e.target.value)}
+            />
+          </div>
+          <p className="font-normal text-xs leading-[1.6] text-[#8f9197]">
             This is the wallet that will receive all donation funds
           </p>
         </div>
