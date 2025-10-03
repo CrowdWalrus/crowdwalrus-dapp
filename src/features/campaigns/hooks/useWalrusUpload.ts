@@ -12,6 +12,7 @@
 
 import { useMutation } from "@tanstack/react-query";
 import { useSuiClient, useSignAndExecuteTransaction, useCurrentAccount } from "@mysten/dapp-kit";
+import { WalrusFile, type WriteFilesFlow } from "@mysten/walrus";
 import {
   createWalrusClient,
   prepareCampaignFiles,
@@ -27,10 +28,13 @@ import { getContractConfig } from "@/shared/config/contracts";
 
 /**
  * Walrus flow state that's passed between steps
+ *
+ * Contains the WriteFilesFlow object returned by walrusClient.writeFilesFlow()
+ * which provides methods for encode/register/upload/certify operations.
  */
 export interface WalrusFlowState {
-  flow: any; // WalrusUploadFlow from SDK
-  files: any; // PreparedFiles
+  flow: WriteFilesFlow;
+  files: WalrusFile[];
   storageEpochs: number;
   network: "devnet" | "testnet" | "mainnet";
 }

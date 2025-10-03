@@ -2,7 +2,7 @@
 export { CampaignList } from "./components/CampaignList";
 
 // Campaign Hooks
-export { useCreateCampaign, useEstimateStorageCost, useCheckSufficientBalance } from "./hooks/useCreateCampaign";
+export { useEstimateStorageCost, useCheckSufficientBalance } from "./hooks/useCreateCampaign";
 export { useMyCampaigns, useCampaignDescription, type CampaignData } from "./hooks/useMyCampaigns";
 
 // Campaign Types

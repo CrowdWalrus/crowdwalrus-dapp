@@ -5,7 +5,7 @@
  * including file uploads, Quilt management, and cost calculations.
  */
 
-import { WalrusClient, WalrusFile } from "@mysten/walrus";
+import { WalrusClient, WalrusFile, type WriteFilesFlow } from "@mysten/walrus";
 import type { SuiClient } from "@mysten/sui/client";
 import {
   WalrusUploadError,
@@ -92,7 +92,7 @@ export async function prepareCampaignFiles(
 export async function createWalrusUploadFlow(
   walrusClient: WalrusClient,
   files: WalrusFile[],
-) {
+): Promise<WriteFilesFlow> {
   try {
     // Create the upload flow
     const flow = walrusClient.writeFilesFlow({ files });
@@ -114,13 +114,14 @@ export async function createWalrusUploadFlow(
  * This transaction must be signed by the user's wallet
  */
 export function buildRegisterTransaction(
-  flow: any, // WriteFilesFlow type from SDK
+  flow: WriteFilesFlow,
   epochs: number,
   owner: string,
 ) {
   try {
-    // Get storage cost info from the flow if available
-    const costInfo = flow.getStorageCost?.() || null;
+    // Note: getStorageCost is not available on WriteFilesFlow type
+    // Cost calculation happens separately via calculateStorageCost
+    const costInfo = null;
 
     console.log("\n=== WALRUS REGISTER TRANSACTION ===");
     console.log("Epochs:", epochs);
@@ -149,7 +150,7 @@ export function buildRegisterTransaction(
  * This happens after the register transaction is confirmed
  */
 export async function uploadToWalrusNodes(
-  flow: any, // WriteFilesFlow type from SDK
+  flow: WriteFilesFlow,
   registerDigest: string,
 ) {
   try {
@@ -166,7 +167,7 @@ export async function uploadToWalrusNodes(
  * Build the certify transaction for the Walrus upload flow
  * This transaction must be signed by the user's wallet to finalize the upload
  */
-export function buildCertifyTransaction(flow: any) {
+export function buildCertifyTransaction(flow: WriteFilesFlow) {
   try {
     return flow.certify();
   } catch (error) {
@@ -182,7 +183,7 @@ export function buildCertifyTransaction(flow: any) {
  * Returns blob ID and file details needed for campaign creation
  */
 export async function getUploadedFilesInfo(
-  flow: any,
+  flow: WriteFilesFlow,
   files: WalrusFile[],
   epochs: number,
 ): Promise<WalrusUploadResult> {
