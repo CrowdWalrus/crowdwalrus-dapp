@@ -3,22 +3,18 @@
  * Main campaign visual and metadata section
  */
 
-import {
-  Clock,
-  Briefcase,
-  Users,
-  Linkedin,
-  Instagram,
-  Globe,
-  Send,
-} from "lucide-react";
-import { Badge } from "@/shared/components/ui/badge";
+import { Globe } from "lucide-react";
 import { Separator } from "@/shared/components/ui/separator";
-import { XIcon } from "lucide-react";
 import LinkedInSocial from "@/shared/icons/socials/LinkedInSocial";
 import InstagramSocial from "@/shared/icons/socials/InstagramSocial";
 import XSocial from "@/shared/icons/socials/XSocial";
 import TelegramSocial from "@/shared/icons/socials/TelegramSocial";
+import {
+  CategoryBadge,
+  ContributorsBadge,
+  OpenSoonBadge,
+  StartsInBadge,
+} from "./CampaignBadges";
 
 interface CampaignHeroProps {
   coverImageUrl: string;
@@ -75,42 +71,16 @@ export function CampaignHero({
         <div className="flex items-center justify-between w-full">
           {/* Left badges */}
           <div className="flex items-center gap-4">
-            {isUpcoming && (
-              <Badge
-                variant="outline"
-                className="bg-orange-50 border-orange-500 text-orange-600  text-xs px-2 py-0.5 h-6 rounded-lg gap-1.5"
-              >
-                <Clock className="size-3" />
-                Open Soon
-              </Badge>
-            )}
+            {isUpcoming && <OpenSoonBadge />}
             {isUpcoming && daysUntilStart > 0 && (
-              <Badge
-                variant="outline"
-                className="bg-black-50 text-xs px-2 py-0.5 h-6 rounded-lg gap-1.5"
-              >
-                <Clock className="size-3" />
-                Starts in {daysUntilStart} days
-              </Badge>
+              <StartsInBadge daysUntilStart={daysUntilStart} />
             )}
           </div>
 
           {/* Right badges */}
           <div className="flex items-center gap-4">
-            <Badge
-              variant="outline"
-              className="bg-black-50 text-xs font-medium px-2 py-0.5 h-6 rounded-lg gap-1.5"
-            >
-              <Briefcase className="size-3" />
-              {category}
-            </Badge>
-            <Badge
-              variant="outline"
-              className="bg-black-50 text-xs px-2 py-0.5 h-6 rounded-lg gap-1.5"
-            >
-              <Users className="size-3" />
-              {contributorsCount}
-            </Badge>
+            <CategoryBadge category={category} />
+            <ContributorsBadge contributorsCount={contributorsCount} />
           </div>
         </div>
 
