@@ -209,15 +209,23 @@ export function useCreateCampaign() {
           );
         } catch (error) {
           // Check if it's an insufficient balance error
-          if (
-            error instanceof Error &&
-            error.message.includes("Not enough coins of type") &&
-            error.message.includes("WAL")
-          ) {
-            throw new CampaignCreationError(
-              "Insufficient balance to complete registration\n\nYou need WAL tokens to complete registration.",
-              CampaignCreationStep.UPLOADING_TO_WALRUS,
-            );
+          // Using multiple checks for robustness in case SDK error messages change
+          if (error instanceof Error) {
+            const isInsufficientBalance =
+              error.message.includes("Not enough coins") ||
+              error.message.includes("Insufficient") ||
+              error.stack?.includes("loadMoreCoins");
+
+            const isWalToken =
+              error.message.includes("WAL") ||
+              error.message.includes("wal::WAL");
+
+            if (isInsufficientBalance && isWalToken) {
+              throw new CampaignCreationError(
+                "Insufficient balance to complete registration. You need WAL tokens to complete registration.",
+                CampaignCreationStep.UPLOADING_TO_WALRUS,
+              );
+            }
           }
           throw error;
         }
