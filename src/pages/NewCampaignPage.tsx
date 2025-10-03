@@ -3,17 +3,21 @@ import { useForm, FormProvider } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useState } from "react";
 import { ROUTES } from "@/shared/config/routes";
-import { useCurrentAccount } from "@mysten/dapp-kit";
+import { useCurrentAccount, useSignAndExecuteTransaction } from "@mysten/dapp-kit";
 import { DEFAULT_NETWORK } from "@/shared/config/networkConfig";
-import {
-  useCreateCampaign,
-  useEstimateStorageCost,
-} from "@/features/campaigns/hooks/useCreateCampaign";
+import { useEstimateStorageCost } from "@/features/campaigns/hooks/useCreateCampaign";
+import { useWalrusUpload, type WalrusFlowState, type RegisterResult, type CertifyResult } from "@/features/campaigns/hooks/useWalrusUpload";
+import { createCampaignTransaction } from "@/features/campaigns/helpers/createCampaignTransaction";
 import { transformNewCampaignFormData } from "@/features/campaigns/utils/transformFormData";
+import { extractCampaignIdFromEffects } from "@/services/campaign-transaction";
+import { getContractConfig } from "@/shared/config/contracts";
+import { getWalrusUrl } from "@/services/walrus";
 import type {
-  CampaignCreationProgress,
   CreateCampaignResult,
+  WizardStep,
+  CampaignFormData,
 } from "@/features/campaigns/types/campaign";
+import { WizardStep as WizardStepEnum } from "@/features/campaigns/types/campaign";
 import {
   Breadcrumb,
   BreadcrumbList,
@@ -81,25 +85,33 @@ const TEST_DEFAULTS = {
 
 export default function NewCampaignPage() {
   const currentAccount = useCurrentAccount();
-  const {
-    mutate: createCampaign,
-    isPending,
-    currentStep,
-    error,
-  } = useCreateCampaign();
-  const { mutate: estimateCost, data: costEstimate } = useEstimateStorageCost();
-  const [progressMessage, setProgressMessage] = useState("");
-  const [campaignResult, setCampaignResult] =
-    useState<CreateCampaignResult | null>(null);
+
+  // Wizard state management
+  const [wizardStep, setWizardStep] = useState<WizardStep>(WizardStepEnum.FORM);
+  const [formData, setFormData] = useState<CampaignFormData | null>(null);
+  const [flowState, setFlowState] = useState<WalrusFlowState | null>(null);
+  const [registerResult, setRegisterResult] = useState<RegisterResult | null>(null);
+  const [uploadCompleted, setUploadCompleted] = useState(false);
+  const [certifyResult, setCertifyResult] = useState<CertifyResult | null>(null);
+  const [campaignResult, setCampaignResult] = useState<CreateCampaignResult | null>(null);
+  const [error, setError] = useState<Error | null>(null);
+
+  // Hooks for each step
+  const { mutate: estimateCost, data: costEstimate, isPending: isEstimating } = useEstimateStorageCost();
+  const walrus = useWalrusUpload();
+  const { mutateAsync: signAndExecute, isPending: isExecuting } = useSignAndExecuteTransaction();
 
   const form = useForm<NewCampaignFormData>({
     resolver: zodResolver(newCampaignSchema),
     defaultValues: TEST_DEFAULTS, // Change to empty object {} when done testing
   });
 
-  const onSubmit = (data: NewCampaignFormData) => {
-    console.log("Form submitted:", data);
+  // Derive loading state
+  const isPending = isEstimating || walrus.prepare.isPending || walrus.register.isPending ||
+                    walrus.upload.isPending || walrus.certify.isPending || isExecuting;
 
+  // Step 1: Form submission - validate and prepare data
+  const onSubmit = (data: NewCampaignFormData) => {
     if (!currentAccount) {
       alert("Please connect your wallet first!");
       return;
@@ -110,69 +122,178 @@ export default function NewCampaignPage() {
       return;
     }
 
-    // Transform form data to campaign format
     const campaignFormData = transformNewCampaignFormData(data);
+    setFormData(campaignFormData);
+    setWizardStep(WizardStepEnum.ESTIMATING);
 
-    console.log("=== CAMPAIGN CREATION START ===");
-    console.log("Connected Wallet:", currentAccount.address);
-    console.log("Network:", DEFAULT_NETWORK);
-    console.log("\n--- Form Data ---");
-    console.log("Name:", campaignFormData.name);
-    console.log("Short Description:", campaignFormData.short_description);
-    console.log("Subdomain:", campaignFormData.subdomain_name);
-    console.log("Category:", campaignFormData.category);
-    console.log("Funding Goal:", campaignFormData.funding_goal, "SUI");
-    console.log("Start Date:", campaignFormData.start_date.toISOString());
-    console.log("End Date:", campaignFormData.end_date.toISOString());
-    console.log("Cover Image:", {
-      name: campaignFormData.cover_image.name,
-      size: campaignFormData.cover_image.size,
-      type: campaignFormData.cover_image.type,
+    // Automatically estimate cost and prepare upload
+    estimateCost(campaignFormData, {
+      onSuccess: () => {
+        // Prepare Walrus upload
+        walrus.prepare.mutate(
+          { formData: campaignFormData, network: DEFAULT_NETWORK },
+          {
+            onSuccess: (flow) => {
+              setFlowState(flow);
+              setWizardStep(WizardStepEnum.CONFIRM_REGISTER);
+            },
+            onError: (err) => {
+              setError(err);
+              setWizardStep(WizardStepEnum.ERROR);
+            },
+          }
+        );
+      },
+      onError: (err) => {
+        setError(err);
+        setWizardStep(WizardStepEnum.ERROR);
+      },
     });
-    console.log(
-      "Social Twitter:",
-      campaignFormData.social_twitter || "Not provided",
-    );
-    console.log(
-      "Social Discord:",
-      campaignFormData.social_discord || "Not provided",
-    );
-    console.log(
-      "Social Website:",
-      campaignFormData.social_website || "Not provided",
-    );
-    console.log("================================\n");
+  };
 
-    createCampaign(
-      {
-        formData: campaignFormData,
-        options: {
-          network: DEFAULT_NETWORK,
-          onProgress: (progress: CampaignCreationProgress) => {
-            console.log(`[Progress] ${progress.step}: ${progress.message}`);
-            setProgressMessage(progress.message);
-          },
-        },
+  // Step 2: User confirms registration - buy Walrus storage
+  const handleConfirmRegister = () => {
+    if (!flowState) return;
+
+    setWizardStep(WizardStepEnum.REGISTERING);
+    setError(null);
+
+    walrus.register.mutate(flowState, {
+      onSuccess: (result) => {
+        setRegisterResult(result);
+        setWizardStep(WizardStepEnum.UPLOADING);
+
+        // Automatically start upload after registration
+        walrus.upload.mutate(
+          { flowState: result.flowState, registerDigest: result.transactionDigest },
+          {
+            onSuccess: () => {
+              setUploadCompleted(true);
+              setWizardStep(WizardStepEnum.CONFIRM_CERTIFY);
+            },
+            onError: (err) => {
+              setError(err);
+              setWizardStep(WizardStepEnum.ERROR);
+            },
+          }
+        );
       },
-      {
-        onSuccess: (result) => {
-          console.log("\n=== CAMPAIGN CREATED SUCCESSFULLY ===");
-          console.log("Campaign ID:", result.campaignId);
-          console.log("Transaction Digest:", result.transactionDigest);
-          console.log("Walrus Blob ID:", result.walrusBlobId);
-          console.log("Subdomain:", result.subdomain);
-          console.log("Description URL:", result.walrusDescriptionUrl);
-          console.log("Cover Image URL:", result.walrusCoverImageUrl);
-          console.log("=====================================\n");
-          setCampaignResult(result);
-        },
-        onError: (error) => {
-          console.error("\n=== CAMPAIGN CREATION FAILED ===");
-          console.error("Error:", error);
-          console.error("================================\n");
-        },
+      onError: (err) => {
+        setError(err);
+        setWizardStep(WizardStepEnum.ERROR);
       },
+    });
+  };
+
+  // Retry upload (if it failed after registration was paid)
+  const handleRetryUpload = () => {
+    if (!registerResult) return;
+
+    setWizardStep(WizardStepEnum.UPLOADING);
+    setError(null);
+
+    walrus.upload.mutate(
+      { flowState: registerResult.flowState, registerDigest: registerResult.transactionDigest },
+      {
+        onSuccess: () => {
+          setUploadCompleted(true);
+          setWizardStep(WizardStepEnum.CONFIRM_CERTIFY);
+        },
+        onError: (err) => {
+          setError(err);
+          setWizardStep(WizardStepEnum.ERROR);
+        },
+      }
     );
+  };
+
+  // Step 3: User confirms certification
+  const handleConfirmCertify = () => {
+    if (!registerResult) return;
+
+    setWizardStep(WizardStepEnum.CERTIFYING);
+    setError(null);
+
+    walrus.certify.mutate(registerResult.flowState, {
+      onSuccess: (result) => {
+        setCertifyResult(result);
+        setWizardStep(WizardStepEnum.CONFIRM_TX);
+      },
+      onError: (err) => {
+        setError(err);
+        setWizardStep(WizardStepEnum.ERROR);
+      },
+    });
+  };
+
+  // Step 4: User confirms campaign creation transaction
+  const handleConfirmTransaction = async () => {
+    if (!formData || !certifyResult) return;
+
+    setWizardStep(WizardStepEnum.EXECUTING);
+    setError(null);
+
+    try {
+      const transaction = createCampaignTransaction(
+        formData,
+        certifyResult.blobId,
+        DEFAULT_NETWORK
+      );
+
+      const result = await signAndExecute({
+        transaction,
+        chain: `sui:${DEFAULT_NETWORK}`,
+      });
+
+      if (!result) {
+        throw new Error("Transaction failed: No result returned");
+      }
+
+      // Extract campaign ID
+      const config = getContractConfig(DEFAULT_NETWORK);
+      const campaignId = extractCampaignIdFromEffects(result, config.contracts.packageId);
+
+      if (!campaignId) {
+        throw new Error("Failed to extract campaign ID from transaction effects");
+      }
+
+      // Build result with Walrus URLs
+      const walrusDescriptionUrl = getWalrusUrl(certifyResult.blobId, DEFAULT_NETWORK, "description.html");
+      const walrusCoverImageUrl = getWalrusUrl(certifyResult.blobId, DEFAULT_NETWORK, "cover.jpg");
+
+      const finalResult: CreateCampaignResult = {
+        campaignId,
+        transactionDigest: result.digest,
+        walrusBlobId: certifyResult.blobId,
+        subdomain: formData.subdomain_name,
+        walrusDescriptionUrl,
+        walrusCoverImageUrl,
+      };
+
+      setCampaignResult(finalResult);
+      setWizardStep(WizardStepEnum.SUCCESS);
+
+      console.log("=== CAMPAIGN CREATED SUCCESSFULLY ===");
+      console.log("Campaign ID:", finalResult.campaignId);
+      console.log("Transaction Digest:", finalResult.transactionDigest);
+      console.log("=====================================");
+    } catch (err) {
+      setError(err instanceof Error ? err : new Error("Unknown error"));
+      setWizardStep(WizardStepEnum.ERROR);
+    }
+  };
+
+  // Cancel/Reset handlers
+  const handleCancelRegister = () => {
+    setWizardStep(WizardStepEnum.FORM);
+  };
+
+  const handleCancelCertify = () => {
+    setWizardStep(WizardStepEnum.CONFIRM_REGISTER);
+  };
+
+  const handleCancelTransaction = () => {
+    setWizardStep(WizardStepEnum.CONFIRM_CERTIFY);
   };
 
   // Function to estimate storage costs
@@ -272,25 +393,130 @@ export default function NewCampaignPage() {
                   )}
 
                   {/* Progress Display */}
-                  {isPending && (
+                  {wizardStep !== WizardStepEnum.FORM && (
                     <Alert className="border-blue-500">
                       <AlertDescription>
-                        <p className="font-semibold">Status: {currentStep}</p>
-                        <p className="text-sm text-muted-foreground">
-                          {progressMessage}
-                        </p>
+                        <p className="font-semibold">Wizard Step: {wizardStep}</p>
+                        {isPending && (
+                          <p className="text-sm text-muted-foreground">
+                            Processing...
+                          </p>
+                        )}
                       </AlertDescription>
                     </Alert>
                   )}
 
-                  {/* Error Display */}
-                  {error && (
-                    <Alert className="border-red-500">
-                      <AlertDescription className="flex items-center gap-2">
-                        <AlertCircleIcon className="size-4" />
-                        <p className="text-red-600 font-semibold">
-                          Error: {error.message}
+                  {/* TEST: Confirmation Buttons */}
+                  {wizardStep === WizardStepEnum.CONFIRM_REGISTER && (
+                    <Alert className="border-green-500">
+                      <AlertDescription>
+                        <p className="font-semibold mb-4">Ready to Register Storage</p>
+                        <p className="text-sm text-muted-foreground mb-4">
+                          This will cost WAL tokens to register storage on Walrus
                         </p>
+                        <div className="flex gap-2">
+                          <Button onClick={handleConfirmRegister} size="sm">
+                            Confirm Register
+                          </Button>
+                          <Button onClick={handleCancelRegister} size="sm" variant="outline">
+                            Cancel
+                          </Button>
+                        </div>
+                      </AlertDescription>
+                    </Alert>
+                  )}
+
+                  {wizardStep === WizardStepEnum.CONFIRM_CERTIFY && (
+                    <Alert className="border-green-500">
+                      <AlertDescription>
+                        <p className="font-semibold mb-4">Ready to Certify Blob</p>
+                        <p className="text-sm text-muted-foreground mb-4">
+                          Upload complete. Now certify the blob on blockchain.
+                        </p>
+                        <div className="flex gap-2">
+                          <Button onClick={handleConfirmCertify} size="sm">
+                            Confirm Certify
+                          </Button>
+                          <Button onClick={handleCancelCertify} size="sm" variant="outline">
+                            Cancel
+                          </Button>
+                        </div>
+                      </AlertDescription>
+                    </Alert>
+                  )}
+
+                  {wizardStep === WizardStepEnum.CONFIRM_TX && (
+                    <Alert className="border-green-500">
+                      <AlertDescription>
+                        <p className="font-semibold mb-4">Ready to Create Campaign</p>
+                        <p className="text-sm text-muted-foreground mb-4">
+                          Files uploaded and certified. Create campaign on Sui blockchain.
+                        </p>
+                        <div className="flex gap-2">
+                          <Button onClick={handleConfirmTransaction} size="sm">
+                            Create Campaign
+                          </Button>
+                          <Button onClick={handleCancelTransaction} size="sm" variant="outline">
+                            Cancel
+                          </Button>
+                        </div>
+                      </AlertDescription>
+                    </Alert>
+                  )}
+
+                  {/* Error Display with Retry */}
+                  {error && wizardStep === WizardStepEnum.ERROR && (
+                    <Alert className="border-red-500">
+                      <AlertDescription>
+                        <div className="flex items-center gap-2 mb-4">
+                          <AlertCircleIcon className="size-4" />
+                          <p className="text-red-600 font-semibold">
+                            Error: {error.message}
+                          </p>
+                        </div>
+                        <div className="flex gap-2">
+                          <Button
+                            onClick={() => {
+                              setError(null);
+                              // Determine which step to retry based on what data we have
+                              if (certifyResult) {
+                                // Error was during campaign creation
+                                setWizardStep(WizardStepEnum.CONFIRM_TX);
+                              } else if (uploadCompleted) {
+                                // Upload completed, error was during certification
+                                setWizardStep(WizardStepEnum.CONFIRM_CERTIFY);
+                              } else if (registerResult) {
+                                // Registration paid but upload failed - retry upload
+                                handleRetryUpload();
+                              } else if (flowState) {
+                                // Error was during registration - retry registration
+                                setWizardStep(WizardStepEnum.CONFIRM_REGISTER);
+                              } else {
+                                // Error was during preparation, start over
+                                setWizardStep(WizardStepEnum.FORM);
+                              }
+                            }}
+                            size="sm"
+                          >
+                            Try Again
+                          </Button>
+                          <Button
+                            onClick={() => {
+                              setError(null);
+                              setWizardStep(WizardStepEnum.FORM);
+                              // Reset all state
+                              setFormData(null);
+                              setFlowState(null);
+                              setRegisterResult(null);
+                              setUploadCompleted(false);
+                              setCertifyResult(null);
+                            }}
+                            size="sm"
+                            variant="outline"
+                          >
+                            Start Over
+                          </Button>
+                        </div>
                       </AlertDescription>
                     </Alert>
                   )}

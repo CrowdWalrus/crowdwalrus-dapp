@@ -87,6 +87,42 @@ export enum CampaignCreationStep {
 }
 
 /**
+ * Main wizard steps for the controlled campaign creation flow
+ */
+export enum WizardStep {
+  FORM = 'form',
+  ESTIMATING = 'estimating',
+  CONFIRM_REGISTER = 'confirm_register',  // User confirms buying Walrus storage with WAL
+  REGISTERING = 'registering',            // Registering blob (1st transaction)
+  UPLOADING = 'uploading',                // Uploading data to storage nodes
+  CONFIRM_CERTIFY = 'confirm_certify',    // User confirms certification
+  CERTIFYING = 'certifying',              // Certifying blob (2nd transaction)
+  CONFIRM_TX = 'confirm_tx',              // User confirms campaign creation
+  EXECUTING = 'executing',                // Creating campaign (3rd transaction)
+  SUCCESS = 'success',
+  ERROR = 'error',
+}
+
+/**
+ * Granular upload steps for detailed progress tracking
+ */
+export enum UploadStep {
+  ENCODING = 'encoding',
+  REGISTERING = 'registering',
+  UPLOADING = 'uploading',
+  CERTIFYING = 'certifying',
+}
+
+/**
+ * Walrus upload result with blob IDs
+ */
+export interface WalrusUploadData {
+  blobId: string;
+  storageEpochs: number;
+  cost: string;
+}
+
+/**
  * Custom error types for campaign creation
  */
 export class CampaignCreationError extends Error {
