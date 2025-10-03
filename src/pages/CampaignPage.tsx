@@ -13,7 +13,7 @@ import { Card, CardContent } from "@/shared/components/ui/card";
 import { Button } from "@/shared/components/ui/button";
 import { CampaignBreadcrumb } from "@/features/campaigns/components/CampaignBreadcrumb";
 import { CampaignHero } from "@/features/campaigns/components/CampaignHero";
-import { CampaignTabs } from "@/features/campaigns/components/CampaignTabs";
+
 import { CampaignAbout } from "@/features/campaigns/components/CampaignAbout";
 import { DonationCard } from "@/features/campaigns/components/DonationCard";
 
@@ -124,7 +124,9 @@ export function CampaignPage() {
         <div className="container max-w-4xl">
           <Card className="border-yellow-500">
             <CardContent className="pt-6">
-              <p className="text-yellow-600 font-semibold">Campaign not found</p>
+              <p className="text-yellow-600 font-semibold">
+                Campaign not found
+              </p>
               <p className="text-sm text-muted-foreground mt-2">
                 Campaign ID: {id}
               </p>
@@ -143,7 +145,7 @@ export function CampaignPage() {
     <div className="py-8">
       <div className="container">
         {/* Breadcrumb */}
-        <div className="mb-8">
+        <div className="pb-10">
           <CampaignBreadcrumb campaignName={campaign.name} />
         </div>
       </div>
@@ -151,9 +153,7 @@ export function CampaignPage() {
       {/* Main content container */}
       <div className="container mx-auto max-w-[1728px]">
         {/* Page Title */}
-        <h1 className="font-['Inter_Tight'] text-5xl font-bold leading-[1.2] tracking-[0.48px] text-foreground mb-[60px]">
-          {campaign.name}
-        </h1>
+        <h1 className="text-5xl font-bold mb-[60px] pb-10">{campaign.name}</h1>
 
         {/* Two-column layout */}
         <div className="flex gap-[62px] items-start">
@@ -176,21 +176,11 @@ export function CampaignPage() {
               />
             )}
 
-            {/* Loading state for image */}
-            {loadingImage && (
-              <div className="w-full h-[432px] bg-muted rounded-[24px] flex items-center justify-center mb-6">
-                <p className="text-muted-foreground">Loading campaign...</p>
-              </div>
-            )}
-
-            {/* Tabs */}
-            <div className="my-10">
-              <CampaignTabs />
-            </div>
-
             {/* About Section */}
             {description && !loadingDescription && (
-              <CampaignAbout description={description} />
+              <div className="pt-10">
+                <CampaignAbout description={description} />
+              </div>
             )}
 
             {/* Loading state for description */}
