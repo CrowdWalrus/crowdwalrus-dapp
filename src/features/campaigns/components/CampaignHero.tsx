@@ -85,7 +85,7 @@ export function CampaignHero({
         </div>
 
         {/* Separator */}
-        <Separator className="bg-[#e1e1e1]" />
+        <Separator className="bg-white-600" />
 
         {/* Publisher and Social Links */}
         <div className="flex items-center justify-between w-full">
@@ -139,7 +139,7 @@ export function CampaignHero({
         </div>
 
         {/* Bottom Separator */}
-        <Separator className="bg-[#e1e1e1]" />
+        <Separator className="bg-white-600" />
       </div>
     </div>
   );
