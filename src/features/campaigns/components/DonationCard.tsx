@@ -4,11 +4,11 @@
  */
 
 import { useState } from "react";
-import { Badge } from "@/shared/components/ui/badge";
 import { Button } from "@/shared/components/ui/button";
 import { Separator } from "@/shared/components/ui/separator";
-import { Clock, AlertCircle, Share2, ChevronDown } from "lucide-react";
+import { Share2, ChevronDown } from "lucide-react";
 import { useCurrentAccount } from "@mysten/dapp-kit";
+import { StartsBadge, VerificationBadge } from "./CampaignBadges";
 
 interface DonationCardProps {
   campaignId: string;
@@ -49,30 +49,18 @@ export function DonationCard({
   // Mock balance - in real app, fetch from wallet
   const balance = "100.09";
 
+  const formattedStartDate = formatStartDate(startDate);
+
   return (
     <div className="bg-white rounded-[24px] shadow-[0px_0px_16px_0px_rgba(0,0,0,0.16)] p-10 flex flex-col gap-6 w-full">
       {/* Verification Badge */}
       <div className="flex items-start">
-        <Badge
-          variant="outline"
-          className={` text-xs font-medium leading-[1.5] tracking-[0.18px] px-2 py-0.5 h-6 rounded-lg gap-1.5 border-transparent ${
-            validated ? "bg-green-600 text-white" : "bg-[#e6a01f] text-white"
-          }`}
-        >
-          <AlertCircle className="size-3" />
-          {validated ? "Verified" : "Not Verified"}
-        </Badge>
+        <VerificationBadge validated={validated} />
       </div>
 
       {/* Start Date */}
       <div className="flex items-center gap-6">
-        <Badge
-          variant="outline"
-          className="bg-[#e7e7e8] border-transparent text-[#0c0f1c]  text-xs font-medium leading-[1.5] tracking-[0.18px] px-2 py-0.5 h-6 rounded-lg gap-1.5"
-        >
-          <Clock className="size-3" />
-          Starts {formatStartDate(startDate)}
-        </Badge>
+        <StartsBadge formattedDate={formattedStartDate} />
       </div>
 
       {/* Amount Raised */}

@@ -1,5 +1,5 @@
 import { Badge } from "@/shared/components/ui/badge";
-import { Briefcase, Clock, Users } from "lucide-react";
+import { AlertCircle, Briefcase, Clock, Users } from "lucide-react";
 
 export function OpenSoonBadge() {
   return (
@@ -59,6 +59,40 @@ export function ContributorsBadge({
     >
       <Users className="size-3" />
       {contributorsCount}
+    </Badge>
+  );
+}
+
+interface VerificationBadgeProps {
+  validated: boolean;
+}
+
+export function VerificationBadge({ validated }: VerificationBadgeProps) {
+  return (
+    <Badge
+      variant="outline"
+      className={`text-xs px-2 py-0.5 h-6 rounded-lg gap-1.5 border-transparent ${
+        validated ? "bg-green-600 text-white" : "bg-orange-600 text-white"
+      }`}
+    >
+      <AlertCircle className="size-3" />
+      {validated ? "Verified" : "Not Verified"}
+    </Badge>
+  );
+}
+
+interface StartsBadgeProps {
+  formattedDate: string;
+}
+
+export function StartsBadge({ formattedDate }: StartsBadgeProps) {
+  return (
+    <Badge
+      variant="outline"
+      className="bg-[#e7e7e8] border-transparent text-[#0c0f1c] text-xs font-medium leading-[1.5] tracking-[0.18px] px-2 py-0.5 h-6 rounded-lg gap-1.5"
+    >
+      <Clock className="size-3" />
+      Starts {formattedDate}
     </Badge>
   );
 }
