@@ -11,7 +11,7 @@ interface CampaignAboutProps {
   images?: string[];
 }
 
-export function CampaignAbout({ description, images = [] }: CampaignAboutProps) {
+export function CampaignAbout({ description }: CampaignAboutProps) {
   // Parse description as editor state
   let editorState: SerializedEditorState | null = null;
   try {
@@ -28,24 +28,6 @@ export function CampaignAbout({ description, images = [] }: CampaignAboutProps) 
       </h2>
 
       <div className="flex flex-col gap-6 w-full">
-        {/* Image Gallery */}
-        {images.length > 0 && (
-          <div className="flex items-center gap-4 w-full">
-            {images.slice(0, 3).map((image, index) => (
-              <div
-                key={index}
-                className="flex-1 aspect-[856/432] rounded-[16px] overflow-hidden bg-muted"
-              >
-                <img
-                  src={image}
-                  alt={`Campaign image ${index + 1}`}
-                  className="w-full h-full object-cover"
-                />
-              </div>
-            ))}
-          </div>
-        )}
-
         {/* Description */}
         <div className="font-['Inter'] text-base font-normal leading-[1.6] text-[#3d3f49]">
           {editorState ? (
