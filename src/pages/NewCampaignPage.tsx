@@ -717,7 +717,7 @@ export default function NewCampaignPage() {
                         type="submit"
                         size="lg"
                         className="min-w-[168px]"
-                        disabled={isPending || !currentAccount}
+                        disabled={isPending || !currentAccount || !certifyResult}
                       >
                         {isPending ? "Creating..." : "Register Campaign"}
                       </Button>
