@@ -10,7 +10,10 @@ import {
   useSignAndExecuteTransaction,
   useSuiClient,
 } from "@mysten/dapp-kit";
-import { DEFAULT_NETWORK } from "@/shared/config/networkConfig";
+import {
+  DEFAULT_NETWORK,
+  WALRUS_EPOCH_CONFIG,
+} from "@/shared/config/networkConfig";
 import { useEstimateStorageCost } from "@/features/campaigns/hooks/useCreateCampaign";
 import {
   useWalrusUpload,
@@ -129,6 +132,11 @@ export default function NewCampaignPage() {
     useState<CreateCampaignResult | null>(null);
   const [error, setError] = useState<Error | null>(null);
 
+  // Storage epochs state
+  const [selectedEpochs, setSelectedEpochs] = useState<number>(
+    WALRUS_EPOCH_CONFIG[DEFAULT_NETWORK].defaultEpochs,
+  );
+
   // Hooks for each step
   const {
     mutate: estimateCost,
@@ -167,7 +175,7 @@ export default function NewCampaignPage() {
   const debouncedCoverImage = useDebounce(coverImage, 1000);
   const debouncedCampaignDetails = useDebounce(campaignDetails, 1000);
 
-  // Auto-estimate cost when debounced values change
+  // Auto-estimate cost when debounced values or epochs change
   useEffect(() => {
     // Only estimate if we have both required fields
     if (!debouncedCoverImage || !debouncedCampaignDetails) {
@@ -177,11 +185,11 @@ export default function NewCampaignPage() {
     try {
       const formValues = form.getValues();
       const campaignFormData = transformNewCampaignFormData(formValues);
-      estimateCost(campaignFormData);
+      estimateCost({ formData: campaignFormData, epochs: selectedEpochs });
     } catch (error) {
       console.error("Error auto-estimating cost:", error);
     }
-  }, [debouncedCoverImage, debouncedCampaignDetails]);
+  }, [debouncedCoverImage, debouncedCampaignDetails, selectedEpochs]);
 
   // Derive loading states
   // For registration flow (actual registration operations)
@@ -221,11 +229,17 @@ export default function NewCampaignPage() {
     // Don't open modal yet - let estimation and preparation happen silently
 
     // Automatically estimate cost and prepare upload
-    estimateCost(campaignFormData, {
+    estimateCost(
+      { formData: campaignFormData, epochs: selectedEpochs },
+      {
       onSuccess: () => {
         // Prepare Walrus upload
         walrus.prepare.mutate(
-          { formData: campaignFormData, network: DEFAULT_NETWORK },
+          {
+            formData: campaignFormData,
+            network: DEFAULT_NETWORK,
+            storageEpochs: selectedEpochs,
+          },
           {
             onSuccess: (flow) => {
               setFlowState(flow);
@@ -899,6 +913,8 @@ export default function NewCampaignPage() {
                         : false
                     }
                     requiredWalAmount={costEstimate?.subsidizedTotalCost}
+                    selectedEpochs={selectedEpochs}
+                    onEpochsChange={setSelectedEpochs}
                   />
 
                   <Separator />

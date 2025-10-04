@@ -20,9 +20,15 @@ export function useEstimateStorageCost() {
   const network = DEFAULT_NETWORK;
 
   return useMutation({
-    mutationFn: async (formData: CampaignFormData) => {
+    mutationFn: async ({
+      formData,
+      epochs,
+    }: {
+      formData: CampaignFormData;
+      epochs?: number;
+    }) => {
       const { calculateStorageCost } = await import("@/services/walrus");
-      return calculateStorageCost(suiClient, network, formData);
+      return calculateStorageCost(suiClient, network, formData, epochs);
     },
   });
 }

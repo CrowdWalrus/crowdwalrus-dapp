@@ -1,6 +1,5 @@
 import { useCurrentAccount, useSuiClientQuery } from "@mysten/dapp-kit";
 import { useNetworkVariable } from "@/shared/config/networkConfig";
-import { CoinStruct } from "@mysten/sui/client";
 
 /**
  * Hook to fetch the WAL token balance for the current account

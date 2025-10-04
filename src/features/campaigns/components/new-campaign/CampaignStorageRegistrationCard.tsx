@@ -9,6 +9,10 @@ import {
 } from "@/shared/components/ui/select";
 import { Alert, AlertDescription } from "@/shared/components/ui/alert";
 import { AlertCircle } from "lucide-react";
+import {
+  useNetworkVariable,
+  type StorageDurationOption,
+} from "@/shared/config/networkConfig";
 
 export interface StorageCost {
   label: string;
@@ -24,6 +28,8 @@ interface CampaignStorageRegistrationCardProps {
   walBalance?: string;
   hasInsufficientBalance?: boolean;
   requiredWalAmount?: number; // Required WAL amount for registration
+  selectedEpochs?: number; // Currently selected number of epochs
+  onEpochsChange?: (epochs: number) => void; // Callback when epochs selection changes
 }
 
 export function CampaignStorageRegistrationCard({
@@ -35,10 +41,30 @@ export function CampaignStorageRegistrationCard({
   walBalance = "0 WAL",
   hasInsufficientBalance = false,
   requiredWalAmount,
+  selectedEpochs,
+  onEpochsChange,
 }: CampaignStorageRegistrationCardProps) {
-  //ToD Mock data - replace with actual data from your state/props
-  const registrationPeriod = "1 year (10 USD)";
+  // Get network-specific storage duration options
+  const storageDurationOptions = useNetworkVariable(
+    "storageDurationOptions",
+  ) as StorageDurationOption[];
+  const epochConfig = useNetworkVariable("epochConfig") as {
+    epochDurationDays: number;
+    defaultEpochs: number;
+    maxEpochs: number;
+  };
+
+  // Use default epochs if not provided
+  const currentEpochs = selectedEpochs ?? epochConfig.defaultEpochs;
+
+  // Find the current option label
+  const currentOption = storageDurationOptions.find(
+    (opt: StorageDurationOption) => opt.epochs === currentEpochs,
+  );
+  const defaultValue = currentOption?.label ?? storageDurationOptions[0].label;
+
   const walRate = "1 WAL = ~$0.38 USD";
+
   return (
     <section className="flex flex-col gap-8 mb-12">
       <div className="flex flex-col gap-2">
@@ -56,16 +82,34 @@ export function CampaignStorageRegistrationCard({
             <label className="text-base font-medium text-[#0c0f1c]">
               Registration period
             </label>
-            <Select defaultValue="1year">
+            <Select
+              value={defaultValue}
+              onValueChange={(value) => {
+                const option = storageDurationOptions.find(
+                  (opt: StorageDurationOption) => opt.label === value,
+                );
+                if (option && onEpochsChange) {
+                  onEpochsChange(option.epochs);
+                }
+              }}
+            >
               <SelectTrigger className="bg-white border-black-50">
-                <SelectValue placeholder={registrationPeriod} />
+                <SelectValue />
               </SelectTrigger>
               <SelectContent>
-                <SelectItem value="1year">1 year (10 USD)</SelectItem>
-                <SelectItem value="2years">2 years (20 USD)</SelectItem>
-                <SelectItem value="5years">5 years (50 USD)</SelectItem>
+                {storageDurationOptions.map((option: StorageDurationOption) => (
+                  <SelectItem key={option.label} value={option.label}>
+                    {option.label} ({option.epochs} epochs)
+                  </SelectItem>
+                ))}
               </SelectContent>
             </Select>
+            <p className="text-xs text-muted-foreground">
+              {currentEpochs} epoch{currentEpochs !== 1 ? "s" : ""} ×{" "}
+              {epochConfig.epochDurationDays} day
+              {epochConfig.epochDurationDays !== 1 ? "s" : ""} ={" "}
+              {currentEpochs * epochConfig.epochDurationDays} days total
+            </p>
           </div>
 
           {/* Storage Fees Card */}
