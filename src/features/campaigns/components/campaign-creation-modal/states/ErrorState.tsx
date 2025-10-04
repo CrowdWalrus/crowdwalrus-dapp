@@ -45,7 +45,7 @@ export const ErrorState = ({
   // TODO: Implement your UI here
 
   return (
-    <div className="flex flex-col items-center justify-center gap-10 pt-10">
+    <div className="flex flex-col items-center justify-center gap-10 py-6">
       {/* TODO: Error icon */}
       <img
         src="/assets/images/modal-icons/modal-error.png"
@@ -54,16 +54,10 @@ export const ErrorState = ({
       />
 
       {/* TODO: Error message */}
-      <div className="text-center space-y-2">
+      <div className="flex flex-col text-center gap-2">
         <h2 className="text-xl font-semibold">Sign failed</h2>
         <p className="text-sm text-muted-foreground">{error}</p>
       </div>
-
-      {/* TODO: Error details or help section */}
-      <p className="text-center text-sm text-muted-foreground">
-        {/* TODO: Add helpful troubleshooting tips based on error type */}
-        Your last attempt to sign transaction was failed. Please retry again.
-      </p>
 
       {/* TODO: Common error scenarios help */}
       {/* You could add specific help for common errors like: */}
