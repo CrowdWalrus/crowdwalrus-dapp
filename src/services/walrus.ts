@@ -221,7 +221,8 @@ export async function getUploadedFilesInfo(
     const cost = estimateStorageCostSimple(totalSize, epochs);
 
     console.log("Total size:", totalSize, "bytes");
-    console.log("Estimated cost:", cost, "WAL");
+    console.log("Storage epochs:", epochs);
+    console.log("Estimated cost:", cost, "WAL (deprecated estimator - actual cost paid during registration)");
     console.log("==============================\n");
 
     return {
