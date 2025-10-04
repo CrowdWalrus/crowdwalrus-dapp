@@ -156,8 +156,8 @@ export default function NewCampaignPage() {
   });
 
   // Debounce the watched values (3 seconds)
-  const debouncedCoverImage = useDebounce(coverImage, 3000);
-  const debouncedCampaignDetails = useDebounce(campaignDetails, 3000);
+  const debouncedCoverImage = useDebounce(coverImage, 1000);
+  const debouncedCampaignDetails = useDebounce(campaignDetails, 1000);
 
   // Auto-estimate cost when debounced values change
   useEffect(() => {
@@ -175,14 +175,17 @@ export default function NewCampaignPage() {
     }
   }, [debouncedCoverImage, debouncedCampaignDetails]);
 
-  // Derive loading state
-  const isPending =
-    isEstimating ||
-    walrus.prepare.isPending ||
+  // Derive loading states
+  // For registration flow (actual registration operations)
+  const isRegistrationPending =
     walrus.register.isPending ||
     walrus.upload.isPending ||
     walrus.certify.isPending ||
     isExecuting;
+
+  // For all operations (includes everything)
+  const isPending =
+    isEstimating || walrus.prepare.isPending || isRegistrationPending;
 
   // Sync wizard step with modal - open modal for non-FORM steps
   useEffect(() => {
@@ -207,7 +210,7 @@ export default function NewCampaignPage() {
 
     const campaignFormData = transformNewCampaignFormData(data);
     setFormData(campaignFormData);
-    setWizardStep(WizardStep.ESTIMATING);
+    // Don't open modal yet - let estimation and preparation happen silently
 
     // Automatically estimate cost and prepare upload
     estimateCost(campaignFormData, {
@@ -218,6 +221,7 @@ export default function NewCampaignPage() {
           {
             onSuccess: (flow) => {
               setFlowState(flow);
+              // Only now open the modal with the confirm register step
               setWizardStep(WizardStep.CONFIRM_REGISTER);
             },
             onError: (err) => {
@@ -873,7 +877,7 @@ export default function NewCampaignPage() {
                     totalCost={totalCost}
                     isCalculating={isEstimating}
                     onRegister={handleRegisterStorageClick}
-                    isRegistering={isPending}
+                    isPreparing={walrus.prepare.isPending}
                     walBalance="N/A (WAL coin type not configured)"
                     hasInsufficientBalance={false}
                   />
@@ -898,10 +902,14 @@ export default function NewCampaignPage() {
                         size="lg"
                         className="min-w-[168px]"
                         disabled={
-                          isPending || !currentAccount || !certifyResult
+                          isRegistrationPending ||
+                          !currentAccount ||
+                          !certifyResult
                         }
                       >
-                        {isPending ? "Creating..." : "Register Campaign"}
+                        {isRegistrationPending
+                          ? "Creating..."
+                          : "Register Campaign"}
                       </Button>
                     </div>
                   </section>

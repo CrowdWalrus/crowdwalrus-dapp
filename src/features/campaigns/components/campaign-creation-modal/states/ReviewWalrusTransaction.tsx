@@ -63,7 +63,7 @@ export const ReviewWalrusTransaction = ({
           <div className="rounded-lg border p-4">
             <p className="text-sm">Estimated Cost</p>
             <p className="text-2xl font-bold">
-              {estimatedCost.subsidizedTotalCost.toFixed(4)} WAL
+              {estimatedCost.subsidizedTotalCost.toFixed(6)} WAL
             </p>
             {/* TODO: Add more cost breakdown details here */}
             {/* - Raw size vs encoded size */}

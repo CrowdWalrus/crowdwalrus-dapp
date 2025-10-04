@@ -18,10 +18,9 @@ export interface StorageCost {
 interface CampaignStorageRegistrationCardProps {
   costs: StorageCost[];
   totalCost: string;
-  onCalculate?: () => void;
   isCalculating?: boolean;
   onRegister?: () => void;
-  isRegistering?: boolean;
+  isPreparing?: boolean;
   walBalance?: string;
   hasInsufficientBalance?: boolean;
 }
@@ -29,10 +28,9 @@ interface CampaignStorageRegistrationCardProps {
 export function CampaignStorageRegistrationCard({
   costs,
   totalCost,
-  onCalculate,
   isCalculating = false,
   onRegister,
-  isRegistering = false,
+  isPreparing = false,
   walBalance = "0 WAL",
   hasInsufficientBalance = false,
 }: CampaignStorageRegistrationCardProps) {
@@ -67,21 +65,6 @@ export function CampaignStorageRegistrationCard({
               </SelectContent>
             </Select>
           </div>
-
-          {/* Calculate Cost Button */}
-          {onCalculate && (
-            <div className="flex justify-end">
-              <Button
-                type="button"
-                variant="outline"
-                className="bg-white border-black-50"
-                onClick={onCalculate}
-                disabled={isCalculating}
-              >
-                {isCalculating ? "Calculating..." : "Calculate Storage Cost"}
-              </Button>
-            </div>
-          )}
 
           {/* Storage Fees Card */}
           <Card className="bg-white border-black-50">
@@ -173,11 +156,15 @@ export function CampaignStorageRegistrationCard({
               disabled={
                 hasInsufficientBalance ||
                 isCalculating ||
-                isRegistering ||
+                isPreparing ||
                 !onRegister
               }
             >
-              {isRegistering ? "Registering..." : "Register Storage"}
+              {isCalculating
+                ? "Calculating..."
+                : isPreparing
+                  ? "Preparing..."
+                  : "Register Storage"}
             </Button>
           </div>
         </CardContent>
