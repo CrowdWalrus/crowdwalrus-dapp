@@ -898,6 +898,7 @@ export default function NewCampaignPage() {
                           ) > BigInt(walBalanceRaw)
                         : false
                     }
+                    requiredWalAmount={costEstimate?.subsidizedTotalCost}
                   />
 
                   <Separator />

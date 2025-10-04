@@ -23,6 +23,7 @@ interface CampaignStorageRegistrationCardProps {
   isPreparing?: boolean;
   walBalance?: string;
   hasInsufficientBalance?: boolean;
+  requiredWalAmount?: number; // Required WAL amount for registration
 }
 
 export function CampaignStorageRegistrationCard({
@@ -33,6 +34,7 @@ export function CampaignStorageRegistrationCard({
   isPreparing = false,
   walBalance = "0 WAL",
   hasInsufficientBalance = false,
+  requiredWalAmount,
 }: CampaignStorageRegistrationCardProps) {
   //ToD Mock data - replace with actual data from your state/props
   const registrationPeriod = "1 year (10 USD)";
@@ -132,7 +134,9 @@ export function CampaignStorageRegistrationCard({
                     Insufficient balance to complete registration
                   </AlertDescription>
                   <AlertDescription className="text-sm font-medium text-red-900 leading-[1.5]">
-                    You need 111,098 WAL tokens to complete registration.
+                    {requiredWalAmount
+                      ? `You need ${requiredWalAmount.toLocaleString("en-US", { minimumFractionDigits: 2, maximumFractionDigits: 6 })} WAL tokens to complete registration.`
+                      : "You need more WAL tokens to complete registration."}
                   </AlertDescription>
                 </div>
                 <Button
