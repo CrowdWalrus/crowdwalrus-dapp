@@ -32,7 +32,7 @@ export function CampaignStorageRegistrationCard({
   walBalance = "0 WAL",
   hasInsufficientBalance = false,
 }: CampaignStorageRegistrationCardProps) {
-  // Mock data - replace with actual data from your state/props
+  //ToD Mock data - replace with actual data from your state/props
   const registrationPeriod = "1 year (10 USD)";
   const walRate = "1 WAL = ~$0.38 USD";
   return (
@@ -164,7 +164,7 @@ export function CampaignStorageRegistrationCard({
             <Button
               variant="outline"
               className="bg-white border-black-50 min-h-[40px] px-6"
-              disabled={hasInsufficientBalance}
+              disabled={hasInsufficientBalance || isCalculating}
             >
               Register Storage
             </Button>
