@@ -1,7 +1,8 @@
 import { Link } from "react-router-dom";
-import { useForm, FormProvider } from "react-hook-form";
+import { useForm, FormProvider, useWatch } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useState, useEffect } from "react";
+import { useDebounce } from "@/shared/hooks/useDebounce";
 import { ROUTES } from "@/shared/config/routes";
 import {
   useCurrentAccount,
@@ -103,7 +104,10 @@ export default function NewCampaignPage() {
   const modal = useCampaignCreationModal();
 
   // Wizard state management
-  const [wizardStep, setWizardStep] = useState<WizardStep>(WizardStep.FORM);
+  // TODO: TEMP - Change back to WizardStep.FORM after UI work
+  const [wizardStep, setWizardStep] = useState<WizardStep>(
+    WizardStep.CONFIRM_REGISTER,
+  );
   const [formData, setFormData] = useState<CampaignFormData | null>(null);
   const [flowState, setFlowState] = useState<WalrusFlowState | null>(null);
   const [registerResult, setRegisterResult] = useState<RegisterResult | null>(
@@ -142,6 +146,33 @@ export default function NewCampaignPage() {
     resolver: zodResolver(newCampaignSchema),
     defaultValues: TEST_DEFAULTS, // Change to empty object {} when done testing
   });
+
+  // Watch form values for auto-estimation
+  const coverImage = useWatch({ control: form.control, name: "coverImage" });
+  const campaignDetails = useWatch({
+    control: form.control,
+    name: "campaignDetails",
+  });
+
+  // Debounce the watched values (3 seconds)
+  const debouncedCoverImage = useDebounce(coverImage, 3000);
+  const debouncedCampaignDetails = useDebounce(campaignDetails, 3000);
+
+  // Auto-estimate cost when debounced values change
+  useEffect(() => {
+    // Only estimate if we have both required fields
+    if (!debouncedCoverImage || !debouncedCampaignDetails) {
+      return;
+    }
+
+    try {
+      const formValues = form.getValues();
+      const campaignFormData = transformNewCampaignFormData(formValues);
+      estimateCost(campaignFormData);
+    } catch (error) {
+      console.error("Error auto-estimating cost:", error);
+    }
+  }, [debouncedCoverImage, debouncedCampaignDetails]);
 
   // Derive loading state
   const isPending =
@@ -364,24 +395,6 @@ export default function NewCampaignPage() {
 
   const handleCancelTransaction = () => {
     setWizardStep(WizardStep.CONFIRM_CERTIFY);
-  };
-
-  // Function to estimate storage costs
-  const handleEstimateCost = () => {
-    const formValues = form.getValues();
-
-    // Only estimate if we have required data
-    if (!formValues.coverImage || !formValues.campaignDetails) {
-      alert("Please upload a cover image and add campaign details first");
-      return;
-    }
-
-    try {
-      const campaignFormData = transformNewCampaignFormData(formValues);
-      estimateCost(campaignFormData);
-    } catch (error) {
-      console.error("Error estimating cost:", error);
-    }
   };
 
   const storageCosts: StorageCost[] = costEstimate
@@ -848,7 +861,6 @@ export default function NewCampaignPage() {
                   <CampaignStorageRegistrationCard
                     costs={storageCosts}
                     totalCost={totalCost}
-                    onCalculate={handleEstimateCost}
                     isCalculating={isEstimating}
                     walBalance="N/A (WAL coin type not configured)"
                     hasInsufficientBalance={false}
