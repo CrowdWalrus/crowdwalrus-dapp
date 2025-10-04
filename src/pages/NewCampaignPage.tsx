@@ -369,6 +369,7 @@ export default function NewCampaignPage() {
         formData,
         certifyResult.blobId,
         DEFAULT_NETWORK,
+        certifyResult.storageEpochs,
       );
 
       const result = await signAndExecute({

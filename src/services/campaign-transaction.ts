@@ -17,16 +17,20 @@ export function buildCreateCampaignTransaction(
   formData: CampaignFormData,
   walrusBlobId: string,
   network: "devnet" | "testnet" | "mainnet",
+  storageEpochs?: number,
 ): Transaction {
   const config = getContractConfig(network);
   const tx = new Transaction();
 
-  // Prepare metadata for VecMap<String, String>
+  // Use provided epochs or fall back to network default
   const networkKey = (network === "devnet" ? "devnet" : network) as keyof typeof WALRUS_EPOCH_CONFIG;
+  const epochs = storageEpochs ?? WALRUS_EPOCH_CONFIG[networkKey].defaultEpochs;
+
+  // Prepare metadata for VecMap<String, String>
   const { keys, values } = prepareMetadataVectors(
     formData,
     walrusBlobId,
-    WALRUS_EPOCH_CONFIG[networkKey].defaultEpochs,
+    epochs,
   );
 
   // Convert dates to Unix timestamps (in seconds)

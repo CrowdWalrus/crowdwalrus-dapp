@@ -15,12 +15,14 @@ import type { CampaignFormData } from "@/features/campaigns/types/campaign";
  * @param formData - Campaign form data
  * @param walrusBlobId - Blob ID from Walrus upload
  * @param network - Network to deploy on
+ * @param storageEpochs - Actual storage epochs purchased (optional, uses network default if not provided)
  * @returns Transaction object ready to be signed and executed
  */
 export const createCampaignTransaction = (
   formData: CampaignFormData,
   walrusBlobId: string,
-  network: "devnet" | "testnet" | "mainnet" = "testnet"
+  network: "devnet" | "testnet" | "mainnet" = "testnet",
+  storageEpochs?: number,
 ) => {
-  return buildCreateCampaignTransaction(formData, walrusBlobId, network);
+  return buildCreateCampaignTransaction(formData, walrusBlobId, network, storageEpochs);
 };
