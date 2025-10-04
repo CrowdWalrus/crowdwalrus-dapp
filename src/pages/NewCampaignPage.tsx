@@ -144,6 +144,7 @@ export default function NewCampaignPage() {
 
   const form = useForm<NewCampaignFormData>({
     resolver: zodResolver(newCampaignSchema),
+    mode: "onChange", // Revalidate on every change after first validation
     defaultValues: TEST_DEFAULTS, // Change to empty object {} when done testing
   });
 
@@ -231,6 +232,15 @@ export default function NewCampaignPage() {
         setWizardStep(WizardStep.ERROR);
       },
     });
+  };
+
+  // Handler for Register Storage button - validates form first
+  const handleRegisterStorageClick = async () => {
+    const isValid = await form.trigger();
+    if (isValid) {
+      const data = form.getValues();
+      onSubmit(data);
+    }
   };
 
   // Step 2: User confirms registration - buy Walrus storage
@@ -862,6 +872,8 @@ export default function NewCampaignPage() {
                     costs={storageCosts}
                     totalCost={totalCost}
                     isCalculating={isEstimating}
+                    onRegister={handleRegisterStorageClick}
+                    isRegistering={isPending}
                     walBalance="N/A (WAL coin type not configured)"
                     hasInsufficientBalance={false}
                   />

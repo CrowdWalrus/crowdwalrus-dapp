@@ -20,6 +20,8 @@ interface CampaignStorageRegistrationCardProps {
   totalCost: string;
   onCalculate?: () => void;
   isCalculating?: boolean;
+  onRegister?: () => void;
+  isRegistering?: boolean;
   walBalance?: string;
   hasInsufficientBalance?: boolean;
 }
@@ -29,6 +31,8 @@ export function CampaignStorageRegistrationCard({
   totalCost,
   onCalculate,
   isCalculating = false,
+  onRegister,
+  isRegistering = false,
   walBalance = "0 WAL",
   hasInsufficientBalance = false,
 }: CampaignStorageRegistrationCardProps) {
@@ -162,11 +166,18 @@ export function CampaignStorageRegistrationCard({
           {/* Register Button */}
           <div className="flex justify-end">
             <Button
+              type="button"
               variant="outline"
               className="bg-white border-black-50 min-h-[40px] px-6"
-              disabled={hasInsufficientBalance || isCalculating}
+              onClick={onRegister}
+              disabled={
+                hasInsufficientBalance ||
+                isCalculating ||
+                isRegistering ||
+                !onRegister
+              }
             >
-              Register Storage
+              {isRegistering ? "Registering..." : "Register Storage"}
             </Button>
           </div>
         </CardContent>
