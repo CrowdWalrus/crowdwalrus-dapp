@@ -8,6 +8,7 @@
 import { Transaction } from "@mysten/sui/transactions";
 import type { CampaignFormData, CampaignMetadata } from "@/features/campaigns/types/campaign";
 import { getContractConfig, CLOCK_OBJECT_ID } from "@/shared/config/contracts";
+import { WALRUS_EPOCH_CONFIG } from "@/shared/config/networkConfig";
 
 /**
  * Build a transaction to create a new campaign on Sui
@@ -21,10 +22,11 @@ export function buildCreateCampaignTransaction(
   const tx = new Transaction();
 
   // Prepare metadata for VecMap<String, String>
+  const networkKey = (network === "devnet" ? "devnet" : network) as keyof typeof WALRUS_EPOCH_CONFIG;
   const { keys, values } = prepareMetadataVectors(
     formData,
     walrusBlobId,
-    config.storageDefaults.defaultEpochs,
+    WALRUS_EPOCH_CONFIG[networkKey].defaultEpochs,
   );
 
   // Convert dates to Unix timestamps (in seconds)

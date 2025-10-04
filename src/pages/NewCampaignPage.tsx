@@ -137,6 +137,13 @@ export default function NewCampaignPage() {
     WALRUS_EPOCH_CONFIG[DEFAULT_NETWORK].defaultEpochs,
   );
 
+  // Handler with epoch clamping validation
+  const handleEpochsChange = (epochs: number) => {
+    const config = WALRUS_EPOCH_CONFIG[DEFAULT_NETWORK];
+    const clampedEpochs = Math.min(Math.max(1, epochs), config.maxEpochs);
+    setSelectedEpochs(clampedEpochs);
+  };
+
   // Hooks for each step
   const {
     mutate: estimateCost,
@@ -914,7 +921,7 @@ export default function NewCampaignPage() {
                     }
                     requiredWalAmount={costEstimate?.subsidizedTotalCost}
                     selectedEpochs={selectedEpochs}
-                    onEpochsChange={setSelectedEpochs}
+                    onEpochsChange={handleEpochsChange}
                   />
 
                   <Separator />

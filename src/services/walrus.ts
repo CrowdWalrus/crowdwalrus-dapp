@@ -14,6 +14,7 @@ import {
   type CampaignFormData,
 } from "@/features/campaigns/types/campaign";
 import { getContractConfig } from "@/shared/config/contracts";
+import { WALRUS_EPOCH_CONFIG } from "@/shared/config/networkConfig";
 import {
   calculateCampaignStorageCost,
   type CampaignStorageCost,
@@ -264,7 +265,7 @@ export async function calculateStorageCost(
   const rawSize = descriptionSize + imagesSize;
 
   const storageEpochs =
-    epochs || getContractConfig(network).storageDefaults.defaultEpochs;
+    epochs || WALRUS_EPOCH_CONFIG[network === "devnet" ? "devnet" : network].defaultEpochs;
 
   // Query real Walrus pricing and calculate accurate costs
   const cost: CampaignStorageCost = await calculateCampaignStorageCost(

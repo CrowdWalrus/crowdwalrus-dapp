@@ -23,8 +23,7 @@ import {
   getUploadedFilesInfo,
 } from "@/services/walrus";
 import type { CampaignFormData } from "@/features/campaigns/types/campaign";
-import { DEFAULT_NETWORK } from "@/shared/config/networkConfig";
-import { getContractConfig } from "@/shared/config/contracts";
+import { DEFAULT_NETWORK, WALRUS_EPOCH_CONFIG } from "@/shared/config/networkConfig";
 
 /**
  * Walrus flow state that's passed between steps
@@ -69,8 +68,8 @@ export function useWalrusUpload() {
    */
   const prepare = useMutation<WalrusFlowState, Error, { formData: CampaignFormData; network?: string; storageEpochs?: number }>({
     mutationFn: async ({ formData, network = DEFAULT_NETWORK, storageEpochs }) => {
-      const config = getContractConfig(network as any);
-      const epochs = storageEpochs || config.storageDefaults.defaultEpochs;
+      const networkKey = (network === "devnet" ? "devnet" : network) as keyof typeof WALRUS_EPOCH_CONFIG;
+      const epochs = storageEpochs || WALRUS_EPOCH_CONFIG[networkKey].defaultEpochs;
 
       const files = await prepareCampaignFiles(formData);
       const walrusClient = createWalrusClient(suiClient, network as any);
