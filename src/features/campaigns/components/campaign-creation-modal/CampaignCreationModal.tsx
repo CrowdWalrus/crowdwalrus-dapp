@@ -38,7 +38,7 @@ import { WizardStep } from '@/features/campaigns/types/campaign'
 import type { StorageCostEstimate, CreateCampaignResult } from '@/features/campaigns/types/campaign'
 
 // Import state components
-import { RegisterConfirmState } from './states/RegisterConfirmState'
+import { ReviewWalrusTransaction } from './states/ReviewWalrusTransaction'
 import { ProcessingState } from './states/ProcessingState'
 import { UploadingState } from './states/UploadingState'
 import { CertifyConfirmState } from './states/CertifyConfirmState'
@@ -121,7 +121,7 @@ export const CampaignCreationModal = ({
       // === Storage Registration Flow ===
       case WizardStep.CONFIRM_REGISTER:
         return (
-          <RegisterConfirmState
+          <ReviewWalrusTransaction
             estimatedCost={estimatedCost}
             onConfirm={onConfirmRegister}
             onCancel={onCancelRegister}

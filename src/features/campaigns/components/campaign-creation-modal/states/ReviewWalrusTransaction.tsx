@@ -1,5 +1,5 @@
 /**
- * Register Confirm State Component
+ * Review Walrus Transaction Component
  *
  * Shown when: WizardStep.CONFIRM_REGISTER
  *
@@ -9,7 +9,7 @@
  * - Get user confirmation before proceeding with the transaction
  *
  * UI Elements to implement:
- * - Title: "Register Walrus Storage"
+ * - Title: "Review Walrus Transaction"
  * - Cost breakdown display (from estimatedCost prop)
  * - Explanation of what storage registration means
  * - "Proceed" button (calls onConfirm)
@@ -23,7 +23,7 @@
 
 import type { StorageCostEstimate } from '@/features/campaigns/types/campaign'
 
-export interface RegisterConfirmStateProps {
+export interface ReviewWalrusTransactionProps {
   /** Storage cost estimation data */
   estimatedCost?: StorageCostEstimate | null
 
@@ -34,11 +34,11 @@ export interface RegisterConfirmStateProps {
   onCancel?: () => void
 }
 
-export const RegisterConfirmState = ({
+export const ReviewWalrusTransaction = ({
   estimatedCost,
   onConfirm,
   onCancel,
-}: RegisterConfirmStateProps) => {
+}: ReviewWalrusTransactionProps) => {
   // TODO: Implement your UI here
 
   return (

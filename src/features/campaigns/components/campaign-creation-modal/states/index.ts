@@ -4,8 +4,8 @@
  * Re-exports all modal state components for convenient importing
  */
 
-export { RegisterConfirmState } from './RegisterConfirmState'
-export type { RegisterConfirmStateProps } from './RegisterConfirmState'
+export { ReviewWalrusTransaction } from './ReviewWalrusTransaction'
+export type { ReviewWalrusTransactionProps } from './ReviewWalrusTransaction'
 
 export { ProcessingState } from './ProcessingState'
 export type { ProcessingStateProps } from './ProcessingState'
