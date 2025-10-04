@@ -3,6 +3,7 @@ import { useForm, FormProvider, useWatch } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useState, useEffect } from "react";
 import { useDebounce } from "@/shared/hooks/useDebounce";
+import { useWalBalance } from "@/shared/hooks/useWalBalance";
 import { ROUTES } from "@/shared/config/routes";
 import {
   useCurrentAccount,
@@ -99,6 +100,13 @@ const TEST_DEFAULTS = {
 export default function NewCampaignPage() {
   const currentAccount = useCurrentAccount();
   const suiClient = useSuiClient();
+
+  // WAL balance hook
+  const {
+    formattedBalance,
+    isLoading: isLoadingBalance,
+    balance: walBalanceRaw,
+  } = useWalBalance();
 
   // Modal state management
   const modal = useCampaignCreationModal();
@@ -878,8 +886,18 @@ export default function NewCampaignPage() {
                     isCalculating={isEstimating}
                     onRegister={handleRegisterStorageClick}
                     isPreparing={walrus.prepare.isPending}
-                    walBalance="N/A (WAL coin type not configured)"
-                    hasInsufficientBalance={false}
+                    walBalance={
+                      isLoadingBalance ? "Loading..." : formattedBalance
+                    }
+                    hasInsufficientBalance={
+                      costEstimate && !isLoadingBalance
+                        ? BigInt(
+                            Math.floor(
+                              costEstimate.subsidizedTotalCost * 10 ** 9,
+                            ),
+                          ) > BigInt(walBalanceRaw)
+                        : false
+                    }
                   />
 
                   <Separator />
