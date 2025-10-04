@@ -25,10 +25,10 @@
 
 export interface ProcessingStateProps {
   /** Main message to display (e.g., "Signing transaction...") */
-  message: string
+  message: string;
 
   /** Optional additional description/context */
-  description?: string
+  description?: string;
 }
 
 export const ProcessingState = ({
@@ -38,7 +38,7 @@ export const ProcessingState = ({
   // TODO: Implement your UI here
 
   return (
-    <div className="space-y-6 py-8">
+    <div className="flex flex-col items-center justify-center gap-10 pt-10">
       {/* TODO: Add loading spinner/animation */}
       <div className="flex justify-center">
         <div className="size-12 border-4 border-primary border-t-transparent rounded-full animate-spin" />
@@ -46,7 +46,7 @@ export const ProcessingState = ({
       </div>
 
       {/* TODO: Display messages */}
-      <div className="text-center space-y-2">
+      <div className="flex flex-col text-center gap-2">
         <h2 className="text-lg font-semibold">{message}</h2>
         {description && (
           <p className="text-sm text-muted-foreground">{description}</p>
@@ -58,5 +58,5 @@ export const ProcessingState = ({
         {/* You can add a wallet icon and reminder here */}
       </div>
     </div>
-  )
-}
+  );
+};

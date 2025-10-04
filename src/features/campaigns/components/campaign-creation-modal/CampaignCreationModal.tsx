@@ -207,6 +207,7 @@ export const CampaignCreationModal = ({
     <Dialog open={isOpen} onOpenChange={onClose}>
       <DialogContent
         className="sm:max-w-md"
+
         // TODO: Add custom styling here
         // You can adjust max width, padding, etc. based on your design
       >

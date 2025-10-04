@@ -24,49 +24,46 @@
  * - Different error types might need different messages
  */
 
+import { Button } from "@/shared/components/ui/button";
+
 export interface ErrorStateProps {
   /** Error message to display */
-  error?: string | null
+  error?: string | null;
 
   /** Called when user clicks "Try Again" */
-  onRetry?: () => void
+  onRetry?: () => void;
 
   /** Called when user clicks "Cancel" or "Close" */
-  onClose?: () => void
+  onClose?: () => void;
 }
 
 export const ErrorState = ({
-  error = 'An error occurred',
+  error = "An error occurred",
   onRetry,
   onClose,
 }: ErrorStateProps) => {
   // TODO: Implement your UI here
 
   return (
-    <div className="space-y-6 py-4">
+    <div className="flex flex-col items-center justify-center gap-10 pt-10">
       {/* TODO: Error icon */}
-      <div className="flex justify-center">
-        <div className="text-6xl">⚠️</div>
-        {/* Replace with proper error icon component */}
-      </div>
+      <img
+        src="/assets/images/modal-icons/modal-error.png"
+        alt="Error"
+        className="w-30 h-30"
+      />
 
       {/* TODO: Error message */}
       <div className="text-center space-y-2">
-        <h2 className="text-xl font-semibold text-destructive">
-          Something Went Wrong
-        </h2>
-        <p className="text-sm text-muted-foreground">
-          {error}
-        </p>
+        <h2 className="text-xl font-semibold">Sign failed</h2>
+        <p className="text-sm text-muted-foreground">{error}</p>
       </div>
 
       {/* TODO: Error details or help section */}
-      <div className="rounded-lg border border-yellow-200 bg-yellow-50 p-4">
-        <p className="text-sm text-yellow-800">
-          {/* TODO: Add helpful troubleshooting tips based on error type */}
-          If the problem persists, please check your wallet connection and try again.
-        </p>
-      </div>
+      <p className="text-center text-sm text-muted-foreground">
+        {/* TODO: Add helpful troubleshooting tips based on error type */}
+        Your last attempt to sign transaction was failed. Please retry again.
+      </p>
 
       {/* TODO: Common error scenarios help */}
       {/* You could add specific help for common errors like: */}
@@ -76,21 +73,21 @@ export const ErrorState = ({
       {/* - Upload failures */}
 
       {/* TODO: Action buttons */}
-      <div className="flex flex-col gap-2">
+      <div className="flex gap-4 justify-end w-full">
+        <Button
+          onClick={onClose}
+          className="w-full bg-black-50 text-black-500 hover:bg-white-600 border-none"
+        >
+          Cancel
+        </Button>
         {onRetry && (
-          <button
+          <Button
             onClick={onRetry}
             className="w-full px-4 py-2 rounded-md bg-primary text-primary-foreground"
           >
             Try Again
-          </button>
+          </Button>
         )}
-        <button
-          onClick={onClose}
-          className="w-full px-4 py-2 rounded-md border"
-        >
-          Cancel
-        </button>
       </div>
 
       {/* TODO: Optional support link */}
@@ -100,5 +97,5 @@ export const ErrorState = ({
         </a>
       </div> */}
     </div>
-  )
-}
+  );
+};
