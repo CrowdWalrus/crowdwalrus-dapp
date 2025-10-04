@@ -21,17 +21,18 @@
  * - Explain storage epochs/duration
  */
 
-import type { StorageCostEstimate } from '@/features/campaigns/types/campaign'
+import type { StorageCostEstimate } from "@/features/campaigns/types/campaign";
+import { Button } from "@/shared/components/ui/button";
 
 export interface ReviewWalrusTransactionProps {
   /** Storage cost estimation data */
-  estimatedCost?: StorageCostEstimate | null
+  estimatedCost?: StorageCostEstimate | null;
 
   /** Called when user clicks "Proceed" */
-  onConfirm?: () => void
+  onConfirm?: () => void;
 
   /** Called when user clicks "Cancel" */
-  onCancel?: () => void
+  onCancel?: () => void;
 }
 
 export const ReviewWalrusTransaction = ({
@@ -42,12 +43,17 @@ export const ReviewWalrusTransaction = ({
   // TODO: Implement your UI here
 
   return (
-    <div className="space-y-4">
-      {/* TODO: Add your modal header */}
-      <div>
-        <h2 className="text-lg font-semibold">Register Walrus Storage</h2>
+    <div className="flex flex-col items-center justify-center">
+      <img
+        src="/assets/images/modal-icons/modal-review.png"
+        alt="Walrus Logo"
+        className="w-30 h-30"
+      />
+      <div className="text-center py-6 gap-2">
+        <h2 className="text-lg font-semibold">Review transaction</h2>
         <p className="text-sm text-muted-foreground">
-          Confirm storage registration for your campaign data
+          Please review details to confirm your transaction to complete publish
+          campaign.
         </p>
       </div>
 
@@ -73,20 +79,17 @@ export const ReviewWalrusTransaction = ({
       </div>
 
       {/* TODO: Action buttons */}
-      <div className="flex gap-2 justify-end">
-        <button
+      <div className="flex gap-4 justify-end w-full">
+        <Button
           onClick={onCancel}
-          className="px-4 py-2 rounded-md border"
+          className="w-full bg-black-50 text-black-500 hover:bg-white-600"
         >
           Cancel
-        </button>
-        <button
-          onClick={onConfirm}
-          className="px-4 py-2 rounded-md bg-primary text-primary-foreground"
-        >
-          Proceed
-        </button>
+        </Button>
+        <Button onClick={onConfirm} className="w-full">
+          Proceed & Sign
+        </Button>
       </div>
     </div>
-  )
-}
+  );
+};
