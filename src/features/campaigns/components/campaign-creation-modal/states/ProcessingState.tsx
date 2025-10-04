@@ -1,0 +1,62 @@
+/**
+ * Processing State Component (Reusable)
+ *
+ * Shown when:
+ * - WizardStep.REGISTERING (signing storage registration transaction)
+ * - WizardStep.CERTIFYING (signing certification transaction)
+ * - WizardStep.EXECUTING (signing campaign creation transaction)
+ *
+ * Purpose:
+ * - Show loading spinner while transaction is being signed/processed
+ * - Display contextual message about what's happening
+ * - Provide feedback that the wallet popup is expected
+ *
+ * UI Elements to implement:
+ * - Loading spinner/animation
+ * - Main message (from props)
+ * - Optional description/subtitle (from props)
+ * - Visual indication that user should check their wallet
+ *
+ * Design considerations:
+ * - Make it clear the process is ongoing
+ * - Calm and reassuring tone
+ * - No action buttons (user is waiting for transaction)
+ */
+
+export interface ProcessingStateProps {
+  /** Main message to display (e.g., "Signing transaction...") */
+  message: string
+
+  /** Optional additional description/context */
+  description?: string
+}
+
+export const ProcessingState = ({
+  message,
+  description,
+}: ProcessingStateProps) => {
+  // TODO: Implement your UI here
+
+  return (
+    <div className="space-y-6 py-8">
+      {/* TODO: Add loading spinner/animation */}
+      <div className="flex justify-center">
+        <div className="size-12 border-4 border-primary border-t-transparent rounded-full animate-spin" />
+        {/* Replace with your preferred spinner/loading animation */}
+      </div>
+
+      {/* TODO: Display messages */}
+      <div className="text-center space-y-2">
+        <h2 className="text-lg font-semibold">{message}</h2>
+        {description && (
+          <p className="text-sm text-muted-foreground">{description}</p>
+        )}
+      </div>
+
+      {/* TODO: Optional wallet reminder */}
+      <div className="text-center text-sm text-muted-foreground">
+        {/* You can add a wallet icon and reminder here */}
+      </div>
+    </div>
+  )
+}

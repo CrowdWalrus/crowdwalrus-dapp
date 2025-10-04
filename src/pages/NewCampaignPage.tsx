@@ -1,12 +1,21 @@
 import { Link } from "react-router-dom";
 import { useForm, FormProvider } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { ROUTES } from "@/shared/config/routes";
-import { useCurrentAccount, useSignAndExecuteTransaction, useSuiClient } from "@mysten/dapp-kit";
+import {
+  useCurrentAccount,
+  useSignAndExecuteTransaction,
+  useSuiClient,
+} from "@mysten/dapp-kit";
 import { DEFAULT_NETWORK } from "@/shared/config/networkConfig";
 import { useEstimateStorageCost } from "@/features/campaigns/hooks/useCreateCampaign";
-import { useWalrusUpload, type WalrusFlowState, type RegisterResult, type CertifyResult } from "@/features/campaigns/hooks/useWalrusUpload";
+import {
+  useWalrusUpload,
+  type WalrusFlowState,
+  type RegisterResult,
+  type CertifyResult,
+} from "@/features/campaigns/hooks/useWalrusUpload";
 import { createCampaignTransaction } from "@/features/campaigns/helpers/createCampaignTransaction";
 import { transformNewCampaignFormData } from "@/features/campaigns/utils/transformFormData";
 import { extractCampaignIdFromEffects } from "@/services/campaign-transaction";
@@ -17,6 +26,10 @@ import {
   type CreateCampaignResult,
   type CampaignFormData,
 } from "@/features/campaigns/types/campaign";
+import {
+  CampaignCreationModal,
+  useCampaignCreationModal,
+} from "@/features/campaigns/components/campaign-creation-modal";
 import {
   Breadcrumb,
   BreadcrumbList,
@@ -86,31 +99,44 @@ export default function NewCampaignPage() {
   const currentAccount = useCurrentAccount();
   const suiClient = useSuiClient();
 
+  // Modal state management
+  const modal = useCampaignCreationModal();
+
   // Wizard state management
   const [wizardStep, setWizardStep] = useState<WizardStep>(WizardStep.FORM);
   const [formData, setFormData] = useState<CampaignFormData | null>(null);
   const [flowState, setFlowState] = useState<WalrusFlowState | null>(null);
-  const [registerResult, setRegisterResult] = useState<RegisterResult | null>(null);
+  const [registerResult, setRegisterResult] = useState<RegisterResult | null>(
+    null,
+  );
   const [uploadCompleted, setUploadCompleted] = useState(false);
-  const [certifyResult, setCertifyResult] = useState<CertifyResult | null>(null);
-  const [campaignResult, setCampaignResult] = useState<CreateCampaignResult | null>(null);
+  const [certifyResult, setCertifyResult] = useState<CertifyResult | null>(
+    null,
+  );
+  const [campaignResult, setCampaignResult] =
+    useState<CreateCampaignResult | null>(null);
   const [error, setError] = useState<Error | null>(null);
 
   // Hooks for each step
-  const { mutate: estimateCost, data: costEstimate, isPending: isEstimating } = useEstimateStorageCost();
+  const {
+    mutate: estimateCost,
+    data: costEstimate,
+    isPending: isEstimating,
+  } = useEstimateStorageCost();
   const walrus = useWalrusUpload();
-  const { mutateAsync: signAndExecute, isPending: isExecuting } = useSignAndExecuteTransaction({
-    execute: async ({ bytes, signature }) =>
-      await suiClient.executeTransactionBlock({
-        transactionBlock: bytes,
-        signature,
-        options: {
-          showEffects: true,
-          showObjectChanges: true,
-          showRawEffects: true,
-        },
-      }),
-  });
+  const { mutateAsync: signAndExecute, isPending: isExecuting } =
+    useSignAndExecuteTransaction({
+      execute: async ({ bytes, signature }) =>
+        await suiClient.executeTransactionBlock({
+          transactionBlock: bytes,
+          signature,
+          options: {
+            showEffects: true,
+            showObjectChanges: true,
+            showRawEffects: true,
+          },
+        }),
+    });
 
   const form = useForm<NewCampaignFormData>({
     resolver: zodResolver(newCampaignSchema),
@@ -118,8 +144,22 @@ export default function NewCampaignPage() {
   });
 
   // Derive loading state
-  const isPending = isEstimating || walrus.prepare.isPending || walrus.register.isPending ||
-                    walrus.upload.isPending || walrus.certify.isPending || isExecuting;
+  const isPending =
+    isEstimating ||
+    walrus.prepare.isPending ||
+    walrus.register.isPending ||
+    walrus.upload.isPending ||
+    walrus.certify.isPending ||
+    isExecuting;
+
+  // Sync wizard step with modal - open modal for non-FORM steps
+  useEffect(() => {
+    if (wizardStep !== WizardStep.FORM) {
+      modal.openModal(wizardStep);
+    } else {
+      modal.closeModal();
+    }
+  }, [wizardStep]);
 
   // Step 1: Form submission - validate and prepare data
   const onSubmit = (data: NewCampaignFormData) => {
@@ -152,7 +192,7 @@ export default function NewCampaignPage() {
               setError(err);
               setWizardStep(WizardStep.ERROR);
             },
-          }
+          },
         );
       },
       onError: (err) => {
@@ -176,7 +216,10 @@ export default function NewCampaignPage() {
 
         // Automatically start upload after registration
         walrus.upload.mutate(
-          { flowState: result.flowState, registerDigest: result.transactionDigest },
+          {
+            flowState: result.flowState,
+            registerDigest: result.transactionDigest,
+          },
           {
             onSuccess: () => {
               setUploadCompleted(true);
@@ -186,7 +229,7 @@ export default function NewCampaignPage() {
               setError(err);
               setWizardStep(WizardStep.ERROR);
             },
-          }
+          },
         );
       },
       onError: (err) => {
@@ -204,7 +247,10 @@ export default function NewCampaignPage() {
     setError(null);
 
     walrus.upload.mutate(
-      { flowState: registerResult.flowState, registerDigest: registerResult.transactionDigest },
+      {
+        flowState: registerResult.flowState,
+        registerDigest: registerResult.transactionDigest,
+      },
       {
         onSuccess: () => {
           setUploadCompleted(true);
@@ -214,7 +260,7 @@ export default function NewCampaignPage() {
           setError(err);
           setWizardStep(WizardStep.ERROR);
         },
-      }
+      },
     );
   };
 
@@ -248,7 +294,7 @@ export default function NewCampaignPage() {
       const transaction = createCampaignTransaction(
         formData,
         certifyResult.blobId,
-        DEFAULT_NETWORK
+        DEFAULT_NETWORK,
       );
 
       const result = await signAndExecute({
@@ -262,15 +308,28 @@ export default function NewCampaignPage() {
 
       // Extract campaign ID
       const config = getContractConfig(DEFAULT_NETWORK);
-      const campaignId = extractCampaignIdFromEffects(result, config.contracts.packageId);
+      const campaignId = extractCampaignIdFromEffects(
+        result,
+        config.contracts.packageId,
+      );
 
       if (!campaignId) {
-        throw new Error("Failed to extract campaign ID from transaction effects");
+        throw new Error(
+          "Failed to extract campaign ID from transaction effects",
+        );
       }
 
       // Build result with Walrus URLs
-      const walrusDescriptionUrl = getWalrusUrl(certifyResult.blobId, DEFAULT_NETWORK, "description.html");
-      const walrusCoverImageUrl = getWalrusUrl(certifyResult.blobId, DEFAULT_NETWORK, "cover.jpg");
+      const walrusDescriptionUrl = getWalrusUrl(
+        certifyResult.blobId,
+        DEFAULT_NETWORK,
+        "description.html",
+      );
+      const walrusCoverImageUrl = getWalrusUrl(
+        certifyResult.blobId,
+        DEFAULT_NETWORK,
+        "cover.jpg",
+      );
 
       const finalResult: CreateCampaignResult = {
         campaignId,
@@ -367,8 +426,65 @@ export default function NewCampaignPage() {
     ? `${costEstimate.subsidizedTotalCost.toFixed(6)} WAL`
     : "Calculate first";
 
+  // Unified retry handler for the modal
+  const handleRetry = () => {
+    setError(null);
+    // Determine which step to retry based on what data we have
+    if (certifyResult) {
+      // Error was during campaign creation
+      setWizardStep(WizardStep.CONFIRM_TX);
+    } else if (uploadCompleted) {
+      // Upload completed, error was during certification
+      setWizardStep(WizardStep.CONFIRM_CERTIFY);
+    } else if (registerResult) {
+      // Registration paid but upload failed - retry upload
+      handleRetryUpload();
+    } else if (flowState) {
+      // Error was during registration - retry registration
+      setWizardStep(WizardStep.CONFIRM_REGISTER);
+    } else {
+      // Error was during preparation, start over
+      setWizardStep(WizardStep.FORM);
+    }
+  };
+
+  // Close modal handler
+  const handleCloseModal = () => {
+    // Only close if we're in SUCCESS or ERROR state
+    if (wizardStep === WizardStep.SUCCESS) {
+      modal.closeModal();
+      // Optionally reset to form
+      setWizardStep(WizardStep.FORM);
+    } else if (wizardStep === WizardStep.ERROR) {
+      modal.closeModal();
+      setWizardStep(WizardStep.FORM);
+      // Reset all state
+      setFormData(null);
+      setFlowState(null);
+      setRegisterResult(null);
+      setUploadCompleted(false);
+      setCertifyResult(null);
+      setError(null);
+    }
+  };
+
   return (
     <FormProvider {...form}>
+      {/* Campaign Creation Modal */}
+      <CampaignCreationModal
+        isOpen={modal.isOpen}
+        currentStep={modal.currentStep}
+        onClose={handleCloseModal}
+        onConfirmRegister={handleConfirmRegister}
+        onConfirmCertify={handleConfirmCertify}
+        onConfirmTransaction={handleConfirmTransaction}
+        onRetry={handleRetry}
+        estimatedCost={costEstimate}
+        uploadProgress={0} // TODO: Add real upload progress tracking
+        campaignResult={campaignResult}
+        error={error?.message}
+      />
+
       <div className="py-8">
         <div className="container">
           {/* Breadcrumb */}
@@ -407,7 +523,9 @@ export default function NewCampaignPage() {
                   {wizardStep !== WizardStep.FORM && (
                     <Alert className="border-blue-500">
                       <AlertDescription>
-                        <p className="font-semibold">Wizard Step: {wizardStep}</p>
+                        <p className="font-semibold">
+                          Wizard Step: {wizardStep}
+                        </p>
                         {isPending && (
                           <p className="text-sm text-muted-foreground">
                             Processing...
@@ -421,15 +539,27 @@ export default function NewCampaignPage() {
                   {wizardStep === WizardStep.CONFIRM_REGISTER && (
                     <Alert className="border-green-500">
                       <AlertDescription>
-                        <p className="font-semibold mb-4">Ready to Register Storage</p>
+                        <p className="font-semibold mb-4">
+                          Ready to Register Storage
+                        </p>
                         <p className="text-sm text-muted-foreground mb-4">
-                          This will cost WAL tokens to register storage on Walrus
+                          This will cost WAL tokens to register storage on
+                          Walrus
                         </p>
                         <div className="flex gap-2">
-                          <Button onClick={handleConfirmRegister} size="sm" disabled={isPending}>
+                          <Button
+                            onClick={handleConfirmRegister}
+                            size="sm"
+                            disabled={isPending}
+                          >
                             {isPending ? "Processing..." : "Confirm Register"}
                           </Button>
-                          <Button onClick={handleCancelRegister} size="sm" variant="outline" disabled={isPending}>
+                          <Button
+                            onClick={handleCancelRegister}
+                            size="sm"
+                            variant="outline"
+                            disabled={isPending}
+                          >
                             Cancel
                           </Button>
                         </div>
@@ -440,15 +570,26 @@ export default function NewCampaignPage() {
                   {wizardStep === WizardStep.CONFIRM_CERTIFY && (
                     <Alert className="border-green-500">
                       <AlertDescription>
-                        <p className="font-semibold mb-4">Ready to Certify Blob</p>
+                        <p className="font-semibold mb-4">
+                          Ready to Certify Blob
+                        </p>
                         <p className="text-sm text-muted-foreground mb-4">
                           Upload complete. Now certify the blob on blockchain.
                         </p>
                         <div className="flex gap-2">
-                          <Button onClick={handleConfirmCertify} size="sm" disabled={isPending}>
+                          <Button
+                            onClick={handleConfirmCertify}
+                            size="sm"
+                            disabled={isPending}
+                          >
                             {isPending ? "Processing..." : "Confirm Certify"}
                           </Button>
-                          <Button onClick={handleCancelCertify} size="sm" variant="outline" disabled={isPending}>
+                          <Button
+                            onClick={handleCancelCertify}
+                            size="sm"
+                            variant="outline"
+                            disabled={isPending}
+                          >
                             Cancel
                           </Button>
                         </div>
@@ -459,15 +600,27 @@ export default function NewCampaignPage() {
                   {wizardStep === WizardStep.CONFIRM_TX && (
                     <Alert className="border-green-500">
                       <AlertDescription>
-                        <p className="font-semibold mb-4">Ready to Create Campaign</p>
+                        <p className="font-semibold mb-4">
+                          Ready to Create Campaign
+                        </p>
                         <p className="text-sm text-muted-foreground mb-4">
-                          Files uploaded and certified. Create campaign on Sui blockchain.
+                          Files uploaded and certified. Create campaign on Sui
+                          blockchain.
                         </p>
                         <div className="flex gap-2">
-                          <Button onClick={handleConfirmTransaction} size="sm" disabled={isPending}>
+                          <Button
+                            onClick={handleConfirmTransaction}
+                            size="sm"
+                            disabled={isPending}
+                          >
                             {isPending ? "Creating..." : "Create Campaign"}
                           </Button>
-                          <Button onClick={handleCancelTransaction} size="sm" variant="outline" disabled={isPending}>
+                          <Button
+                            onClick={handleCancelTransaction}
+                            size="sm"
+                            variant="outline"
+                            disabled={isPending}
+                          >
                             Cancel
                           </Button>
                         </div>
@@ -717,7 +870,9 @@ export default function NewCampaignPage() {
                         type="submit"
                         size="lg"
                         className="min-w-[168px]"
-                        disabled={isPending || !currentAccount || !certifyResult}
+                        disabled={
+                          isPending || !currentAccount || !certifyResult
+                        }
                       >
                         {isPending ? "Creating..." : "Register Campaign"}
                       </Button>
