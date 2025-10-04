@@ -82,7 +82,7 @@ export const ReviewWalrusTransaction = ({
       <div className="flex gap-4 justify-end w-full">
         <Button
           onClick={onCancel}
-          className="w-full bg-black-50 text-black-500 hover:bg-white-600"
+          className="w-full bg-black-50 text-black-500 hover:bg-white-600 border-none"
         >
           Cancel
         </Button>
