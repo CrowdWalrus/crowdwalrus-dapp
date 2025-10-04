@@ -60,11 +60,20 @@ export interface CampaignCreationModalProps {
   /** Called when user confirms storage registration (pays WAL) */
   onConfirmRegister?: () => void
 
+  /** Called when user cancels storage registration */
+  onCancelRegister?: () => void
+
   /** Called when user confirms blob certification */
   onConfirmCertify?: () => void
 
+  /** Called when user cancels blob certification */
+  onCancelCertify?: () => void
+
   /** Called when user confirms campaign creation transaction */
   onConfirmTransaction?: () => void
+
+  /** Called when user cancels campaign creation transaction */
+  onCancelTransaction?: () => void
 
   /** Called when user clicks retry after an error */
   onRetry?: () => void
@@ -91,8 +100,11 @@ export const CampaignCreationModal = ({
   currentStep,
   onClose,
   onConfirmRegister,
+  onCancelRegister,
   onConfirmCertify,
+  onCancelCertify,
   onConfirmTransaction,
+  onCancelTransaction,
   onRetry,
   estimatedCost,
   uploadProgress = 0,
@@ -112,7 +124,7 @@ export const CampaignCreationModal = ({
           <RegisterConfirmState
             estimatedCost={estimatedCost}
             onConfirm={onConfirmRegister}
-            onCancel={onClose}
+            onCancel={onCancelRegister}
           />
         )
 
@@ -138,7 +150,7 @@ export const CampaignCreationModal = ({
         return (
           <CertifyConfirmState
             onConfirm={onConfirmCertify}
-            onCancel={onClose}
+            onCancel={onCancelCertify}
           />
         )
 
@@ -155,7 +167,7 @@ export const CampaignCreationModal = ({
         return (
           <TransactionConfirmState
             onConfirm={onConfirmTransaction}
-            onCancel={onClose}
+            onCancel={onCancelTransaction}
           />
         )
 

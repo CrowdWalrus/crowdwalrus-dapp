@@ -476,8 +476,11 @@ export default function NewCampaignPage() {
         currentStep={modal.currentStep}
         onClose={handleCloseModal}
         onConfirmRegister={handleConfirmRegister}
+        onCancelRegister={handleCancelRegister}
         onConfirmCertify={handleConfirmCertify}
+        onCancelCertify={handleCancelCertify}
         onConfirmTransaction={handleConfirmTransaction}
+        onCancelTransaction={handleCancelTransaction}
         onRetry={handleRetry}
         estimatedCost={costEstimate}
         uploadProgress={0} // TODO: Add real upload progress tracking
