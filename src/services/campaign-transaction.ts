@@ -37,8 +37,11 @@ export function buildCreateCampaignTransaction(
   const startDate = Math.floor(formData.start_date.getTime() / 1000);
   const endDate = Math.floor(formData.end_date.getTime() / 1000);
 
-  // Append .crowdwalrus-test.sui to subdomain for testing
-  const fullSubdomain = `${formData.subdomain_name}.crowdwalrus-test.sui`;
+  const domain = config.campaignDomain;
+  // Append configured SuiNS domain when user only provides the label
+  const fullSubdomain = formData.subdomain_name.endsWith(`.${domain}`)
+    ? formData.subdomain_name
+    : `${formData.subdomain_name}.${domain}`;
 
   console.log("\n=== BUILDING SUI TRANSACTION ===");
   console.log("Network:", network);
@@ -80,7 +83,7 @@ export function buildCreateCampaignTransaction(
       // Short description
       tx.pure.string(formData.short_description),
 
-      // Subdomain name (with .crowdwalrus-test.sui suffix)
+      // Subdomain name (with network-specific suffix)
       tx.pure.string(fullSubdomain),
 
       // Metadata keys (vector<String>)

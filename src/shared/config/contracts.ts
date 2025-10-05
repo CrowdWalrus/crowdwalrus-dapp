@@ -33,6 +33,7 @@ export interface WalrusConfig {
 export interface NetworkContractConfig {
   contracts: ContractAddresses;
   walrus: WalrusConfig;
+  campaignDomain: string;
 }
 
 // ============================================================================
@@ -63,6 +64,7 @@ const DEVNET_CONFIG: NetworkContractConfig = {
     // Testnet doesn't have a subsidy object - subsidies are implicit in pricing
     subsidyObjectId: "",
   },
+  campaignDomain: "crowdwalrus-test.sui",
 };
 
 // ============================================================================
@@ -96,6 +98,7 @@ const TESTNET_CONFIG: NetworkContractConfig = {
     // Testnet doesn't have a subsidy object - subsidies are implicit in pricing
     subsidyObjectId: "",
   },
+  campaignDomain: "crowdwalrus-test.sui",
 };
 
 // ============================================================================
@@ -125,6 +128,7 @@ const MAINNET_CONFIG: NetworkContractConfig = {
     subsidyObjectId:
       "0xb606eb177899edc2130c93bf65985af7ec959a2755dc126c953755e59324209e",
   },
+  campaignDomain: "crowdwalrus.sui",
 };
 
 // ============================================================================
