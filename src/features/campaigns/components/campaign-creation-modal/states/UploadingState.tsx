@@ -23,52 +23,42 @@
 
 export interface UploadingStateProps {
   /** Upload progress percentage (0-100) */
-  progress: number
+  progress: number;
 
   /** Message to display during upload */
-  message?: string
+  message?: string;
 }
 
 export const UploadingState = ({
   progress,
-  message = 'Uploading campaign data to Walrus...',
+  message = "Uploading campaign data to Walrus...",
 }: UploadingStateProps) => {
-  // TODO: Implement your UI here
-
   return (
-    <div className="space-y-6 py-8">
+    <div className="py-6">
       {/* TODO: Add upload icon or animation */}
-      <div className="flex justify-center">
-        {/* You can add an upload icon, animation, or illustration here */}
-        <div className="text-4xl">📤</div>
-        {/* Replace with proper icon component */}
+      <div className="flex flex-col gap-6 items-center justify-center w-full">
+        <img
+          src="/assets/images/modal-icons/modal-upload.png"
+          alt="Upload"
+          className="w-30 h-30"
+        />
+
+        <div className="space-y-2 w-full">
+          <div className="w-full bg-muted rounded-full h-2">
+            <div
+              className="bg-primary h-2 rounded-full transition-all duration-300"
+              style={{ width: `${progress}%` }}
+            />
+          </div>
+        </div>
       </div>
 
-      {/* TODO: Display upload message */}
-      <div className="text-center space-y-2">
+      <div className="text-center flex flex-col gap-2 pt-6">
         <h2 className="text-lg font-semibold">{message}</h2>
         <p className="text-sm text-muted-foreground">
-          Please wait while your campaign data is being stored
+          Please wait while your files are being uploaded.
         </p>
       </div>
-
-      {/* TODO: Progress bar */}
-      <div className="space-y-2">
-        <div className="w-full bg-muted rounded-full h-2">
-          <div
-            className="bg-primary h-2 rounded-full transition-all duration-300"
-            style={{ width: `${progress}%` }}
-          />
-        </div>
-        <div className="text-center text-sm text-muted-foreground">
-          {progress.toFixed(0)}% complete
-        </div>
-      </div>
-
-      {/* TODO: Optional additional upload details */}
-      {/* - File names being uploaded */}
-      {/* - Upload speed */}
-      {/* - Time remaining estimate */}
     </div>
-  )
-}
+  );
+};

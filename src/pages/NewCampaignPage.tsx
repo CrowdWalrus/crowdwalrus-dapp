@@ -27,10 +27,7 @@ import { extractCampaignIdFromEffects } from "@/services/campaign-transaction";
 import { getContractConfig } from "@/shared/config/contracts";
 import { getWalrusUrl } from "@/services/walrus";
 import { useSubnameAvailability } from "@/features/campaigns/hooks/useSubnameAvailability";
-import {
-  formatSubdomain,
-  SUBDOMAIN_PATTERN,
-} from "@/shared/utils/subdomain";
+import { formatSubdomain, SUBDOMAIN_PATTERN } from "@/shared/utils/subdomain";
 import { cn } from "@/shared/lib/utils";
 import {
   WizardStep,
@@ -123,7 +120,7 @@ export default function NewCampaignPage() {
   // Wizard state management
   // TODO: TEMP - Change back to WizardStep.FORM after UI work
   const [wizardStep, setWizardStep] = useState<WizardStep>(
-    WizardStep.CONFIRM_REGISTER,
+    WizardStep.UPLOADING,
   );
   const [formData, setFormData] = useState<CampaignFormData | null>(null);
   const [flowState, setFlowState] = useState<WalrusFlowState | null>(null);
@@ -408,32 +405,33 @@ export default function NewCampaignPage() {
     estimateCost(
       { formData: campaignFormData, epochs: selectedEpochs },
       {
-      onSuccess: () => {
-        // Prepare Walrus upload
-        walrus.prepare.mutate(
-          {
-            formData: campaignFormData,
-            network: DEFAULT_NETWORK,
-            storageEpochs: selectedEpochs,
-          },
-          {
-            onSuccess: (flow) => {
-              setFlowState(flow);
-              // Only now open the modal with the confirm register step
-              setWizardStep(WizardStep.CONFIRM_REGISTER);
+        onSuccess: () => {
+          // Prepare Walrus upload
+          walrus.prepare.mutate(
+            {
+              formData: campaignFormData,
+              network: DEFAULT_NETWORK,
+              storageEpochs: selectedEpochs,
             },
-            onError: (err) => {
-              setError(err);
-              setWizardStep(WizardStep.ERROR);
+            {
+              onSuccess: (flow) => {
+                setFlowState(flow);
+                // Only now open the modal with the confirm register step
+                setWizardStep(WizardStep.CONFIRM_REGISTER);
+              },
+              onError: (err) => {
+                setError(err);
+                setWizardStep(WizardStep.ERROR);
+              },
             },
-          },
-        );
+          );
+        },
+        onError: (err) => {
+          setError(err);
+          setWizardStep(WizardStep.ERROR);
+        },
       },
-      onError: (err) => {
-        setError(err);
-        setWizardStep(WizardStep.ERROR);
-      },
-    });
+    );
   };
 
   // Handler for Register Storage button - validates form first

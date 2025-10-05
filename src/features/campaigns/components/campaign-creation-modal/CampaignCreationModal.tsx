@@ -146,7 +146,7 @@ export const CampaignCreationModal = ({
         return (
           <UploadingState
             progress={uploadProgress}
-            message="Uploading campaign data to Walrus..."
+            message="Off-chain Upload"
           />
         );
 
