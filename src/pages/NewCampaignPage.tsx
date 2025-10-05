@@ -26,6 +26,12 @@ import { transformNewCampaignFormData } from "@/features/campaigns/utils/transfo
 import { extractCampaignIdFromEffects } from "@/services/campaign-transaction";
 import { getContractConfig } from "@/shared/config/contracts";
 import { getWalrusUrl } from "@/services/walrus";
+import { useSubnameAvailability } from "@/features/campaigns/hooks/useSubnameAvailability";
+import {
+  formatSubdomain,
+  SUBDOMAIN_PATTERN,
+} from "@/shared/utils/subdomain";
+import { cn } from "@/shared/lib/utils";
 import {
   WizardStep,
   type CreateCampaignResult,
@@ -170,6 +176,169 @@ export default function NewCampaignPage() {
     mode: "onChange", // Revalidate on every change after first validation
     defaultValues: TEST_DEFAULTS, // Change to empty object {} when done testing
   });
+
+  const subdomainValue = useWatch({ control: form.control, name: "subdomain" });
+  const rawSubdomain = (subdomainValue ?? "").trim();
+  const debouncedSubdomain = useDebounce(rawSubdomain, 400);
+  const hasRawSubdomain = rawSubdomain.length > 0;
+  const hasDebouncedSubdomain = debouncedSubdomain.length > 0;
+  const isSubdomainPatternValid =
+    hasDebouncedSubdomain && SUBDOMAIN_PATTERN.test(debouncedSubdomain);
+
+  const {
+    status: subnameStatus,
+    fullName: resolvedSubdomainFull,
+    campaignDomain,
+    isChecking: isCheckingSubname,
+    error: subnameError,
+  } = useSubnameAvailability(
+    isSubdomainPatternValid ? debouncedSubdomain : null,
+  );
+  const availabilityErrorMessage = subnameError?.message ?? "";
+
+  const debouncedFullSubdomain =
+    campaignDomain && hasDebouncedSubdomain
+      ? formatSubdomain(debouncedSubdomain, campaignDomain)
+      : "";
+
+  const availabilityFullSubdomain =
+    resolvedSubdomainFull || debouncedFullSubdomain;
+
+  const rawFullSubdomain =
+    campaignDomain && hasRawSubdomain && SUBDOMAIN_PATTERN.test(rawSubdomain)
+      ? formatSubdomain(rawSubdomain, campaignDomain)
+      : "";
+
+  const previewFullSubdomain =
+    availabilityFullSubdomain ||
+    debouncedFullSubdomain ||
+    rawFullSubdomain ||
+    (campaignDomain ? `yourcampaign.${campaignDomain}` : "");
+
+  const availabilityDisplayName =
+    availabilityFullSubdomain ||
+    debouncedFullSubdomain ||
+    rawFullSubdomain ||
+    rawSubdomain ||
+    "this sub-name";
+
+  const includesCampaignSuffix =
+    !!campaignDomain && rawSubdomain.endsWith(`.${campaignDomain}`);
+  const containsDot = rawSubdomain.includes(".");
+
+  const subdomainFieldState = form.getFieldState("subdomain");
+  const fieldErrorMessage =
+    (subdomainFieldState.error?.message as string | undefined) ?? "";
+  const isManualFieldError = subdomainFieldState.error?.type === "manual";
+
+  useEffect(() => {
+    const isManualError = isManualFieldError;
+
+    if (!isSubdomainPatternValid) {
+      if (isManualError) {
+        form.clearErrors("subdomain");
+      }
+      return;
+    }
+
+    if (subnameStatus === "checking") {
+      if (isManualError) {
+        form.clearErrors("subdomain");
+      }
+      return;
+    }
+
+    if (subnameStatus === "taken") {
+      const message = `${availabilityDisplayName} is already registered. Please choose another sub-name.`;
+      if (fieldErrorMessage !== message) {
+        form.setError("subdomain", { type: "manual", message });
+      }
+      return;
+    }
+
+    if (subnameStatus === "error") {
+      const message = `We couldn't verify this sub-name right now. Please try again${availabilityErrorMessage ? ` (${availabilityErrorMessage})` : ""}.`;
+      if (fieldErrorMessage !== message) {
+        form.setError("subdomain", { type: "manual", message });
+      }
+      return;
+    }
+
+    if (isManualError) {
+      form.clearErrors("subdomain");
+    }
+  }, [
+    form,
+    isSubdomainPatternValid,
+    subnameStatus,
+    availabilityDisplayName,
+    availabilityErrorMessage,
+    fieldErrorMessage,
+    isManualFieldError,
+  ]);
+
+  const helperVariant =
+    !campaignDomain || !hasRawSubdomain
+      ? "default"
+      : includesCampaignSuffix ||
+          (containsDot && !includesCampaignSuffix) ||
+          subnameStatus === "taken" ||
+          subnameStatus === "error"
+        ? "error"
+        : subnameStatus === "available"
+          ? "success"
+          : "default";
+
+  const subdomainHelperClass = cn(
+    "text-sm pt-2",
+    helperVariant === "error"
+      ? "text-destructive"
+      : helperVariant === "success"
+        ? "text-emerald-500"
+        : "text-muted-foreground",
+  );
+
+  const subdomainHelperText = (() => {
+    if (fieldErrorMessage) {
+      return "";
+    }
+
+    if (!campaignDomain) {
+      return "Loading network configuration…";
+    }
+
+    if (!hasRawSubdomain) {
+      return `Your campaign URL will look like yourcampaign.${campaignDomain}`;
+    }
+
+    if (includesCampaignSuffix) {
+      return `You only need the part before .${campaignDomain}. We'll add it automatically.`;
+    }
+
+    if (containsDot && !includesCampaignSuffix) {
+      return "Skip the domain suffix; just choose a unique label.";
+    }
+
+    if (isCheckingSubname) {
+      return `Checking availability for ${availabilityDisplayName}…`;
+    }
+
+    if (subnameStatus === "taken") {
+      return `${availabilityDisplayName} is already registered.`;
+    }
+
+    if (subnameStatus === "available") {
+      return `${availabilityDisplayName} is available.`;
+    }
+
+    if (subnameStatus === "error") {
+      return `We couldn't verify availability for ${availabilityDisplayName}. Please try again${availabilityErrorMessage ? ` (${availabilityErrorMessage})` : ""}.`;
+    }
+
+    return `Your campaign URL will be ${previewFullSubdomain}.`;
+  })();
+
+  const shouldShowHelperText = subdomainHelperText.length > 0;
 
   // Watch form values for auto-estimation
   const coverImage = useWatch({ control: form.control, name: "coverImage" });
@@ -852,9 +1021,11 @@ export default function NewCampaignPage() {
                             <FormControl>
                               <Input placeholder="yourcampaign" {...field} />
                             </FormControl>
-                            <p className="text-sm text-muted-foreground pt-2">
-                              yourcampaign.crowdwalrus.site
-                            </p>
+                            {shouldShowHelperText ? (
+                              <p className={subdomainHelperClass}>
+                                {subdomainHelperText}
+                              </p>
+                            ) : null}
                             <FormMessage />
                           </FormItem>
                         )}

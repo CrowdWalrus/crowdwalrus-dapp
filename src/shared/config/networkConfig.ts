@@ -1,6 +1,8 @@
 import { getFullnodeUrl } from "@mysten/sui/client";
 import { createNetworkConfig } from "@mysten/dapp-kit";
 
+import contractsConfig from "./contracts";
+
 /**
  * Default network for the application
  * Change this single value to switch between testnet and mainnet
@@ -76,6 +78,7 @@ const { networkConfig, useNetworkVariable, useNetworkVariables } =
         walCoinType: WAL_COIN_TYPE.devnet,
         epochConfig: WALRUS_EPOCH_CONFIG.devnet,
         storageDurationOptions: STORAGE_DURATION_OPTIONS.devnet,
+        campaignDomain: contractsConfig.devnet.campaignDomain,
       },
     },
     testnet: {
@@ -84,6 +87,7 @@ const { networkConfig, useNetworkVariable, useNetworkVariables } =
         walCoinType: WAL_COIN_TYPE.testnet,
         epochConfig: WALRUS_EPOCH_CONFIG.testnet,
         storageDurationOptions: STORAGE_DURATION_OPTIONS.testnet,
+        campaignDomain: contractsConfig.testnet.campaignDomain,
       },
     },
     mainnet: {
@@ -92,6 +96,7 @@ const { networkConfig, useNetworkVariable, useNetworkVariables } =
         walCoinType: WAL_COIN_TYPE.mainnet,
         epochConfig: WALRUS_EPOCH_CONFIG.mainnet,
         storageDurationOptions: STORAGE_DURATION_OPTIONS.mainnet,
+        campaignDomain: contractsConfig.mainnet.campaignDomain,
       },
     },
   });

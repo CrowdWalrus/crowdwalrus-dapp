@@ -1,5 +1,7 @@
 import { z } from "zod";
 
+import { SUBDOMAIN_PATTERN } from "@/shared/utils/subdomain";
+
 export const socialSchema = z.object({
   platform: z.string(),
   url: z.union([z.string().url("Please enter a valid URL"), z.literal("")]),
@@ -19,8 +21,8 @@ export const newCampaignSchema = z
       .string()
       .min(1, "Sub-name is required")
       .regex(
-        /^[a-z0-9-]+$/,
-        "Sub-name can only contain lowercase letters, numbers, and hyphens",
+        SUBDOMAIN_PATTERN,
+        "Use lowercase letters, numbers, and interior hyphens only (no leading/trailing hyphen or dots).",
       ),
     coverImage: z
       .instanceof(File, { message: "Cover image is required" })
