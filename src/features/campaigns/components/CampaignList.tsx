@@ -18,6 +18,7 @@ import { Button } from "@/shared/components/ui/button";
 import { useMyCampaigns, type CampaignData } from "@/features/campaigns/hooks/useMyCampaigns";
 import { getContractConfig } from "@/shared/config/contracts";
 import { DEFAULT_NETWORK } from "@/shared/config/networkConfig";
+import { formatSubdomain } from "@/shared/utils/subdomain";
 
 interface CampaignCardProps {
   campaign: CampaignData;
@@ -116,10 +117,10 @@ function CampaignCard({ campaign, network }: CampaignCardProps) {
   };
 
   const { campaignDomain } = getContractConfig(network);
-  const subdomainSuffix = `.${campaignDomain}`;
-  const fullSubdomain = campaign.subdomainName.endsWith(".sui")
-    ? campaign.subdomainName
-    : `${campaign.subdomainName}${subdomainSuffix}`;
+  const fullSubdomain = formatSubdomain(
+    campaign.subdomainName,
+    campaignDomain,
+  );
 
   return (
     <Card className="overflow-hidden">

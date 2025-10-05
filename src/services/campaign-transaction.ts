@@ -9,6 +9,7 @@ import { Transaction } from "@mysten/sui/transactions";
 import type { CampaignFormData, CampaignMetadata } from "@/features/campaigns/types/campaign";
 import { getContractConfig, CLOCK_OBJECT_ID } from "@/shared/config/contracts";
 import { WALRUS_EPOCH_CONFIG } from "@/shared/config/networkConfig";
+import { formatSubdomain } from "@/shared/utils/subdomain";
 
 /**
  * Build a transaction to create a new campaign on Sui
@@ -37,11 +38,11 @@ export function buildCreateCampaignTransaction(
   const startDate = Math.floor(formData.start_date.getTime() / 1000);
   const endDate = Math.floor(formData.end_date.getTime() / 1000);
 
-  const domain = config.campaignDomain;
   // Append configured SuiNS domain when user only provides the label
-  const fullSubdomain = formData.subdomain_name.endsWith(`.${domain}`)
-    ? formData.subdomain_name
-    : `${formData.subdomain_name}.${domain}`;
+  const fullSubdomain = formatSubdomain(
+    formData.subdomain_name,
+    config.campaignDomain,
+  );
 
   console.log("\n=== BUILDING SUI TRANSACTION ===");
   console.log("Network:", network);
