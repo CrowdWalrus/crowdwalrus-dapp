@@ -128,13 +128,17 @@ export const CampaignCreationModal = ({
     }
 
     setFakeUploadProgress(0);
-    const now = () => (typeof performance !== "undefined" ? performance.now() : Date.now());
+    const now = () =>
+      typeof performance !== "undefined" ? performance.now() : Date.now();
     const startTime = now();
     let intervalId = 0;
 
     const tick = () => {
       const elapsed = now() - startTime;
-      const nextValue = Math.min(100, (elapsed / FAKE_UPLOAD_DURATION_MS) * 100);
+      const nextValue = Math.min(
+        100,
+        (elapsed / FAKE_UPLOAD_DURATION_MS) * 100,
+      );
 
       setFakeUploadProgress((prev) => (nextValue > prev ? nextValue : prev));
 
