@@ -27,6 +27,9 @@
 import { Button } from "@/shared/components/ui/button";
 
 export interface ErrorStateProps {
+  /** Optional title to display above the error description */
+  title?: string;
+
   /** Error message to display */
   error?: string | null;
 
@@ -38,6 +41,7 @@ export interface ErrorStateProps {
 }
 
 export const ErrorState = ({
+  title = "Something went wrong",
   error = "An error occurred",
   onRetry,
   onClose,
@@ -55,8 +59,12 @@ export const ErrorState = ({
 
       {/* TODO: Error message */}
       <div className="flex flex-col text-center gap-2">
-        <h2 className="text-xl font-semibold">Sign failed</h2>
-        <p className="text-sm text-muted-foreground">{error}</p>
+        <h2 className="text-xl font-semibold">{title}</h2>
+        {error ? (
+          <p className="text-sm text-muted-foreground whitespace-pre-line">
+            {error}
+          </p>
+        ) : null}
       </div>
 
       {/* TODO: Common error scenarios help */}

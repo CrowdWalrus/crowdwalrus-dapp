@@ -119,9 +119,7 @@ export default function NewCampaignPage() {
 
   // Wizard state management
   // TODO: TEMP - Change back to WizardStep.FORM after UI work
-  const [wizardStep, setWizardStep] = useState<WizardStep>(
-    WizardStep.UPLOADING,
-  );
+  const [wizardStep, setWizardStep] = useState<WizardStep>(WizardStep.FORM);
   const [formData, setFormData] = useState<CampaignFormData | null>(null);
   const [flowState, setFlowState] = useState<WalrusFlowState | null>(null);
   const [registerResult, setRegisterResult] = useState<RegisterResult | null>(
@@ -131,6 +129,9 @@ export default function NewCampaignPage() {
   const [certifyResult, setCertifyResult] = useState<CertifyResult | null>(
     null,
   );
+  const [certifyRejectionMessage, setCertifyRejectionMessage] = useState<
+    string | null
+  >(null);
   const [campaignResult, setCampaignResult] =
     useState<CreateCampaignResult | null>(null);
   const [error, setError] = useState<Error | null>(null);
@@ -376,6 +377,64 @@ export default function NewCampaignPage() {
   const isPending =
     isEstimating || walrus.prepare.isPending || isRegistrationPending;
 
+  const hasCompletedStorageRegistration = registerResult !== null;
+  const isFormLocked =
+    hasCompletedStorageRegistration ||
+    wizardStep === WizardStep.REGISTERING ||
+    wizardStep === WizardStep.UPLOADING ||
+    wizardStep === WizardStep.CERTIFYING ||
+    wizardStep === WizardStep.CONFIRM_TX ||
+    wizardStep === WizardStep.EXECUTING ||
+    wizardStep === WizardStep.SUCCESS;
+
+  const rawErrorMessage = error?.message ?? "";
+  const isUploadError =
+    !!error &&
+    (rawErrorMessage.toLowerCase().includes("failed to upload") ||
+      (registerResult && !uploadCompleted && !certifyResult));
+
+  const errorHeading = (() => {
+    if (!error) {
+      return "";
+    }
+    if (isUploadError) {
+      return "Upload failed";
+    }
+    return rawErrorMessage || "Something went wrong";
+  })();
+
+  const errorBody = (() => {
+    if (!error) {
+      return "";
+    }
+
+    if (isUploadError) {
+      const lines = rawErrorMessage
+        .split(/\n+/)
+        .map((line) => line.trim())
+        .filter(Boolean);
+
+      if (lines.length > 0 && lines[0].toLowerCase().includes("sign failed")) {
+        lines.shift();
+      }
+
+      const cleanedMessage = lines.join("\n");
+      return cleanedMessage.length > 0 ? cleanedMessage : rawErrorMessage;
+    }
+
+    if (!rawErrorMessage) {
+      return "";
+    }
+
+    if (
+      errorHeading.trim().toLowerCase() === rawErrorMessage.trim().toLowerCase()
+    ) {
+      return "";
+    }
+
+    return rawErrorMessage;
+  })();
+
   // Sync wizard step with modal - open modal for non-FORM steps
   useEffect(() => {
     if (wizardStep !== WizardStep.FORM) {
@@ -449,6 +508,7 @@ export default function NewCampaignPage() {
 
     setWizardStep(WizardStep.REGISTERING);
     setError(null);
+    setCertifyRejectionMessage(null);
 
     walrus.register.mutate(flowState, {
       onSuccess: (result) => {
@@ -464,7 +524,7 @@ export default function NewCampaignPage() {
           {
             onSuccess: () => {
               setUploadCompleted(true);
-              setWizardStep(WizardStep.CONFIRM_CERTIFY);
+              startCertifyFlow(result.flowState);
             },
             onError: (err) => {
               setError(err);
@@ -486,6 +546,7 @@ export default function NewCampaignPage() {
 
     setWizardStep(WizardStep.UPLOADING);
     setError(null);
+    setCertifyRejectionMessage(null);
 
     walrus.upload.mutate(
       {
@@ -495,7 +556,7 @@ export default function NewCampaignPage() {
       {
         onSuccess: () => {
           setUploadCompleted(true);
-          setWizardStep(WizardStep.CONFIRM_CERTIFY);
+          startCertifyFlow(registerResult.flowState);
         },
         onError: (err) => {
           setError(err);
@@ -505,23 +566,54 @@ export default function NewCampaignPage() {
     );
   };
 
-  // Step 3: User confirms certification
-  const handleConfirmCertify = () => {
-    if (!registerResult) return;
+  const isUserRejectedError = (error: unknown) => {
+    if (!(error instanceof Error)) {
+      return false;
+    }
+
+    const message = error.message.toLowerCase();
+    return (
+      message.includes("user rejected") ||
+      message.includes("rejected the request") ||
+      message.includes("user cancelled") ||
+      message.includes("user canceled") ||
+      message.includes("request rejected")
+    );
+  };
+
+  const startCertifyFlow = (flowState: WalrusFlowState | null) => {
+    if (!flowState || walrus.certify.isPending) {
+      return;
+    }
 
     setWizardStep(WizardStep.CERTIFYING);
     setError(null);
+    setCertifyRejectionMessage(null);
 
-    walrus.certify.mutate(registerResult.flowState, {
+    walrus.certify.mutate(flowState, {
       onSuccess: (result) => {
         setCertifyResult(result);
         setWizardStep(WizardStep.CONFIRM_TX);
       },
       onError: (err) => {
-        setError(err);
+        if (isUserRejectedError(err)) {
+          setCertifyRejectionMessage(
+            "Approve the certification transaction in your wallet to continue.",
+          );
+          setWizardStep(WizardStep.FORM);
+          return;
+        }
+
+        setError(err instanceof Error ? err : new Error("Unknown error"));
         setWizardStep(WizardStep.ERROR);
       },
     });
+  };
+
+  const handleRetryCertify = () => {
+    if (!registerResult) return;
+
+    startCertifyFlow(registerResult.flowState);
   };
 
   // Step 4: User confirms campaign creation transaction
@@ -598,14 +690,12 @@ export default function NewCampaignPage() {
   // Cancel/Reset handlers
   const handleCancelRegister = () => {
     setWizardStep(WizardStep.FORM);
-  };
-
-  const handleCancelCertify = () => {
-    setWizardStep(WizardStep.CONFIRM_REGISTER);
+    setCertifyRejectionMessage(null);
   };
 
   const handleCancelTransaction = () => {
-    setWizardStep(WizardStep.CONFIRM_CERTIFY);
+    setWizardStep(WizardStep.FORM);
+    setCertifyRejectionMessage(null);
   };
 
   const storageCosts: StorageCost[] = costEstimate
@@ -657,9 +747,11 @@ export default function NewCampaignPage() {
     if (certifyResult) {
       // Error was during campaign creation
       setWizardStep(WizardStep.CONFIRM_TX);
-    } else if (uploadCompleted) {
+    } else if (uploadCompleted && registerResult) {
       // Upload completed, error was during certification
-      setWizardStep(WizardStep.CONFIRM_CERTIFY);
+      startCertifyFlow(registerResult.flowState);
+    } else if (uploadCompleted) {
+      setWizardStep(WizardStep.CONFIRM_REGISTER);
     } else if (registerResult) {
       // Registration paid but upload failed - retry upload
       handleRetryUpload();
@@ -679,6 +771,7 @@ export default function NewCampaignPage() {
       modal.closeModal();
       // Optionally reset to form
       setWizardStep(WizardStep.FORM);
+      setCertifyRejectionMessage(null);
     } else if (wizardStep === WizardStep.ERROR) {
       modal.closeModal();
       setWizardStep(WizardStep.FORM);
@@ -689,6 +782,7 @@ export default function NewCampaignPage() {
       setUploadCompleted(false);
       setCertifyResult(null);
       setError(null);
+      setCertifyRejectionMessage(null);
     }
   };
 
@@ -701,15 +795,14 @@ export default function NewCampaignPage() {
         onClose={handleCloseModal}
         onConfirmRegister={handleConfirmRegister}
         onCancelRegister={handleCancelRegister}
-        onConfirmCertify={handleConfirmCertify}
-        onCancelCertify={handleCancelCertify}
         onConfirmTransaction={handleConfirmTransaction}
         onCancelTransaction={handleCancelTransaction}
         onRetry={handleRetry}
         estimatedCost={costEstimate}
         uploadProgress={0} // TODO: Add real upload progress tracking
         campaignResult={campaignResult}
-        error={error?.message}
+        errorTitle={errorHeading || undefined}
+        error={errorBody || rawErrorMessage || undefined}
       />
 
       <div className="py-8">
@@ -794,36 +887,6 @@ export default function NewCampaignPage() {
                     </Alert>
                   )}
 
-                  {wizardStep === WizardStep.CONFIRM_CERTIFY && (
-                    <Alert className="border-green-500">
-                      <AlertDescription>
-                        <p className="font-semibold mb-4">
-                          Ready to Certify Blob
-                        </p>
-                        <p className="text-sm text-muted-foreground mb-4">
-                          Upload complete. Now certify the blob on blockchain.
-                        </p>
-                        <div className="flex gap-2">
-                          <Button
-                            onClick={handleConfirmCertify}
-                            size="sm"
-                            disabled={isPending}
-                          >
-                            {isPending ? "Processing..." : "Confirm Certify"}
-                          </Button>
-                          <Button
-                            onClick={handleCancelCertify}
-                            size="sm"
-                            variant="outline"
-                            disabled={isPending}
-                          >
-                            Cancel
-                          </Button>
-                        </div>
-                      </AlertDescription>
-                    </Alert>
-                  )}
-
                   {wizardStep === WizardStep.CONFIRM_TX && (
                     <Alert className="border-green-500">
                       <AlertDescription>
@@ -861,9 +924,16 @@ export default function NewCampaignPage() {
                       <AlertDescription>
                         <div className="flex items-center gap-2 mb-4">
                           <AlertCircleIcon className="size-4" />
-                          <p className="text-red-600 font-semibold">
-                            Error: {error.message}
-                          </p>
+                          <div className="flex flex-col gap-1">
+                            <p className="text-red-600 font-semibold">
+                              {errorHeading || "Something went wrong"}
+                            </p>
+                            {errorBody && (
+                              <p className="text-sm text-red-900 whitespace-pre-line">
+                                {errorBody}
+                              </p>
+                            )}
+                          </div>
                         </div>
                         <div className="flex gap-2">
                           <Button
@@ -873,9 +943,9 @@ export default function NewCampaignPage() {
                               if (certifyResult) {
                                 // Error was during campaign creation
                                 setWizardStep(WizardStep.CONFIRM_TX);
-                              } else if (uploadCompleted) {
+                              } else if (uploadCompleted && registerResult) {
                                 // Upload completed, error was during certification
-                                setWizardStep(WizardStep.CONFIRM_CERTIFY);
+                                startCertifyFlow(registerResult.flowState);
                               } else if (registerResult) {
                                 // Registration paid but upload failed - retry upload
                                 handleRetryUpload();
@@ -949,126 +1019,133 @@ export default function NewCampaignPage() {
                     </Alert>
                   )}
 
-                  <div className="flex flex-col items-center text-center gap-4 mb-16">
-                    <h1 className="text-4xl font-bold mb-4">Launch Campaign</h1>
-                    <p className="text-muted-foreground text-base">
-                      Enter your campaign details. You can edit campaign details
-                      anytime after your publish your campaign, but the
-                      transaction will cost gas.
-                    </p>
-                  </div>
-
-                  {/* Campaign Details Section */}
-                  <section className="flex flex-col mb-12 gap-8">
-                    <h2 className="text-2xl font-semibold mb-8">
-                      Campaign Details
-                    </h2>
-
-                    <div className="flex flex-col gap-8">
-                      {/* Campaign Name */}
-                      <FormField
-                        control={form.control}
-                        name="campaignName"
-                        render={({ field }) => (
-                          <FormItem>
-                            <FormLabel>
-                              Title <span className="text-red-300">*</span>
-                            </FormLabel>
-                            <FormControl>
-                              <Input
-                                placeholder="Enter your campaign name"
-                                {...field}
-                              />
-                            </FormControl>
-                            <FormMessage />
-                          </FormItem>
-                        )}
-                      />
-
-                      {/* Description */}
-                      <FormField
-                        control={form.control}
-                        name="description"
-                        render={({ field }) => (
-                          <FormItem>
-                            <FormLabel>
-                              Short description{" "}
-                              <span className="text-red-300">*</span>
-                            </FormLabel>
-                            <FormControl>
-                              <Textarea
-                                placeholder="Brief description of your campaign"
-                                rows={4}
-                                {...field}
-                              />
-                            </FormControl>
-                            <FormMessage />
-                          </FormItem>
-                        )}
-                      />
-
-                      {/* Subdomain */}
-                      <FormField
-                        control={form.control}
-                        name="subdomain"
-                        render={({ field }) => (
-                          <FormItem>
-                            <FormLabel>
-                              Sub-name <span className="text-red-300">*</span>
-                            </FormLabel>
-                            <FormControl>
-                              <Input placeholder="yourcampaign" {...field} />
-                            </FormControl>
-                            {shouldShowHelperText ? (
-                              <p className={subdomainHelperClass}>
-                                {subdomainHelperText}
-                              </p>
-                            ) : null}
-                            <FormMessage />
-                          </FormItem>
-                        )}
-                      />
-
-                      {/* Cover Image */}
-                      <CampaignCoverImageUpload />
+                  <fieldset
+                    disabled={isFormLocked}
+                    className="flex flex-col gap-16"
+                  >
+                    <div className="flex flex-col items-center text-center gap-4 mb-16">
+                      <h1 className="text-4xl font-bold mb-4">
+                        Launch Campaign
+                      </h1>
+                      <p className="text-muted-foreground text-base">
+                        Enter your campaign details. You can edit campaign
+                        details anytime after your publish your campaign, but
+                        the transaction will cost gas.
+                      </p>
                     </div>
-                  </section>
 
-                  <Separator />
+                    {/* Campaign Details Section */}
+                    <section className="flex flex-col mb-12 gap-8">
+                      <h2 className="text-2xl font-semibold mb-8">
+                        Campaign Details
+                      </h2>
 
-                  {/* Campaign Type Section */}
-                  <CampaignTypeSelector />
+                      <div className="flex flex-col gap-8">
+                        {/* Campaign Name */}
+                        <FormField
+                          control={form.control}
+                          name="campaignName"
+                          render={({ field }) => (
+                            <FormItem>
+                              <FormLabel>
+                                Title <span className="text-red-300">*</span>
+                              </FormLabel>
+                              <FormControl>
+                                <Input
+                                  placeholder="Enter your campaign name"
+                                  {...field}
+                                />
+                              </FormControl>
+                              <FormMessage />
+                            </FormItem>
+                          )}
+                        />
 
-                  {/* Select Category Section */}
-                  <CampaignCategorySelector />
+                        {/* Description */}
+                        <FormField
+                          control={form.control}
+                          name="description"
+                          render={({ field }) => (
+                            <FormItem>
+                              <FormLabel>
+                                Short description{" "}
+                                <span className="text-red-300">*</span>
+                              </FormLabel>
+                              <FormControl>
+                                <Textarea
+                                  placeholder="Brief description of your campaign"
+                                  rows={4}
+                                  {...field}
+                                />
+                              </FormControl>
+                              <FormMessage />
+                            </FormItem>
+                          )}
+                        />
 
-                  <Separator />
+                        {/* Subdomain */}
+                        <FormField
+                          control={form.control}
+                          name="subdomain"
+                          render={({ field }) => (
+                            <FormItem>
+                              <FormLabel>
+                                Sub-name <span className="text-red-300">*</span>
+                              </FormLabel>
+                              <FormControl>
+                                <Input placeholder="yourcampaign" {...field} />
+                              </FormControl>
+                              {shouldShowHelperText ? (
+                                <p className={subdomainHelperClass}>
+                                  {subdomainHelperText}
+                                </p>
+                              ) : null}
+                              <FormMessage />
+                            </FormItem>
+                          )}
+                        />
 
-                  {/* Campaign Timeline Section */}
-                  <CampaignTimeline />
+                        {/* Cover Image */}
+                        <CampaignCoverImageUpload disabled={isFormLocked} />
+                      </div>
+                    </section>
 
-                  {/* Funding Target Section */}
-                  <CampaignFundingTargetSection />
+                    <Separator />
 
-                  <Separator />
+                    {/* Campaign Type Section */}
+                    <CampaignTypeSelector />
 
-                  {/* Additional Details Section */}
-                  <section className="flex flex-col gap-8 mb-12">
-                    <h2 className="text-2xl font-semibold">
-                      Additional Details
-                    </h2>
+                    {/* Select Category Section */}
+                    <CampaignCategorySelector />
 
-                    {/* Add Socials */}
-                    <CampaignSocialsSection />
+                    <Separator />
 
-                    {/* Rich Text Editor */}
-                    <CampaignDetailsEditor />
-                  </section>
+                    {/* Campaign Timeline Section */}
+                    <CampaignTimeline />
 
-                  <Separator />
+                    {/* Funding Target Section */}
+                    <CampaignFundingTargetSection />
 
-                  {/* Terms and Conditions Section */}
-                  <CampaignTermsAndConditionsSection />
+                    <Separator />
+
+                    {/* Additional Details Section */}
+                    <section className="flex flex-col gap-8 mb-12">
+                      <h2 className="text-2xl font-semibold">
+                        Additional Details
+                      </h2>
+
+                      {/* Add Socials */}
+                      <CampaignSocialsSection />
+
+                      {/* Rich Text Editor */}
+                      <CampaignDetailsEditor disabled={isFormLocked} />
+                    </section>
+
+                    <Separator />
+
+                    {/* Terms and Conditions Section */}
+                    <CampaignTermsAndConditionsSection />
+                  </fieldset>
 
                   {/* Storage Registration Section */}
                   <CampaignStorageRegistrationCard
@@ -1092,6 +1169,10 @@ export default function NewCampaignPage() {
                     requiredWalAmount={costEstimate?.subsidizedTotalCost}
                     selectedEpochs={selectedEpochs}
                     onEpochsChange={handleEpochsChange}
+                    certifyErrorMessage={certifyRejectionMessage}
+                    onRetryCertify={handleRetryCertify}
+                    isRetryingCertify={walrus.certify.isPending}
+                    isLocked={isFormLocked}
                   />
 
                   <Separator />

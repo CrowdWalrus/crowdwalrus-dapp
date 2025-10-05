@@ -1,10 +1,12 @@
 "use client";
 
+import { useEffect } from "react";
 import {
   InitialConfigType,
   LexicalComposer,
 } from "@lexical/react/LexicalComposer";
 import { OnChangePlugin } from "@lexical/react/LexicalOnChangePlugin";
+import { useLexicalComposerContext } from "@lexical/react/LexicalComposerContext";
 import { EditorState, SerializedEditorState } from "lexical";
 
 import { editorTheme } from "@/shared/components/editor/themes/editor-theme";
@@ -22,17 +24,31 @@ const editorConfig: InitialConfigType = {
   },
 };
 
+function EditableStatePlugin({ isEditable }: { isEditable: boolean }) {
+  const [editor] = useLexicalComposerContext();
+
+  useEffect(() => {
+    editor.setEditable(isEditable);
+  }, [editor, isEditable]);
+
+  return null;
+}
+
+interface EditorProps {
+  editorState?: EditorState;
+  editorSerializedState?: SerializedEditorState;
+  onChange?: (editorState: EditorState) => void;
+  onSerializedChange?: (editorSerializedState: SerializedEditorState) => void;
+  readOnly?: boolean;
+}
+
 export function Editor({
   editorState,
   editorSerializedState,
   onChange,
   onSerializedChange,
-}: {
-  editorState?: EditorState;
-  editorSerializedState?: SerializedEditorState;
-  onChange?: (editorState: EditorState) => void;
-  onSerializedChange?: (editorSerializedState: SerializedEditorState) => void;
-}) {
+  readOnly = false,
+}: EditorProps) {
   return (
     <div className="bg-background overflow-hidden rounded-lg border shadow min-h-96">
       <LexicalComposer
@@ -45,7 +61,8 @@ export function Editor({
         }}
       >
         <TooltipProvider>
-          <Plugins />
+          <Plugins readOnly={readOnly} />
+          <EditableStatePlugin isEditable={!readOnly} />
 
           <OnChangePlugin
             ignoreSelectionChange={true}

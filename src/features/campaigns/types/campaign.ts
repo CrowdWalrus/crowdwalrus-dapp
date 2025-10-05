@@ -95,7 +95,6 @@ export enum WizardStep {
   CONFIRM_REGISTER = 'confirm_register',  // User confirms buying Walrus storage with WAL
   REGISTERING = 'registering',            // Registering blob (1st transaction)
   UPLOADING = 'uploading',                // Uploading data to storage nodes
-  CONFIRM_CERTIFY = 'confirm_certify',    // User confirms certification
   CERTIFYING = 'certifying',              // Certifying blob (2nd transaction)
   CONFIRM_TX = 'confirm_tx',              // User confirms campaign creation
   EXECUTING = 'executing',                // Creating campaign (3rd transaction)

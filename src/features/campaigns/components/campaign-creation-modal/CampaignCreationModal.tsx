@@ -17,12 +17,12 @@
  *   currentStep={modal.currentStep}
  *   onClose={modal.closeModal}
  *   onConfirmRegister={handleConfirmRegister}
- *   onConfirmCertify={handleConfirmCertify}
  *   onConfirmTransaction={handleConfirmTransaction}
  *   onRetry={handleRetry}
  *   estimatedCost={estimatedCost}
  *   uploadProgress={uploadProgress}
  *   campaignResult={campaignResult}
+ *   errorTitle={errorHeading}
  *   error={error}
  * />
  */
@@ -46,7 +46,6 @@ import type {
 import { ReviewWalrusTransaction } from "./states/ReviewWalrusTransaction";
 import { ProcessingState } from "./states/ProcessingState";
 import { UploadingState } from "./states/UploadingState";
-import { CertifyConfirmState } from "./states/CertifyConfirmState";
 import { TransactionConfirmState } from "./states/TransactionConfirmState";
 import { SuccessState } from "./states/SuccessState";
 import { ErrorState } from "./states/ErrorState";
@@ -70,12 +69,6 @@ export interface CampaignCreationModalProps {
   /** Called when user cancels storage registration */
   onCancelRegister?: () => void;
 
-  /** Called when user confirms blob certification */
-  onConfirmCertify?: () => void;
-
-  /** Called when user cancels blob certification */
-  onCancelCertify?: () => void;
-
   /** Called when user confirms campaign creation transaction */
   onConfirmTransaction?: () => void;
 
@@ -98,6 +91,9 @@ export interface CampaignCreationModalProps {
   /** Error message for error state */
   error?: string | null;
 
+  /** Optional custom title for error state */
+  errorTitle?: string | null;
+
   /** Current processing message (optional override) */
   processingMessage?: string;
 }
@@ -108,8 +104,6 @@ export const CampaignCreationModal = ({
   onClose,
   onConfirmRegister,
   onCancelRegister,
-  onConfirmCertify,
-  onCancelCertify,
   onConfirmTransaction,
   onCancelTransaction,
   onRetry,
@@ -117,6 +111,7 @@ export const CampaignCreationModal = ({
   uploadProgress = 0,
   campaignResult,
   error,
+  errorTitle,
   processingMessage,
 }: CampaignCreationModalProps) => {
   const [fakeUploadProgress, setFakeUploadProgress] = useState(0);
@@ -196,14 +191,6 @@ export const CampaignCreationModal = ({
         );
 
       // === Certification Flow ===
-      case WizardStep.CONFIRM_CERTIFY:
-        return (
-          <CertifyConfirmState
-            onConfirm={onConfirmCertify}
-            onCancel={onCancelCertify}
-          />
-        );
-
       case WizardStep.CERTIFYING:
         return (
           <ProcessingState
@@ -236,7 +223,14 @@ export const CampaignCreationModal = ({
         );
 
       case WizardStep.ERROR:
-        return <ErrorState error={error} onRetry={onRetry} onClose={onClose} />;
+        return (
+          <ErrorState
+            title={errorTitle ?? undefined}
+            error={error}
+            onRetry={onRetry}
+            onClose={onClose}
+          />
+        );
 
       // === Default ===
       default:

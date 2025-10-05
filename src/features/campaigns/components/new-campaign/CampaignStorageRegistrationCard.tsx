@@ -30,6 +30,10 @@ interface CampaignStorageRegistrationCardProps {
   requiredWalAmount?: number; // Required WAL amount for registration
   selectedEpochs?: number; // Currently selected number of epochs
   onEpochsChange?: (epochs: number) => void; // Callback when epochs selection changes
+  certifyErrorMessage?: string | null;
+  onRetryCertify?: () => void;
+  isRetryingCertify?: boolean;
+  isLocked?: boolean;
 }
 
 export function CampaignStorageRegistrationCard({
@@ -43,6 +47,10 @@ export function CampaignStorageRegistrationCard({
   requiredWalAmount,
   selectedEpochs,
   onEpochsChange,
+  certifyErrorMessage,
+  onRetryCertify,
+  isRetryingCertify,
+  isLocked = false,
 }: CampaignStorageRegistrationCardProps) {
   // Get network-specific storage duration options
   const storageDurationOptions = useNetworkVariable(
@@ -84,7 +92,11 @@ export function CampaignStorageRegistrationCard({
             </label>
             <Select
               value={defaultValue}
+              disabled={isLocked}
               onValueChange={(value) => {
+                if (isLocked) {
+                  return;
+                }
                 const option = storageDurationOptions.find(
                   (opt: StorageDurationOption) => opt.label === value,
                 );
@@ -93,7 +105,10 @@ export function CampaignStorageRegistrationCard({
                 }
               }}
             >
-              <SelectTrigger className="bg-white border-black-50">
+              <SelectTrigger
+                className="bg-white border-black-50"
+                disabled={isLocked}
+              >
                 <SelectValue />
               </SelectTrigger>
               <SelectContent>
@@ -194,6 +209,31 @@ export function CampaignStorageRegistrationCard({
             </Alert>
           )}
 
+          {certifyErrorMessage && (
+            <Alert className="bg-red-50 border-red-200">
+              <div className="flex items-start gap-3">
+                <AlertCircle className="size-4 text-red-600 mt-0.5" />
+                <div className="flex-1 flex flex-col gap-0">
+                  <AlertDescription className="text-sm font-medium text-red-600 leading-[1.5]">
+                    Certification was cancelled in your wallet
+                  </AlertDescription>
+                  <AlertDescription className="text-sm font-medium text-red-900 leading-[1.5]">
+                    {certifyErrorMessage}
+                  </AlertDescription>
+                </div>
+                <Button
+                  variant="outline"
+                  size="sm"
+                  className="bg-white border-black-50 shrink-0 h-9 px-4"
+                  onClick={onRetryCertify}
+                  disabled={isRetryingCertify || !onRetryCertify}
+                >
+                  {isRetryingCertify ? "Retrying..." : "Try again"}
+                </Button>
+              </div>
+            </Alert>
+          )}
+
           {/* Register Button */}
           <div className="flex justify-end">
             <Button
@@ -202,6 +242,7 @@ export function CampaignStorageRegistrationCard({
               className="bg-white border-black-50 min-h-[40px] px-6"
               onClick={onRegister}
               disabled={
+                isLocked ||
                 hasInsufficientBalance ||
                 isCalculating ||
                 isPreparing ||
