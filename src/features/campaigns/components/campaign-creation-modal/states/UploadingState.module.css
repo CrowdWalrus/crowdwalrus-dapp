@@ -1,0 +1,18 @@
+.uploadIllustration {
+  animation: uploadFloat 3s ease-in-out infinite;
+  will-change: transform, filter;
+  filter: drop-shadow(0 20px 24px rgba(34, 102, 255, 0.12));
+}
+
+@keyframes uploadFloat {
+  0%,
+  100% {
+    transform: translateY(0) scale(1);
+    filter: drop-shadow(0 20px 24px rgba(34, 102, 255, 0.12));
+  }
+
+  50% {
+    transform: translateY(-10px) scale(1.02);
+    filter: drop-shadow(0 28px 32px rgba(34, 102, 255, 0.18));
+  }
+}

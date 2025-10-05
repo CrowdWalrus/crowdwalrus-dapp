@@ -27,6 +27,8 @@
  * />
  */
 
+import { useEffect, useState } from "react";
+
 import {
   Dialog,
   DialogContent,
@@ -48,6 +50,8 @@ import { CertifyConfirmState } from "./states/CertifyConfirmState";
 import { TransactionConfirmState } from "./states/TransactionConfirmState";
 import { SuccessState } from "./states/SuccessState";
 import { ErrorState } from "./states/ErrorState";
+
+const FAKE_UPLOAD_DURATION_MS = 30_000;
 
 export interface CampaignCreationModalProps {
   /** Whether the modal is open */
@@ -115,6 +119,43 @@ export const CampaignCreationModal = ({
   error,
   processingMessage,
 }: CampaignCreationModalProps) => {
+  const [fakeUploadProgress, setFakeUploadProgress] = useState(0);
+
+  useEffect(() => {
+    if (currentStep !== WizardStep.UPLOADING) {
+      setFakeUploadProgress(0);
+      return;
+    }
+
+    setFakeUploadProgress(0);
+    const now = () => (typeof performance !== "undefined" ? performance.now() : Date.now());
+    const startTime = now();
+    let intervalId = 0;
+
+    const tick = () => {
+      const elapsed = now() - startTime;
+      const nextValue = Math.min(100, (elapsed / FAKE_UPLOAD_DURATION_MS) * 100);
+
+      setFakeUploadProgress((prev) => (nextValue > prev ? nextValue : prev));
+
+      if (elapsed >= FAKE_UPLOAD_DURATION_MS) {
+        window.clearInterval(intervalId);
+      }
+    };
+
+    intervalId = window.setInterval(tick, 100);
+    tick();
+
+    return () => {
+      window.clearInterval(intervalId);
+    };
+  }, [currentStep]);
+
+  const derivedUploadProgress =
+    currentStep === WizardStep.UPLOADING
+      ? Math.min(100, Math.max(uploadProgress ?? 0, fakeUploadProgress))
+      : 0;
+
   /**
    * Render the appropriate state component based on currentStep
    * Each state component is responsible for its own UI
@@ -145,7 +186,7 @@ export const CampaignCreationModal = ({
       case WizardStep.UPLOADING:
         return (
           <UploadingState
-            progress={uploadProgress}
+            progress={derivedUploadProgress}
             message="Off-chain Upload"
           />
         );

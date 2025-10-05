@@ -1,3 +1,5 @@
+import styles from "./UploadingState.module.css";
+
 /**
  * Uploading State Component
  *
@@ -8,19 +10,10 @@
  * - Display percentage or progress bar
  * - Reassure user that upload is happening
  *
- * UI Elements to implement:
- * - Progress bar (0-100%)
- * - Progress percentage display
- * - Upload status message
- * - Optional: Upload speed, time remaining, file info
- *
  * Design considerations:
  * - Progress should be clearly visible
- * - Smooth progress bar animation
- * - Clear indication of what's being uploaded
- * - No cancel button (upload must complete)
+ * - Motion should feel alive but calm to communicate background processing
  */
-
 export interface UploadingStateProps {
   /** Upload progress percentage (0-100) */
   progress: number;
@@ -35,12 +28,11 @@ export const UploadingState = ({
 }: UploadingStateProps) => {
   return (
     <div className="py-6">
-      {/* TODO: Add upload icon or animation */}
       <div className="flex flex-col gap-6 items-center justify-center w-full">
         <img
           src="/assets/images/modal-icons/modal-upload.png"
           alt="Upload"
-          className="w-30 h-30"
+          className={`w-30 h-30 ${styles.uploadIllustration}`}
         />
 
         <div className="space-y-2 w-full">
