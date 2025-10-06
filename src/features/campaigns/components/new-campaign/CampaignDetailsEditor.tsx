@@ -3,7 +3,13 @@ import { FormLabel, FormMessage } from "@/shared/components/ui/form";
 import { Editor } from "@/shared/components/editor/blocks/editor-00/editor";
 import { SerializedEditorState } from "lexical";
 
-export function CampaignDetailsEditor() {
+export interface CampaignDetailsEditorProps {
+  disabled?: boolean;
+}
+
+export function CampaignDetailsEditor({
+  disabled = false,
+}: CampaignDetailsEditorProps) {
   const { control } = useFormContext();
 
   return (
@@ -31,6 +37,7 @@ export function CampaignDetailsEditor() {
             <Editor
               editorSerializedState={editorState}
               onSerializedChange={handleEditorChange}
+              readOnly={disabled}
             />
             {error && <FormMessage>{error.message}</FormMessage>}
           </div>

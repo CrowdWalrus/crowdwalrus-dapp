@@ -12,16 +12,22 @@ import { useState, useRef } from "react";
 import { HexColorPicker } from "react-colorful";
 import { INSERT_IMAGE_COMMAND } from "./ImagePlugin";
 
-export function ToolbarPlugin() {
+interface ToolbarPluginProps {
+  disabled?: boolean;
+}
+
+export function ToolbarPlugin({ disabled = false }: ToolbarPluginProps) {
   const [editor] = useLexicalComposerContext();
   const [color, setColor] = useState("#000000");
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   const formatText = (format: "bold" | "italic" | "underline" | "strikethrough") => {
+    if (disabled) return;
     editor.dispatchCommand(FORMAT_TEXT_COMMAND, format);
   };
 
   const handleColorChange = (newColor: string) => {
+    if (disabled) return;
     setColor(newColor);
     editor.update(() => {
       const selection = $getSelection();
@@ -36,10 +42,12 @@ export function ToolbarPlugin() {
   };
 
   const handleImageUpload = () => {
+    if (disabled) return;
     fileInputRef.current?.click();
   };
 
   const handleFileChange = (event: React.ChangeEvent<HTMLInputElement>) => {
+    if (disabled) return;
     const file = event.target.files?.[0];
     if (file && file.type.startsWith("image/")) {
       const reader = new FileReader();
@@ -65,6 +73,7 @@ export function ToolbarPlugin() {
         size="sm"
         onClick={() => formatText("bold")}
         className="size-8 p-0"
+        disabled={disabled}
       >
         <Bold className="size-4" />
       </Button>
@@ -73,6 +82,7 @@ export function ToolbarPlugin() {
         size="sm"
         onClick={() => formatText("italic")}
         className="size-8 p-0"
+        disabled={disabled}
       >
         <Italic className="size-4" />
       </Button>
@@ -81,6 +91,7 @@ export function ToolbarPlugin() {
         size="sm"
         onClick={() => formatText("underline")}
         className="size-8 p-0"
+        disabled={disabled}
       >
         <Underline className="size-4" />
       </Button>
@@ -89,13 +100,19 @@ export function ToolbarPlugin() {
         size="sm"
         onClick={() => formatText("strikethrough")}
         className="size-8 p-0"
+        disabled={disabled}
       >
         <Strikethrough className="size-4" />
       </Button>
       <Separator orientation="vertical" className="h-6 mx-1" />
-      <Popover>
+      <Popover open={disabled ? false : undefined}>
         <PopoverTrigger asChild>
-          <Button variant="ghost" size="sm" className="size-8 p-0">
+          <Button
+            variant="ghost"
+            size="sm"
+            className="size-8 p-0"
+            disabled={disabled}
+          >
             <Palette className="size-4" />
           </Button>
         </PopoverTrigger>
@@ -109,6 +126,7 @@ export function ToolbarPlugin() {
         size="sm"
         onClick={handleImageUpload}
         className="size-8 p-0"
+        disabled={disabled}
       >
         <Image className="size-4" />
       </Button>

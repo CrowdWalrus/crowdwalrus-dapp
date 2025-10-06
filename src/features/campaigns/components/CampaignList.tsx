@@ -16,7 +16,9 @@ import {
 } from "@/shared/components/ui/card";
 import { Button } from "@/shared/components/ui/button";
 import { useMyCampaigns, type CampaignData } from "@/features/campaigns/hooks/useMyCampaigns";
+import { getContractConfig } from "@/shared/config/contracts";
 import { DEFAULT_NETWORK } from "@/shared/config/networkConfig";
+import { formatSubdomain } from "@/shared/utils/subdomain";
 
 interface CampaignCardProps {
   campaign: CampaignData;
@@ -114,12 +116,11 @@ function CampaignCard({ campaign, network }: CampaignCardProps) {
     });
   };
 
-  // Determine subdomain suffix
-  const subdomainSuffix =
-    network === "testnet" ? ".crowdwalrus-test.sui" : ".crowdwalrus.sui";
-  const fullSubdomain = campaign.subdomainName.includes(".sui")
-    ? campaign.subdomainName
-    : campaign.subdomainName + subdomainSuffix;
+  const { campaignDomain } = getContractConfig(network);
+  const fullSubdomain = formatSubdomain(
+    campaign.subdomainName,
+    campaignDomain,
+  );
 
   return (
     <Card className="overflow-hidden">

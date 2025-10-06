@@ -47,11 +47,18 @@ const BLOCK_TYPES = [
   { label: "Numbered List", value: "number", icon: ListOrdered },
 ];
 
-export function BlockFormatToolbarPlugin() {
+interface BlockFormatToolbarPluginProps {
+  disabled?: boolean;
+}
+
+export function BlockFormatToolbarPlugin({
+  disabled = false,
+}: BlockFormatToolbarPluginProps) {
   const [editor] = useLexicalComposerContext();
   const [blockType, setBlockType] = useState("paragraph");
 
   const formatParagraph = () => {
+    if (disabled) return;
     editor.update(() => {
       const selection = $getSelection();
       if ($isRangeSelection(selection)) {
@@ -61,6 +68,7 @@ export function BlockFormatToolbarPlugin() {
   };
 
   const formatHeading = (headingSize: HeadingTagType) => {
+    if (disabled) return;
     if (blockType !== headingSize) {
       editor.update(() => {
         const selection = $getSelection();
@@ -72,6 +80,7 @@ export function BlockFormatToolbarPlugin() {
   };
 
   const formatQuote = () => {
+    if (disabled) return;
     if (blockType !== "quote") {
       editor.update(() => {
         const selection = $getSelection();
@@ -83,6 +92,7 @@ export function BlockFormatToolbarPlugin() {
   };
 
   const formatBulletList = () => {
+    if (disabled) return;
     if (blockType !== "bullet") {
       editor.dispatchCommand(INSERT_UNORDERED_LIST_COMMAND, undefined);
     } else {
@@ -91,6 +101,7 @@ export function BlockFormatToolbarPlugin() {
   };
 
   const formatNumberedList = () => {
+    if (disabled) return;
     if (blockType !== "number") {
       editor.dispatchCommand(INSERT_ORDERED_LIST_COMMAND, undefined);
     } else {
@@ -99,10 +110,12 @@ export function BlockFormatToolbarPlugin() {
   };
 
   const formatAlign = (alignment: "left" | "center" | "right") => {
+    if (disabled) return;
     editor.dispatchCommand(FORMAT_ELEMENT_COMMAND, alignment);
   };
 
   const handleBlockTypeChange = (value: string) => {
+    if (disabled) return;
     switch (value) {
       case "paragraph":
         formatParagraph();
@@ -160,8 +173,12 @@ export function BlockFormatToolbarPlugin() {
 
   return (
     <>
-      <Select value={blockType} onValueChange={handleBlockTypeChange}>
-        <SelectTrigger className="w-[140px] h-8">
+      <Select
+        value={blockType}
+        onValueChange={handleBlockTypeChange}
+        disabled={disabled}
+      >
+        <SelectTrigger className="w-[140px] h-8" disabled={disabled}>
           <SelectValue placeholder="Block type" />
         </SelectTrigger>
         <SelectContent>
@@ -184,6 +201,7 @@ export function BlockFormatToolbarPlugin() {
         size="sm"
         onClick={() => formatAlign("left")}
         className="size-8 p-0"
+        disabled={disabled}
       >
         <AlignLeft className="size-4" />
       </Button>
@@ -192,6 +210,7 @@ export function BlockFormatToolbarPlugin() {
         size="sm"
         onClick={() => formatAlign("center")}
         className="size-8 p-0"
+        disabled={disabled}
       >
         <AlignCenter className="size-4" />
       </Button>
@@ -200,6 +219,7 @@ export function BlockFormatToolbarPlugin() {
         size="sm"
         onClick={() => formatAlign("right")}
         className="size-8 p-0"
+        disabled={disabled}
       >
         <AlignRight className="size-4" />
       </Button>

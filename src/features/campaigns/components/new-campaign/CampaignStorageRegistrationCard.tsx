@@ -1,5 +1,7 @@
+import type { StorageCostEstimate } from "@/features/campaigns/types/campaign";
 import { Card, CardContent } from "@/shared/components/ui/card";
 import { Button } from "@/shared/components/ui/button";
+import { addDays, format } from "date-fns";
 import {
   Select,
   SelectContent,
@@ -7,8 +9,15 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/shared/components/ui/select";
-import { Alert, AlertDescription } from "@/shared/components/ui/alert";
-import { AlertCircle } from "lucide-react";
+import {
+  useNetworkVariable,
+  type StorageDurationOption,
+} from "@/shared/config/networkConfig";
+import {
+  InsufficientBalanceAlert,
+  CertificationErrorAlert,
+  StorageRegistrationSuccessAlert,
+} from "@/features/campaigns/components/CampaignAlerts";
 
 export interface StorageCost {
   label: string;
@@ -18,23 +27,73 @@ export interface StorageCost {
 interface CampaignStorageRegistrationCardProps {
   costs: StorageCost[];
   totalCost: string;
-  onCalculate?: () => void;
   isCalculating?: boolean;
+  onRegister?: () => void;
+  isPreparing?: boolean;
   walBalance?: string;
   hasInsufficientBalance?: boolean;
+  requiredWalAmount?: number; // Required WAL amount for registration
+  selectedEpochs?: number; // Currently selected number of epochs
+  onEpochsChange?: (epochs: number) => void; // Callback when epochs selection changes
+  certifyErrorMessage?: string | null;
+  onRetryCertify?: () => void;
+  isRetryingCertify?: boolean;
+  isLocked?: boolean;
+  storageRegistered?: boolean;
+  estimatedCost?: StorageCostEstimate | null;
 }
 
 export function CampaignStorageRegistrationCard({
   costs,
   totalCost,
-  onCalculate,
   isCalculating = false,
+  onRegister,
+  isPreparing = false,
   walBalance = "0 WAL",
   hasInsufficientBalance = false,
+  requiredWalAmount,
+  selectedEpochs,
+  onEpochsChange,
+  certifyErrorMessage,
+  onRetryCertify,
+  isRetryingCertify,
+  isLocked = false,
+  storageRegistered = false,
+  estimatedCost,
 }: CampaignStorageRegistrationCardProps) {
-  // Mock data - replace with actual data from your state/props
-  const registrationPeriod = "1 year (10 USD)";
+  // Get network-specific storage duration options
+  const storageDurationOptions = useNetworkVariable(
+    "storageDurationOptions",
+  ) as StorageDurationOption[];
+  const epochConfig = useNetworkVariable("epochConfig") as {
+    epochDurationDays: number;
+    defaultEpochs: number;
+    maxEpochs: number;
+  };
+
+  // Use default epochs if not provided
+  const currentEpochs = selectedEpochs ?? epochConfig.defaultEpochs;
+
+  // Find the current option label
+  const currentOption = storageDurationOptions.find(
+    (opt: StorageDurationOption) => opt.epochs === currentEpochs,
+  );
+  const defaultValue = currentOption?.label ?? storageDurationOptions[0].label;
+
   const walRate = "1 WAL = ~$0.38 USD";
+
+  const walrusFeeValue = estimatedCost
+    ? estimatedCost.subsidizedStorageCost + estimatedCost.subsidizedUploadCost
+    : null;
+  const walrusStorageFees = walrusFeeValue !== null
+    ? `${walrusFeeValue.toFixed(6)} WAL`
+    : totalCost;
+
+  const totalDays = currentEpochs * epochConfig.epochDurationDays;
+  const registrationExpires = totalDays > 0
+    ? `${format(addDays(new Date(), totalDays), "MMM d, yyyy")} (${totalDays} day${totalDays !== 1 ? "s" : ""})`
+    : "Select period";
+
   return (
     <section className="flex flex-col gap-8 mb-12">
       <div className="flex flex-col gap-2">
@@ -52,45 +111,56 @@ export function CampaignStorageRegistrationCard({
             <label className="text-base font-medium text-[#0c0f1c]">
               Registration period
             </label>
-            <Select defaultValue="1year">
-              <SelectTrigger className="bg-white border-black-50">
-                <SelectValue placeholder={registrationPeriod} />
+            <Select
+              value={defaultValue}
+              disabled={isLocked}
+              onValueChange={(value) => {
+                if (isLocked) {
+                  return;
+                }
+                const option = storageDurationOptions.find(
+                  (opt: StorageDurationOption) => opt.label === value,
+                );
+                if (option && onEpochsChange) {
+                  onEpochsChange(option.epochs);
+                }
+              }}
+            >
+              <SelectTrigger
+                className="bg-white border-black-50"
+                disabled={isLocked}
+              >
+                <SelectValue />
               </SelectTrigger>
               <SelectContent>
-                <SelectItem value="1year">1 year (10 USD)</SelectItem>
-                <SelectItem value="2years">2 years (20 USD)</SelectItem>
-                <SelectItem value="5years">5 years (50 USD)</SelectItem>
+                {storageDurationOptions.map((option: StorageDurationOption) => (
+                  <SelectItem key={option.label} value={option.label}>
+                    {option.label} ({option.epochs} epochs)
+                  </SelectItem>
+                ))}
               </SelectContent>
             </Select>
+            <p className="text-xs text-muted-foreground">
+              {currentEpochs} epoch{currentEpochs !== 1 ? "s" : ""} ×{" "}
+              {epochConfig.epochDurationDays} day
+              {epochConfig.epochDurationDays !== 1 ? "s" : ""} ={" "}
+              {currentEpochs * epochConfig.epochDurationDays} days total
+            </p>
           </div>
-
-          {/* Calculate Cost Button */}
-          {onCalculate && (
-            <div className="flex justify-end">
-              <Button
-                type="button"
-                variant="outline"
-                className="bg-white border-black-50"
-                onClick={onCalculate}
-                disabled={isCalculating}
-              >
-                {isCalculating ? "Calculating..." : "Calculate Storage Cost"}
-              </Button>
-            </div>
-          )}
 
           {/* Storage Fees Card */}
           <Card className="bg-white border-black-50">
             <CardContent className="p-4 flex flex-col gap-4">
-              {costs.map((cost, index) => (
-                <div
-                  key={index}
-                  className="flex items-center justify-between text-sm text-[#3d3f49]"
-                >
-                  <span className="font-normal">{cost.label}</span>
-                  <span className="font-medium">{cost.amount}</span>
+              <div className="flex flex-col gap-4">
+                <div className="flex items-center justify-between text-sm text-[#3d3f49]">
+                  <span className="font-normal">Walrus storage fees</span>
+                  <span className="font-medium">{walrusStorageFees}</span>
                 </div>
-              ))}
+                <div className="flex items-center justify-between text-sm text-[#3d3f49]">
+                  <span className="font-normal">Registration expires</span>
+                  <span className="font-medium">{registrationExpires}</span>
+                </div>
+              </div>
               <div className="h-px bg-[#e7e7e8]" />
               <div className="flex items-center justify-between pt-1 rounded-lg">
                 <span className="text-sm font-semibold text-[#0c0f1c]">
@@ -135,40 +205,45 @@ export function CampaignStorageRegistrationCard({
             </div>
           </div>
 
-          {/* Error Alert */}
-          {hasInsufficientBalance && (
-            <Alert className="bg-red-50 border-red-200">
-              <div className="flex items-start gap-3">
-                <AlertCircle className="size-4 text-red-600 mt-0.5" />
-                <div className="flex-1 flex flex-col gap-0">
-                  <AlertDescription className="text-sm font-medium text-red-600 leading-[1.5]">
-                    Insufficient balance to complete registration
-                  </AlertDescription>
-                  <AlertDescription className="text-sm font-medium text-red-900 leading-[1.5]">
-                    You need 111,098 WAL tokens to complete registration.
-                  </AlertDescription>
-                </div>
-                <Button
-                  variant="outline"
-                  size="sm"
-                  className="bg-white border-black-50 shrink-0 h-9 px-4"
-                >
-                  Get $WAL
-                </Button>
-              </div>
-            </Alert>
+          {/* Error Alerts */}
+          {storageRegistered && <StorageRegistrationSuccessAlert />}
+
+          {!storageRegistered && hasInsufficientBalance && (
+            <InsufficientBalanceAlert requiredWalAmount={requiredWalAmount} />
+          )}
+
+          {!storageRegistered && certifyErrorMessage && (
+            <CertificationErrorAlert
+              errorMessage={certifyErrorMessage}
+              onRetry={onRetryCertify}
+              isRetrying={isRetryingCertify}
+            />
           )}
 
           {/* Register Button */}
-          <div className="flex justify-end">
-            <Button
-              variant="outline"
-              className="bg-white border-black-50 min-h-[40px] px-6"
-              disabled={hasInsufficientBalance}
-            >
-              Register Storage
-            </Button>
-          </div>
+          {!storageRegistered && (
+            <div className="flex justify-end">
+              <Button
+                type="button"
+                variant="outline"
+                className="bg-white border-black-50 min-h-[40px] px-6"
+                onClick={onRegister}
+                disabled={
+                  isLocked ||
+                  hasInsufficientBalance ||
+                  isCalculating ||
+                  isPreparing ||
+                  !onRegister
+                }
+              >
+                {isCalculating
+                  ? "Calculating..."
+                  : isPreparing
+                    ? "Preparing..."
+                    : "Register Storage"}
+              </Button>
+            </div>
+          )}
         </CardContent>
       </Card>
     </section>

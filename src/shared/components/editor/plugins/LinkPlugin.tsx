@@ -9,16 +9,21 @@ import {
   PopoverContent,
   PopoverTrigger,
 } from "@/shared/components/ui/popover";
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { Input } from "@/shared/components/ui/input";
 
-export function LinkToolbarPlugin() {
+interface LinkToolbarPluginProps {
+  disabled?: boolean;
+}
+
+export function LinkToolbarPlugin({ disabled = false }: LinkToolbarPluginProps) {
   const [editor] = useLexicalComposerContext();
   const [linkUrl, setLinkUrl] = useState("");
   const [isLink, setIsLink] = useState(false);
   const [isOpen, setIsOpen] = useState(false);
 
   const insertLink = () => {
+    if (disabled) return;
     if (linkUrl) {
       // Ensure URL has protocol
       let url = linkUrl;
@@ -32,10 +37,12 @@ export function LinkToolbarPlugin() {
   };
 
   const removeLink = () => {
+    if (disabled) return;
     editor.dispatchCommand(TOGGLE_LINK_COMMAND, null);
   };
 
   const checkForLink = () => {
+    if (disabled) return;
     editor.getEditorState().read(() => {
       const selection = $getSelection();
       if ($isRangeSelection(selection)) {
@@ -50,6 +57,12 @@ export function LinkToolbarPlugin() {
     });
   };
 
+  useEffect(() => {
+    if (disabled) {
+      setIsOpen(false);
+    }
+  }, [disabled]);
+
   return (
     <>
       <Separator orientation="vertical" className="h-6 mx-1" />
@@ -59,17 +72,22 @@ export function LinkToolbarPlugin() {
           size="sm"
           onClick={removeLink}
           className="size-8 p-0"
+          disabled={disabled}
         >
           <Unlink className="size-4" />
         </Button>
       ) : (
-        <Popover open={isOpen} onOpenChange={setIsOpen}>
+        <Popover
+          open={disabled ? false : isOpen}
+          onOpenChange={disabled ? undefined : setIsOpen}
+        >
           <PopoverTrigger asChild>
             <Button
               variant="ghost"
               size="sm"
               onClick={checkForLink}
               className="size-8 p-0"
+              disabled={disabled}
             >
               <Link className="size-4" />
             </Button>
@@ -86,8 +104,14 @@ export function LinkToolbarPlugin() {
                     insertLink();
                   }
                 }}
+                disabled={disabled}
               />
-              <Button onClick={insertLink} size="sm" className="w-full">
+              <Button
+                onClick={insertLink}
+                size="sm"
+                className="w-full"
+                disabled={disabled}
+              >
                 Insert
               </Button>
             </div>

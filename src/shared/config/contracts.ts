@@ -33,10 +33,7 @@ export interface WalrusConfig {
 export interface NetworkContractConfig {
   contracts: ContractAddresses;
   walrus: WalrusConfig;
-  storageDefaults: {
-    defaultEpochs: number;
-    epochDurationDays: number;
-  };
+  campaignDomain: string;
 }
 
 // ============================================================================
@@ -67,10 +64,7 @@ const DEVNET_CONFIG: NetworkContractConfig = {
     // Testnet doesn't have a subsidy object - subsidies are implicit in pricing
     subsidyObjectId: "",
   },
-  storageDefaults: {
-    defaultEpochs: 100, // ~100 days on devnet (1 day per epoch)
-    epochDurationDays: 1,
-  },
+  campaignDomain: "crowdwalrus-test.sui",
 };
 
 // ============================================================================
@@ -104,10 +98,7 @@ const TESTNET_CONFIG: NetworkContractConfig = {
     // Testnet doesn't have a subsidy object - subsidies are implicit in pricing
     subsidyObjectId: "",
   },
-  storageDefaults: {
-    defaultEpochs: 3, // Just 3 days for testing (1 day per epoch on testnet)
-    epochDurationDays: 1,
-  },
+  campaignDomain: "crowdwalrus-test.sui",
 };
 
 // ============================================================================
@@ -137,10 +128,7 @@ const MAINNET_CONFIG: NetworkContractConfig = {
     subsidyObjectId:
       "0xb606eb177899edc2130c93bf65985af7ec959a2755dc126c953755e59324209e",
   },
-  storageDefaults: {
-    defaultEpochs: 1, // ~3.8 years on mainnet (14 days per epoch)
-    epochDurationDays: 14,
-  },
+  campaignDomain: "crowdwalrus.sui",
 };
 
 // ============================================================================

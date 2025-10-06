@@ -8,6 +8,8 @@
 import { Transaction } from "@mysten/sui/transactions";
 import type { CampaignFormData, CampaignMetadata } from "@/features/campaigns/types/campaign";
 import { getContractConfig, CLOCK_OBJECT_ID } from "@/shared/config/contracts";
+import { WALRUS_EPOCH_CONFIG } from "@/shared/config/networkConfig";
+import { formatSubdomain } from "@/shared/utils/subdomain";
 
 /**
  * Build a transaction to create a new campaign on Sui
@@ -16,23 +18,31 @@ export function buildCreateCampaignTransaction(
   formData: CampaignFormData,
   walrusBlobId: string,
   network: "devnet" | "testnet" | "mainnet",
+  storageEpochs?: number,
 ): Transaction {
   const config = getContractConfig(network);
   const tx = new Transaction();
+
+  // Use provided epochs or fall back to network default
+  const networkKey = (network === "devnet" ? "devnet" : network) as keyof typeof WALRUS_EPOCH_CONFIG;
+  const epochs = storageEpochs ?? WALRUS_EPOCH_CONFIG[networkKey].defaultEpochs;
 
   // Prepare metadata for VecMap<String, String>
   const { keys, values } = prepareMetadataVectors(
     formData,
     walrusBlobId,
-    config.storageDefaults.defaultEpochs,
+    epochs,
   );
 
   // Convert dates to Unix timestamps (in seconds)
   const startDate = Math.floor(formData.start_date.getTime() / 1000);
   const endDate = Math.floor(formData.end_date.getTime() / 1000);
 
-  // Append .crowdwalrus-test.sui to subdomain for testing
-  const fullSubdomain = `${formData.subdomain_name}.crowdwalrus-test.sui`;
+  // Append configured SuiNS domain when user only provides the label
+  const fullSubdomain = formatSubdomain(
+    formData.subdomain_name,
+    config.campaignDomain,
+  );
 
   console.log("\n=== BUILDING SUI TRANSACTION ===");
   console.log("Network:", network);
@@ -74,7 +84,7 @@ export function buildCreateCampaignTransaction(
       // Short description
       tx.pure.string(formData.short_description),
 
-      // Subdomain name (with .crowdwalrus-test.sui suffix)
+      // Subdomain name (with network-specific suffix)
       tx.pure.string(fullSubdomain),
 
       // Metadata keys (vector<String>)

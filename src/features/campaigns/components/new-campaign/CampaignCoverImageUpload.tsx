@@ -6,7 +6,13 @@ import { Button } from "@/shared/components/ui/button";
 import { Input } from "@/shared/components/ui/input";
 import { FormLabel, FormMessage } from "@/shared/components/ui/form";
 
-export function CampaignCoverImageUpload() {
+export interface CampaignCoverImageUploadProps {
+  disabled?: boolean;
+}
+
+export function CampaignCoverImageUpload({
+  disabled = false,
+}: CampaignCoverImageUploadProps) {
   const { control } = useFormContext();
   const [isDragging, setIsDragging] = useState(false);
   const [previewUrl, setPreviewUrl] = useState<string | null>(null);
@@ -84,6 +90,13 @@ export function CampaignCoverImageUpload() {
     e: React.ChangeEvent<HTMLInputElement>,
     onChange: (value: File | null) => void,
   ) => {
+    if (disabled) {
+      if (e.target) {
+        e.target.value = "";
+      }
+      return;
+    }
+
     const file = e.target.files?.[0];
 
     if (!file) {
@@ -103,6 +116,10 @@ export function CampaignCoverImageUpload() {
   const handleDragOver = (e: React.DragEvent<HTMLDivElement>) => {
     e.preventDefault();
     e.stopPropagation();
+    if (disabled) {
+      setIsDragging(false);
+      return;
+    }
     setIsDragging(true);
   };
 
@@ -119,6 +136,10 @@ export function CampaignCoverImageUpload() {
     e.preventDefault();
     e.stopPropagation();
     setIsDragging(false);
+
+    if (disabled) {
+      return;
+    }
 
     const file = e.dataTransfer.files?.[0];
     if (!file) return;
@@ -137,6 +158,9 @@ export function CampaignCoverImageUpload() {
   };
 
   const handleRemoveImage = (onChange: (value: File | null) => void) => {
+    if (disabled) {
+      return;
+    }
     // Clean up preview URL
     if (previewUrl) {
       URL.revokeObjectURL(previewUrl);
@@ -152,6 +176,12 @@ export function CampaignCoverImageUpload() {
     }
   };
 
+  useEffect(() => {
+    if (disabled) {
+      setIsDragging(false);
+    }
+  }, [disabled]);
+
   return (
     <Controller
       control={control}
@@ -166,6 +196,7 @@ export function CampaignCoverImageUpload() {
             type="file"
             accept="image/jpeg,image/png"
             className="py-1.5"
+            disabled={disabled}
             onChange={(e) => handleImageChange(e, onChange)}
           />
           <p className="text-sm text-muted-foreground pt-2 pb-3">
@@ -177,7 +208,7 @@ export function CampaignCoverImageUpload() {
               isDragging
                 ? "border-primary bg-primary/10"
                 : "border-border bg-muted/30"
-            }`}
+            } ${disabled ? "opacity-70 pointer-events-none" : ""}`.trim()}
             onDragOver={handleDragOver}
             onDragLeave={handleDragLeave}
             onDrop={(e) => handleDrop(e, onChange)}
@@ -194,6 +225,7 @@ export function CampaignCoverImageUpload() {
                   variant="destructive"
                   className="absolute top-5 right-5"
                   onClick={() => handleRemoveImage(onChange)}
+                  disabled={disabled}
                   type="button"
                 >
                   <X className="h-4 w-4" />
