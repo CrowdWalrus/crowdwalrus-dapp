@@ -242,22 +242,11 @@ export const CampaignCreationModal = ({
     <Dialog open={isOpen} onOpenChange={onClose}>
       <DialogContent
         className="sm:max-w-md [&>button]:hidden"
-
-        // TODO: Add custom styling here
-        // You can adjust max width, padding, etc. based on your design
+        // Prevent overlay clicks from dismissing the wizard mid-flow
+        onInteractOutside={(event) => event.preventDefault()}
       >
-        {/*
-          TODO: Optionally add a common header here that appears for all states
-          Or let each state component handle its own header
-        */}
-
         {/* Render state-specific content */}
         {renderContent()}
-
-        {/*
-          TODO: Optionally add a common footer here
-          Or let each state component handle its own footer
-        */}
       </DialogContent>
     </Dialog>
   );
