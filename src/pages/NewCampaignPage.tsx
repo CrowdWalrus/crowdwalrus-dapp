@@ -87,7 +87,7 @@ const TEST_DEFAULTS = {
   subdomain: "ocean-cleanup-2025",
   coverImage: null as any,
   campaignType: "donation",
-  categories: ["environment", "technology"],
+  categories: ["environment", "tech"],
   startDate: "2025-11-01",
   endDate: "2025-12-31",
   targetAmount: "50000",
