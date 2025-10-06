@@ -1174,11 +1174,12 @@ export default function NewCampaignPage() {
                     selectedEpochs={selectedEpochs}
                     onEpochsChange={handleEpochsChange}
                     certifyErrorMessage={certifyRejectionMessage}
-                    onRetryCertify={handleRetryCertify}
-                    isRetryingCertify={walrus.certify.isPending}
-                    isLocked={isFormLocked}
-                    storageRegistered={hasCompletedStorageRegistration}
-                  />
+                  onRetryCertify={handleRetryCertify}
+                  isRetryingCertify={walrus.certify.isPending}
+                  isLocked={isFormLocked}
+                  storageRegistered={hasCompletedStorageRegistration}
+                  estimatedCost={costEstimate}
+                />
 
                   <Separator />
 

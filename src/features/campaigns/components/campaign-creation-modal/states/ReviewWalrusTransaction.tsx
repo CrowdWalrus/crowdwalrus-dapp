@@ -22,7 +22,10 @@
  */
 
 import type { StorageCostEstimate } from "@/features/campaigns/types/campaign";
+import { useNetworkVariable } from "@/shared/config/networkConfig";
 import { Button } from "@/shared/components/ui/button";
+import { Card, CardContent } from "@/shared/components/ui/card";
+import { addDays, format } from "date-fns";
 
 export interface ReviewWalrusTransactionProps {
   /** Storage cost estimation data */
@@ -40,16 +43,39 @@ export const ReviewWalrusTransaction = ({
   onConfirm,
   onCancel,
 }: ReviewWalrusTransactionProps) => {
-  // TODO: Implement your UI here
+  const epochConfig = useNetworkVariable("epochConfig") as {
+    epochDurationDays: number;
+    defaultEpochs: number;
+    maxEpochs: number;
+  };
+
+  const epochs = estimatedCost?.epochs ?? epochConfig.defaultEpochs;
+  const totalDays = epochs * epochConfig.epochDurationDays;
+  const registrationExpires =
+    totalDays > 0
+      ? `${format(addDays(new Date(), totalDays), "MMM d, yyyy")} (${totalDays} day${totalDays !== 1 ? "s" : ""})`
+      : "Select period";
+
+  const walrusFeeValue = estimatedCost
+    ? estimatedCost.subsidizedStorageCost + estimatedCost.subsidizedUploadCost
+    : null;
+  const walrusStorageFees =
+    walrusFeeValue !== null
+      ? `${walrusFeeValue.toFixed(6)} WAL`
+      : "Calculate first";
+
+  const totalDue = estimatedCost
+    ? `${estimatedCost.subsidizedTotalCost.toFixed(6)} WAL`
+    : "Calculate first";
 
   return (
-    <div className="flex flex-col items-center justify-center">
+    <div className="flex flex-col gap-8 items-center">
       <img
         src="/assets/images/modal-icons/modal-review.png"
         alt="Walrus Logo"
         className="w-30 h-30"
       />
-      <div className="text-center py-6 gap-2">
+      <div className="flex flex-col gap-2 text-center">
         <h2 className="text-lg font-semibold">Review transaction</h2>
         <p className="text-sm text-muted-foreground">
           Please review details to confirm your transaction to complete publish
@@ -57,29 +83,33 @@ export const ReviewWalrusTransaction = ({
         </p>
       </div>
 
-      {/* TODO: Display cost estimation */}
-      {estimatedCost && (
-        <div className="space-y-2">
-          <div className="rounded-lg border p-4">
-            <p className="text-sm">Estimated Cost</p>
-            <p className="text-2xl font-bold">
-              {estimatedCost.subsidizedTotalCost.toFixed(6)} WAL
-            </p>
-            {/* TODO: Add more cost breakdown details here */}
-            {/* - Raw size vs encoded size */}
-            {/* - Storage epochs */}
-            {/* - Subsidy information */}
-          </div>
-        </div>
-      )}
+      <Card className="border-black-50 w-full bg-white-200">
+        <CardContent className="p-4 flex flex-col gap-4 ">
+          <CardContent className="flex flex-col gap-4 p-0">
+            <div className="flex flex-col gap-4">
+              <div className="flex items-center justify-between text-sm text-[#3d3f49]">
+                <span className="font-normal">Walrus storage fees</span>
+                <span className="font-medium">{walrusStorageFees}</span>
+              </div>
+              <div className="flex items-center justify-between text-sm text-[#3d3f49]">
+                <span className="font-normal">Registration expires</span>
+                <span className="font-medium">{registrationExpires}</span>
+              </div>
+            </div>
+            <div className="h-px bg-[#e7e7e8]" />
+            <div className="flex items-center justify-between pt-1 rounded-lg">
+              <span className="text-sm font-semibold text-[#0c0f1c]">
+                Total Due
+              </span>
+              <span className="text-sm font-semibold text-[#3d3f49]">
+                {totalDue}
+              </span>
+            </div>
+          </CardContent>
+        </CardContent>
+      </Card>
 
-      {/* TODO: Add explanation of what's happening */}
-      <div className="text-sm text-muted-foreground">
-        {/* Explain storage registration, WAL payment, etc. */}
-      </div>
-
-      {/* TODO: Action buttons */}
-      <div className="flex gap-4 justify-end w-full">
+      <div className="flex gap-4 w-full">
         <Button
           onClick={onCancel}
           className="w-full bg-black-50 text-black-500 hover:bg-white-600 border-none"

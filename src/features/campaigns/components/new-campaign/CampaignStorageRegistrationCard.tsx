@@ -1,5 +1,7 @@
+import type { StorageCostEstimate } from "@/features/campaigns/types/campaign";
 import { Card, CardContent } from "@/shared/components/ui/card";
 import { Button } from "@/shared/components/ui/button";
+import { addDays, format } from "date-fns";
 import {
   Select,
   SelectContent,
@@ -38,6 +40,7 @@ interface CampaignStorageRegistrationCardProps {
   isRetryingCertify?: boolean;
   isLocked?: boolean;
   storageRegistered?: boolean;
+  estimatedCost?: StorageCostEstimate | null;
 }
 
 export function CampaignStorageRegistrationCard({
@@ -56,6 +59,7 @@ export function CampaignStorageRegistrationCard({
   isRetryingCertify,
   isLocked = false,
   storageRegistered = false,
+  estimatedCost,
 }: CampaignStorageRegistrationCardProps) {
   // Get network-specific storage duration options
   const storageDurationOptions = useNetworkVariable(
@@ -77,6 +81,18 @@ export function CampaignStorageRegistrationCard({
   const defaultValue = currentOption?.label ?? storageDurationOptions[0].label;
 
   const walRate = "1 WAL = ~$0.38 USD";
+
+  const walrusFeeValue = estimatedCost
+    ? estimatedCost.subsidizedStorageCost + estimatedCost.subsidizedUploadCost
+    : null;
+  const walrusStorageFees = walrusFeeValue !== null
+    ? `${walrusFeeValue.toFixed(6)} WAL`
+    : totalCost;
+
+  const totalDays = currentEpochs * epochConfig.epochDurationDays;
+  const registrationExpires = totalDays > 0
+    ? `${format(addDays(new Date(), totalDays), "MMM d, yyyy")} (${totalDays} day${totalDays !== 1 ? "s" : ""})`
+    : "Select period";
 
   return (
     <section className="flex flex-col gap-8 mb-12">
@@ -135,15 +151,16 @@ export function CampaignStorageRegistrationCard({
           {/* Storage Fees Card */}
           <Card className="bg-white border-black-50">
             <CardContent className="p-4 flex flex-col gap-4">
-              {costs.map((cost, index) => (
-                <div
-                  key={index}
-                  className="flex items-center justify-between text-sm text-[#3d3f49]"
-                >
-                  <span className="font-normal">{cost.label}</span>
-                  <span className="font-medium">{cost.amount}</span>
+              <div className="flex flex-col gap-4">
+                <div className="flex items-center justify-between text-sm text-[#3d3f49]">
+                  <span className="font-normal">Walrus storage fees</span>
+                  <span className="font-medium">{walrusStorageFees}</span>
                 </div>
-              ))}
+                <div className="flex items-center justify-between text-sm text-[#3d3f49]">
+                  <span className="font-normal">Registration expires</span>
+                  <span className="font-medium">{registrationExpires}</span>
+                </div>
+              </div>
               <div className="h-px bg-[#e7e7e8]" />
               <div className="flex items-center justify-between pt-1 rounded-lg">
                 <span className="text-sm font-semibold text-[#0c0f1c]">
