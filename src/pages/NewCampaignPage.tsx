@@ -377,7 +377,7 @@ export default function NewCampaignPage() {
   const isPending =
     isEstimating || walrus.prepare.isPending || isRegistrationPending;
 
-  const hasCompletedStorageRegistration = registerResult !== null;
+  const hasCompletedStorageRegistration = certifyResult !== null;
   const isFormLocked =
     hasCompletedStorageRegistration ||
     wizardStep === WizardStep.REGISTERING ||
@@ -435,9 +435,12 @@ export default function NewCampaignPage() {
     return rawErrorMessage;
   })();
 
-  // Sync wizard step with modal - open modal for non-FORM steps
+  // Sync wizard step with modal - open modal for active flow steps only
   useEffect(() => {
-    if (wizardStep !== WizardStep.FORM) {
+    if (
+      wizardStep !== WizardStep.FORM &&
+      wizardStep !== WizardStep.CONFIRM_TX
+    ) {
       modal.openModal(wizardStep);
     } else {
       modal.closeModal();
@@ -594,6 +597,7 @@ export default function NewCampaignPage() {
       onSuccess: (result) => {
         setCertifyResult(result);
         setWizardStep(WizardStep.CONFIRM_TX);
+        modal.closeModal();
       },
       onError: (err) => {
         if (isUserRejectedError(err)) {
@@ -1173,6 +1177,7 @@ export default function NewCampaignPage() {
                     onRetryCertify={handleRetryCertify}
                     isRetryingCertify={walrus.certify.isPending}
                     isLocked={isFormLocked}
+                    storageRegistered={hasCompletedStorageRegistration}
                   />
 
                   <Separator />

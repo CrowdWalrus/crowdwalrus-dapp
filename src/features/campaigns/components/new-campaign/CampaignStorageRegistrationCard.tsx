@@ -14,6 +14,7 @@ import {
 import {
   InsufficientBalanceAlert,
   CertificationErrorAlert,
+  StorageRegistrationSuccessAlert,
 } from "@/features/campaigns/components/CampaignAlerts";
 
 export interface StorageCost {
@@ -36,6 +37,7 @@ interface CampaignStorageRegistrationCardProps {
   onRetryCertify?: () => void;
   isRetryingCertify?: boolean;
   isLocked?: boolean;
+  storageRegistered?: boolean;
 }
 
 export function CampaignStorageRegistrationCard({
@@ -53,6 +55,7 @@ export function CampaignStorageRegistrationCard({
   onRetryCertify,
   isRetryingCertify,
   isLocked = false,
+  storageRegistered = false,
 }: CampaignStorageRegistrationCardProps) {
   // Get network-specific storage duration options
   const storageDurationOptions = useNetworkVariable(
@@ -186,11 +189,13 @@ export function CampaignStorageRegistrationCard({
           </div>
 
           {/* Error Alerts */}
-          {hasInsufficientBalance && (
+          {storageRegistered && <StorageRegistrationSuccessAlert />}
+
+          {!storageRegistered && hasInsufficientBalance && (
             <InsufficientBalanceAlert requiredWalAmount={requiredWalAmount} />
           )}
 
-          {certifyErrorMessage && (
+          {!storageRegistered && certifyErrorMessage && (
             <CertificationErrorAlert
               errorMessage={certifyErrorMessage}
               onRetry={onRetryCertify}
@@ -199,27 +204,29 @@ export function CampaignStorageRegistrationCard({
           )}
 
           {/* Register Button */}
-          <div className="flex justify-end">
-            <Button
-              type="button"
-              variant="outline"
-              className="bg-white border-black-50 min-h-[40px] px-6"
-              onClick={onRegister}
-              disabled={
-                isLocked ||
-                hasInsufficientBalance ||
-                isCalculating ||
-                isPreparing ||
-                !onRegister
-              }
-            >
-              {isCalculating
-                ? "Calculating..."
-                : isPreparing
-                  ? "Preparing..."
-                  : "Register Storage"}
-            </Button>
-          </div>
+          {!storageRegistered && (
+            <div className="flex justify-end">
+              <Button
+                type="button"
+                variant="outline"
+                className="bg-white border-black-50 min-h-[40px] px-6"
+                onClick={onRegister}
+                disabled={
+                  isLocked ||
+                  hasInsufficientBalance ||
+                  isCalculating ||
+                  isPreparing ||
+                  !onRegister
+                }
+              >
+                {isCalculating
+                  ? "Calculating..."
+                  : isPreparing
+                    ? "Preparing..."
+                    : "Register Storage"}
+              </Button>
+            </div>
+          )}
         </CardContent>
       </Card>
     </section>
