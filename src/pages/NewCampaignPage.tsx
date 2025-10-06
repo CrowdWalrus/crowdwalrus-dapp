@@ -1191,18 +1191,17 @@ export default function NewCampaignPage() {
 
                     <div className="flex justify-end">
                       <Button
-                        type="submit"
+                        type="button"
                         size="lg"
                         className="min-w-[168px]"
+                        onClick={handleConfirmTransaction}
                         disabled={
                           isRegistrationPending ||
                           !currentAccount ||
                           !certifyResult
                         }
                       >
-                        {isRegistrationPending
-                          ? "Creating..."
-                          : "Register Campaign"}
+                        {isExecuting ? "Creating..." : "Publish Campaign"}
                       </Button>
                     </div>
                   </section>
