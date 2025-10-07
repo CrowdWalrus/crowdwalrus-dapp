@@ -24,13 +24,13 @@ The changes below describe what must be added or adjusted in the Move codebase *
   - Cap total metadata size (e.g., max keys) to prevent denial-of-service (see implementation note on counting inserts below).
   - Require both `walrus_quilt_id` and `walrus_storage_epochs` when either changes to keep storage state consistent. Solo updates are disallowed in MVP; edits to Walrus-backed content must upload a fresh blob and update both fields together.
   - Reject attempts to mutate `funding_goal`; that key is immutable after creation to block bait-and-switch behaviour.
-  - Metadata deletions are **out of scope** for MVP. Callers should pass empty strings if they need to blank out a value; the contract will not remove keys from the `VecMap`.
+  - Metadata deletions are **out of scope** for MVP. Empty strings (`""`) are the intended mechanism for blanking metadata values. Frontend should only send empty strings when users explicitly clear fields. Contract treats `""` as a valid value and stores it normally in the `VecMap`.
   - Preserve existing insertion order (`VecMap` maintains first-write order). New keys append to the end; overwrites leave the original position unchanged.
   - Emit a `CampaignMetadataUpdated` event listing changed keys, timestamp, and editor address.
 
 ### 3. Promote Status Toggle to an Entry Function
 - **What:** Convert the existing `set_is_active` helper into an `entry fun toggle_active` (or equivalent) that flips `campaign.isActive` while checking the owner capability.
-- **Why:** The UI already surfaces enable/disable actions. Without an entry function the front-end cannot call this logic, leading to mismatched behavior between creation and maintenance. The new event (`CampaignStatusChanged`) should include old/new status to aid indexers.
+- **Why:** The UI already surfaces enable/disable actions. Without an entry function the front-end cannot call this logic, leading to mismatched behavior between creation and maintenance. The new event (`CampaignStatusChanged`) includes only `new_status`; indexers can derive the previous `isActive` value by querying the Campaign object state immediately prior to this transaction, or by inverting `new_status` since this is a toggle operation.
 
 ### 4. Strengthen Validation in `create_campaign`
 - **What:** Update `create_campaign` to replicate the same string-length, date ordering, and Walrus field requirements we plan to enforce during edits. Validations should cover name/description ranges, `start_date < end_date`, `start_date` not in the past, a non-zero `recipient_address` argument (`recipient_address != @0x0`), and required metadata keys such as `walrus_quilt_id`, `walrus_storage_epochs`, and `cover_image_id`. The entry function should accept `recipient_address: address` explicitly instead of relying on metadata.
@@ -45,6 +45,7 @@ The changes below describe what must be added or adjusted in the Move codebase *
   - `struct CampaignBasicsUpdated has copy, drop { campaign_id: ID, editor: address, timestamp_ms: u64, name_updated: bool, description_updated: bool }`
   - `struct CampaignMetadataUpdated has copy, drop { campaign_id: ID, editor: address, timestamp_ms: u64, keys_updated: vector<String> }`
   - `struct CampaignStatusChanged has copy, drop { campaign_id: ID, editor: address, timestamp_ms: u64, new_status: bool }`
+- **Timestamp semantics:** The `timestamp_ms: u64` field stores Unix epoch milliseconds obtained from `Clock::timestamp_ms(&clock)`, NOT the Sui epoch number. This value updates once per checkpoint and remains identical for all calls within the same transaction.
 - **Implementation note:** Move events must own their payloads. When emitting vectors you still read afterwards, copy them first, for example:
   ```
   let mut keys_for_event = vector::empty<String>();
@@ -82,6 +83,8 @@ const E_RECIPIENT_ADDRESS_IMMUTABLE: u64 = 15;
 
 ### Constants
 
+Define these constants in the `crowd_walrus::campaign` module at the top level (below imports, above structs):
+
 ```
 const NAME_MIN_LEN: u64 = 3;
 const NAME_MAX_LEN: u64 = 80;
@@ -97,7 +100,12 @@ Add Move tests that:
 
 - Succeed and emit events for happy-path basics and metadata edits.
 - Abort with the appropriate error codes for each guard (inactive campaign, missing Walrus fields, metadata overflow, funding goal immutability, recipient address validation, etc.).
-- Exercise the new `create_campaign` validations to ensure legacy behaviour remains compatible.
+- Exercise the new `create_campaign` validations to ensure new campaigns still pass creation after the stricter checks.
+- Verify event field values match expected behavior:
+  - `CampaignBasicsUpdated`: `name_updated` and `description_updated` flags correctly reflect which fields changed (true when `Some(value)` provided, false when `None`)
+  - `CampaignMetadataUpdated`: `keys_updated` vector correctly lists all modified keys and preserves ordering
+  - All events: `timestamp_ms` values are non-zero and identical within same transaction
+  - All events: `editor` address matches transaction sender from `TxContext`
 
 ## Deferred Features
 The following features were discussed during planning but are **out of scope for MVP** and may be implemented in future phases:
