@@ -661,7 +661,7 @@ export default function NewCampaignPage() {
       const walrusDescriptionUrl = getWalrusUrl(
         certifyResult.blobId,
         DEFAULT_NETWORK,
-        "description.html",
+        "description.json",
       );
       const walrusCoverImageUrl = getWalrusUrl(
         certifyResult.blobId,
@@ -705,8 +705,8 @@ export default function NewCampaignPage() {
   const storageCosts: StorageCost[] = costEstimate
     ? [
         {
-          label: "HTML content",
-          amount: `${(costEstimate.breakdown.htmlSize / 1024).toFixed(2)} KB`,
+          label: "JSON content",
+          amount: `${(costEstimate.breakdown.jsonSize / 1024).toFixed(2)} KB`,
         },
         {
           label: "Cover image",

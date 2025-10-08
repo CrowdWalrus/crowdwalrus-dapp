@@ -144,7 +144,7 @@ export function useMyCampaigns(network: 'devnet' | 'testnet' | 'mainnet' = DEFAU
               ? getWalrusUrl(walrusQuiltId, network, metadataMap['cover_image_id'] || 'cover.jpg')
               : '',
             descriptionUrl: walrusQuiltId
-              ? getWalrusUrl(walrusQuiltId, network, 'description.html')
+              ? getWalrusUrl(walrusQuiltId, network, 'description.json')
               : '',
           };
 

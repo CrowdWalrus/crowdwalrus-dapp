@@ -36,7 +36,7 @@ CrowdWalrus uses a hybrid storage approach leveraging both Sui blockchain and Wa
 - SuiNS subdomain mapping
 
 #### **On Walrus Storage** (Decentralized File Storage)
-- Campaign HTML page (full description, rich content)
+- Campaign description (Lexical editor state as JSON)
 - Campaign cover image
 - Rich text content
 - Any large media files
@@ -94,7 +94,7 @@ CrowdWalrus uses a hybrid storage approach leveraging both Sui blockchain and Wa
 
 | Content | Storage | Format | Description |
 |---------|---------|--------|-------------|
-| `full_description` | Walrus | HTML | Complete campaign story with rich formatting |
+| `full_description` | Walrus | JSON | Serialized Lexical editor state with rich formatting |
 | `cover_image` | Walrus | Image | Main campaign image (JPG/PNG) |
 
 #### **Additional Metadata (VecMap on Sui)**
@@ -147,8 +147,8 @@ Quilt is a Walrus batch storage solution that bundles multiple small files (up t
 - Network requests (batch operations)
 
 **Why Use Quilt for CrowdWalrus?**
-Each campaign has multiple files (HTML page + images), making Quilt perfect for:
-- Storing campaign HTML + all images together
+Each campaign has multiple files (JSON description + images), making Quilt perfect for:
+- Storing campaign description (Lexical JSON) + all images together
 - Adding metadata/identifiers to each file
 - Efficient retrieval of individual files
 - Cost-effective storage (~5x blob size vs traditional methods)
@@ -185,9 +185,9 @@ import { useSignAndExecuteTransaction } from '@mysten/dapp-kit';
 // Prepare campaign files
 const campaignFiles = [
   {
-    data: new Uint8Array(htmlContent), // Campaign HTML
-    identifier: 'index.html', // Unique identifier
-    tags: { 'content-type': 'text/html', 'file-type': 'page' }
+    data: new Uint8Array(jsonContent), // Campaign description (Lexical editor state)
+    identifier: 'description.json', // Unique identifier
+    tags: { 'content-type': 'application/json', 'file-type': 'description' }
   },
   {
     data: new Uint8Array(coverImageBuffer), // Cover image
@@ -248,8 +248,8 @@ const blob = await walrusClient.getBlob({ blobId: quiltBlobId });
 const allFiles = await blob.files();
 
 // Get specific file by identifier
-const [htmlFile] = await blob.files({ identifiers: ['index.html'] });
-const htmlContent = await htmlFile.arrayBuffer();
+const [descriptionFile] = await blob.files({ identifiers: ['description.json'] });
+const descriptionJson = await descriptionFile.text();
 
 // Get cover image
 const [coverImage] = await blob.files({ identifiers: ['cover.jpg'] });
@@ -376,7 +376,7 @@ Example: `save-the-whales.crowdwalrus.sui` → Campaign Object ID
 - Campaign duration (start/end dates)
 
 **Rich Content:**
-- Full description (HTML editor - can use Quill.js or similar)
+- Full description (Lexical rich text editor)
 - Cover image upload
 
 **Social Links:**
@@ -391,9 +391,9 @@ Example: `save-the-whales.crowdwalrus.sui` → Campaign Object ID
 Calculate storage cost:
 ```typescript
 // Estimate storage size
-const htmlSize = new Blob([htmlContent]).size;
+const jsonSize = new Blob([jsonContent]).size;
 const totalImageSize = images.reduce((sum, img) => sum + img.size, 0);
-const totalSize = htmlSize + totalImageSize;
+const totalSize = jsonSize + totalImageSize;
 
 // Walrus storage cost: ~5x blob size
 const estimatedCost = totalSize * 5 * WALRUS_PRICE_PER_BYTE * epochs;
@@ -411,7 +411,7 @@ const estimatedCost = totalSize * 5 * WALRUS_PRICE_PER_BYTE * epochs;
 ```typescript
 // Step 1: Prepare files
 const files = [
-  { data: htmlBuffer, identifier: 'index.html', tags: {...} },
+  { data: jsonBuffer, identifier: 'description.json', tags: {...} },
   { data: coverImage, identifier: 'cover.jpg', tags: {...} }
 ];
 
@@ -525,9 +525,9 @@ User Form Input
     ↓
 Validate & Preview
     ↓
-Generate HTML Content
+Serialize Lexical Editor State to JSON
     ↓
-Create Walrus Upload Flow ← [HTML, Images]
+Create Walrus Upload Flow ← [JSON, Images]
     ↓
 Encode Files Locally
     ↓
@@ -760,18 +760,19 @@ function useCampaigns() {
 
 ### Campaign Page Rendering
 
-**Option 1: Fetch and Render HTML**
+**Option 1: Fetch and Render with Lexical Viewer**
 ```typescript
 // Get Quilt blob ID from campaign metadata
 const quiltBlobId = campaign.metadata.find(kv => kv.key === 'walrus_quilt_id')?.value;
 
-// Fetch HTML from Walrus
+// Fetch JSON from Walrus
 const blob = await walrusClient.getBlob({ blobId: quiltBlobId });
-const [htmlFile] = await blob.files({ identifiers: ['index.html'] });
-const htmlContent = await htmlFile.text();
+const [descriptionFile] = await blob.files({ identifiers: ['description.json'] });
+const descriptionJson = await descriptionFile.text();
 
-// Render in iframe or sanitized div
-<div dangerouslySetInnerHTML={{ __html: DOMPurify.sanitize(htmlContent) }} />
+// Parse and render with Lexical EditorViewer
+const editorState = JSON.parse(descriptionJson);
+<EditorViewer editorSerializedState={editorState} />
 ```
 
 **Option 2: Walrus Site URL**

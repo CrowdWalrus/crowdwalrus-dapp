@@ -10,6 +10,14 @@ We are introducing an on-chain edit flow so campaign owners can adjust certain f
 
 The changes below describe what must be added or adjusted in the Move codebase **without supplying the final implementation**; each item explains _what_ to build and _why_ it matters for the product.
 
+### Walrus Metadata Snapshot
+When a campaign is created or edited, the front-end serializes the Lexical rich-text editor state (JSON string) and packages that JSON plus the cover image into a Walrus quilt upload. The contract does not store the blob itself; it only keeps references inside `campaign.metadata` so off-chain clients can fetch the quilt, download `description.json` (serialized Lexical editor state), and rebuild the editor state.
+
+- `walrus_quilt_id`: String-encoded u256 returned by Walrus that points to the quilt bundle containing the serialized description JSON and embedded assets.
+- `walrus_storage_epochs`: String representing the number of epochs we prepay Walrus to retain the quilt.
+- `cover_image_id`: String handle for the primary image inside the quilt bundle (defaults to `cover.jpg` unless the UI names it differently).
+- Additional keys like `category`, `social_twitter`, and `social_discord` stay alongside the Walrus entries so the contract keeps one metadata map for both storage pointers and ancillary campaign details.
+
 ## Required Changes
 
 ### 1. Add Entry Function for Editing Core Fields (`update_campaign_basics`)

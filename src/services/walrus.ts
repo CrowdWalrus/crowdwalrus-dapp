@@ -44,7 +44,7 @@ export function createWalrusClient(
 
 /**
  * Prepare campaign files for Quilt upload
- * Stores raw rich text HTML and cover image - React app handles rendering
+ * Stores Lexical editor state (JSON) and cover image - React app handles rendering
  */
 export async function prepareCampaignFiles(
   formData: CampaignFormData,
@@ -52,18 +52,18 @@ export async function prepareCampaignFiles(
   console.log("\n=== PREPARING WALRUS FILES ===");
   const files: WalrusFile[] = [];
 
-  // 1. Store raw rich text HTML from editor
+  // 1. Store Lexical editor state as JSON
   const descriptionBytes = new TextEncoder().encode(formData.full_description);
   const descriptionFile = WalrusFile.from({
     contents: descriptionBytes,
-    identifier: "description.html",
+    identifier: "description.json",
     tags: {
-      "content-type": "text/html",
+      "content-type": "application/json",
       "file-type": "description",
     },
   });
   files.push(descriptionFile);
-  console.log("File 1: description.html -", descriptionBytes.length, "bytes");
+  console.log("File 1: description.json -", descriptionBytes.length, "bytes");
 
   // 2. Store cover image
   const coverImageBuffer = await formData.cover_image.arrayBuffer();
@@ -259,7 +259,7 @@ export async function calculateStorageCost(
   const fileSizes = await Promise.all(fileSizesPromises);
 
   const descriptionSize =
-    fileSizes.find((f) => f.identifier === "description.html")?.bytes.length ||
+    fileSizes.find((f) => f.identifier === "description.json")?.bytes.length ||
     0;
   const imagesSize =
     fileSizes.find((f) => f.identifier === "cover.jpg")?.bytes.length || 0;
@@ -290,7 +290,7 @@ export async function calculateStorageCost(
     subsidyRate: cost.pricing.subsidyRate,
     estimatedCost: cost.subsidizedTotalCost.toFixed(6), // Legacy field (now shows subsidized cost)
     breakdown: {
-      htmlSize: descriptionSize,
+      jsonSize: descriptionSize,
       imagesSize,
     },
     pricingTimestamp: cost.pricing.timestamp,

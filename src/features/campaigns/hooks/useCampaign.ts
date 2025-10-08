@@ -86,7 +86,7 @@ export function useCampaign(
           ? getWalrusUrl(walrusQuiltId, network, metadataMap['cover_image_id'] || 'cover.jpg')
           : '',
         descriptionUrl: walrusQuiltId
-          ? getWalrusUrl(walrusQuiltId, network, 'description.html')
+          ? getWalrusUrl(walrusQuiltId, network, 'description.json')
           : '',
       };
 
