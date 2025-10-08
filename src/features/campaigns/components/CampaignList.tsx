@@ -18,6 +18,8 @@ import { Button } from "@/shared/components/ui/button";
 import { useMyCampaigns, type CampaignData } from "@/features/campaigns/hooks/useMyCampaigns";
 import { getContractConfig } from "@/shared/config/contracts";
 import { DEFAULT_NETWORK } from "@/shared/config/networkConfig";
+import { EditorViewer } from "@/shared/components/editor/blocks/editor-00/viewer";
+import { SerializedEditorState } from "lexical";
 import { formatSubdomain } from "@/shared/utils/subdomain";
 
 interface CampaignCardProps {
@@ -66,6 +68,53 @@ function useWalrusDescription(descriptionUrl: string) {
     staleTime: 5 * 60 * 1000, // Consider data fresh for 5 minutes
     gcTime: 10 * 60 * 1000, // Keep in cache for 10 minutes
   });
+}
+
+/**
+ * Component to render description preview from Lexical JSON
+ */
+function DescriptionPreview({ description }: { description: string }) {
+  let editorState: SerializedEditorState | null = null;
+
+  try {
+    editorState = JSON.parse(description);
+  } catch (error) {
+    console.error("Failed to parse description JSON:", error);
+    return (
+      <div className="pt-2 border-t">
+        <p className="text-xs text-muted-foreground mb-1">
+          Description (from Walrus)
+        </p>
+        <div className="text-sm bg-gray-50 px-3 py-2 rounded">
+          <p className="text-red-600 text-xs">Failed to load description</p>
+        </div>
+      </div>
+    );
+  }
+
+  if (!editorState) {
+    return (
+      <div className="pt-2 border-t">
+        <p className="text-xs text-muted-foreground mb-1">
+          Description (from Walrus)
+        </p>
+        <div className="text-sm bg-gray-50 px-3 py-2 rounded">
+          <p className="text-red-600 text-xs">Invalid description format</p>
+        </div>
+      </div>
+    );
+  }
+
+  return (
+    <div className="pt-2 border-t">
+      <p className="text-xs text-muted-foreground mb-1">
+        Description (from Walrus)
+      </p>
+      <div className="text-sm bg-gray-50 px-3 py-2 rounded max-h-32 overflow-y-auto prose prose-sm">
+        <EditorViewer editorSerializedState={editorState} />
+      </div>
+    </div>
+  );
 }
 
 /**
@@ -208,15 +257,7 @@ function CampaignCard({ campaign, network }: CampaignCardProps) {
 
         {/* Walrus Description Preview */}
         {description && (
-          <div className="pt-2 border-t">
-            <p className="text-xs text-muted-foreground mb-1">
-              Description (from Walrus)
-            </p>
-            <div
-              className="text-sm bg-gray-50 px-3 py-2 rounded max-h-32 overflow-y-auto prose prose-sm"
-              dangerouslySetInnerHTML={{ __html: description }}
-            />
-          </div>
+          <DescriptionPreview description={description} />
         )}
 
         {loadingDescription && (
