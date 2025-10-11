@@ -68,7 +68,7 @@ export interface CreateCampaignResult {
   transactionDigest: string;
   walrusBlobId: string;
   subdomain: string;
-  walrusDescriptionUrl: string; // URL to fetch description.html from Walrus
+  walrusDescriptionUrl: string; // URL to fetch description.json from Walrus
   walrusCoverImageUrl: string; // URL to fetch cover.jpg from Walrus
 }
 
@@ -186,7 +186,7 @@ export interface StorageCostEstimate {
 
   // Breakdown by file type
   breakdown: {
-    htmlSize: number;     // Size of description.html
+    jsonSize: number;     // Size of description.json (Lexical editor state)
     imagesSize: number;   // Size of cover image
   };
 
