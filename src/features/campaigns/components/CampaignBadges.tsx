@@ -64,19 +64,19 @@ export function ContributorsBadge({
 }
 
 interface VerificationBadgeProps {
-  validated: boolean;
+  isVerified: boolean;
 }
 
-export function VerificationBadge({ validated }: VerificationBadgeProps) {
+export function VerificationBadge({ isVerified }: VerificationBadgeProps) {
   return (
     <Badge
       variant="outline"
       className={`text-xs px-2 py-0.5 h-6 rounded-lg gap-1.5 border-transparent ${
-        validated ? "bg-green-600 text-white" : "bg-orange-600 text-white"
+        isVerified ? "bg-green-600 text-white" : "bg-orange-600 text-white"
       }`}
     >
       <AlertCircle className="size-3" />
-      {validated ? "Verified" : "Not Verified"}
+      {isVerified ? "Verified" : "Not Verified"}
     </Badge>
   );
 }
