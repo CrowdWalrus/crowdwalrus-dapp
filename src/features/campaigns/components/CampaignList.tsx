@@ -15,7 +15,10 @@ import {
   CardTitle,
 } from "@/shared/components/ui/card";
 import { Button } from "@/shared/components/ui/button";
-import { useMyCampaigns, type CampaignData } from "@/features/campaigns/hooks/useMyCampaigns";
+import {
+  useMyCampaigns,
+  type CampaignData,
+} from "@/features/campaigns/hooks/useMyCampaigns";
 import { getContractConfig } from "@/shared/config/contracts";
 import { DEFAULT_NETWORK } from "@/shared/config/networkConfig";
 import { EditorViewer } from "@/shared/components/editor/blocks/editor-00/viewer";
@@ -157,19 +160,22 @@ function CampaignCard({ campaign, network }: CampaignCardProps) {
   }, [imageObjectUrl]);
 
   // Format dates
-  const formatDate = (timestamp: number) => {
-    return new Date(timestamp * 1000).toLocaleDateString("en-US", {
+  const formatDate = (timestampMs: number) => {
+    if (!Number.isFinite(timestampMs) || timestampMs <= 0) {
+      return "Unknown";
+    }
+    return new Date(timestampMs).toLocaleString("en-US", {
       year: "numeric",
       month: "short",
       day: "numeric",
+      hour: "numeric",
+      minute: "2-digit",
+      timeZoneName: "short",
     });
   };
 
   const { campaignDomain } = getContractConfig(network);
-  const fullSubdomain = formatSubdomain(
-    campaign.subdomainName,
-    campaignDomain,
-  );
+  const fullSubdomain = formatSubdomain(campaign.subdomainName, campaignDomain);
 
   return (
     <Card className="overflow-hidden">
@@ -208,9 +214,9 @@ function CampaignCard({ campaign, network }: CampaignCardProps) {
             </CardDescription>
           </div>
           <div className="flex flex-col gap-1">
-            {campaign.validated && (
+            {campaign.isVerified && (
               <span className="px-2 py-1 text-xs font-semibold bg-green-100 text-green-800 rounded">
-                Validated
+                Verified
               </span>
             )}
             <span
@@ -239,11 +245,11 @@ function CampaignCard({ campaign, network }: CampaignCardProps) {
           </div>
           <div>
             <p className="text-muted-foreground">Start Date</p>
-            <p className="font-semibold">{formatDate(campaign.startDate)}</p>
+            <p className="font-semibold">{formatDate(campaign.startDateMs)}</p>
           </div>
           <div>
             <p className="text-muted-foreground">End Date</p>
-            <p className="font-semibold">{formatDate(campaign.endDate)}</p>
+            <p className="font-semibold">{formatDate(campaign.endDateMs)}</p>
           </div>
         </div>
 
@@ -256,9 +262,7 @@ function CampaignCard({ campaign, network }: CampaignCardProps) {
         </div>
 
         {/* Walrus Description Preview */}
-        {description && (
-          <DescriptionPreview description={description} />
-        )}
+        {description && <DescriptionPreview description={description} />}
 
         {loadingDescription && (
           <div className="pt-2 border-t">
