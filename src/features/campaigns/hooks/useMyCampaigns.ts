@@ -22,11 +22,15 @@ export interface CampaignData {
   name: string;
   shortDescription: string;
   subdomainName: string;
-  startDate: number;
-  endDate: number;
-  createdAt: number;
-  validated: boolean;
+  recipientAddress: string;
+  startDateMs: number;
+  endDateMs: number;
+  createdAtMs: number;
+  isVerified: boolean;
   isActive: boolean;
+  isDeleted: boolean;
+  deletedAtMs: number | null;
+  nextUpdateSeq: number;
 
   // Metadata fields
   fundingGoal: string;
@@ -118,6 +122,82 @@ export function useMyCampaigns(network: 'devnet' | 'testnet' | 'mainnet' = DEFAU
 
           const walrusQuiltId = metadataMap['walrus_quilt_id'] || '';
 
+          const parseU64 = (value: unknown): number => {
+            if (typeof value === 'string' || typeof value === 'number') {
+              const parsed = Number(value);
+              if (!Number.isFinite(parsed)) {
+                return 0;
+              }
+              // Detect legacy seconds-based timestamps and convert to milliseconds
+              if (parsed > 0 && parsed < 1_000_000_000_000) {
+                return parsed * 1000;
+              }
+              return parsed;
+            }
+            if (typeof value === 'bigint') {
+              const parsed = Number(value);
+              if (!Number.isFinite(parsed)) {
+                return 0;
+              }
+              if (parsed > 0 && parsed < 1_000_000_000_000) {
+                return parsed * 1000;
+              }
+              return parsed;
+            }
+            return 0;
+          };
+
+          const parseOptionU64 = (optionValue: unknown): number | null => {
+            if (!optionValue) {
+              return null;
+            }
+            if (typeof optionValue === 'string' || typeof optionValue === 'number') {
+              const parsed = Number(optionValue);
+              if (!Number.isFinite(parsed)) {
+                return null;
+              }
+              if (parsed > 0 && parsed < 1_000_000_000_000) {
+                return parsed * 1000;
+              }
+              return parsed;
+            }
+            if (typeof optionValue === 'object') {
+              const valueObj = optionValue as Record<string, unknown>;
+              if ('fields' in valueObj && valueObj.fields) {
+                const fieldsRecord = valueObj.fields as Record<string, unknown>;
+                const candidates = [
+                  fieldsRecord.value,
+                  fieldsRecord.some,
+                  Array.isArray(fieldsRecord.vec) && fieldsRecord.vec.length > 0
+                    ? fieldsRecord.vec[0]
+                    : undefined,
+                ];
+                for (const candidate of candidates) {
+                  if (candidate !== undefined && candidate !== null) {
+                    const parsed = Number(candidate);
+                    if (Number.isFinite(parsed)) {
+                      if (parsed > 0 && parsed < 1_000_000_000_000) {
+                        return parsed * 1000;
+                      }
+                      return parsed;
+                    }
+                  }
+                }
+              }
+              if ('Some' in valueObj && valueObj.Some !== undefined && valueObj.Some !== null) {
+                const parsed = Number(valueObj.Some);
+                if (!Number.isFinite(parsed)) {
+                  return null;
+                }
+                if (parsed > 0 && parsed < 1_000_000_000_000) {
+                  return parsed * 1000;
+                }
+                return parsed;
+              }
+            }
+            return null;
+          };
+
           console.log(`Campaign "${fields.name}" metadata:`, metadataMap);
           console.log(`Walrus Quilt ID:`, walrusQuiltId);
 
@@ -127,11 +207,15 @@ export function useMyCampaigns(network: 'devnet' | 'testnet' | 'mainnet' = DEFAU
             name: fields.name,
             shortDescription: fields.short_description,
             subdomainName: fields.subdomain_name,
-            startDate: Number(fields.start_date),
-            endDate: Number(fields.end_date),
-            createdAt: Number(fields.created_at),
-            validated: fields.validated,
-            isActive: fields.isActive,
+            recipientAddress: fields.recipient_address ?? metadataMap['recipient_address'] ?? '',
+            startDateMs: parseU64(fields.start_date),
+            endDateMs: parseU64(fields.end_date),
+            createdAtMs: parseU64(fields.created_at_ms ?? fields.created_at),
+            isVerified: fields.is_verified !== undefined ? Boolean(fields.is_verified) : Boolean(fields.validated),
+            isActive: Boolean(fields.is_active ?? fields.isActive),
+            isDeleted: Boolean(fields.is_deleted ?? fields.isDeleted),
+            deletedAtMs: parseOptionU64(fields.deleted_at_ms),
+            nextUpdateSeq: parseU64(fields.next_update_seq ?? fields.nextUpdateSeq ?? 0),
             fundingGoal: metadataMap['funding_goal'] || '0',
             category: metadataMap['category'] || 'Other',
             walrusQuiltId,
@@ -160,7 +244,7 @@ export function useMyCampaigns(network: 'devnet' | 'testnet' | 'mainnet' = DEFAU
         }
       })
       .filter((campaign): campaign is CampaignData => campaign !== null)
-      .sort((a, b) => b.createdAt - a.createdAt);
+      .sort((a, b) => b.createdAtMs - a.createdAtMs);
 
     return processedCampaigns;
   }, [campaignObjects, network]);
