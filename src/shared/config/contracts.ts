@@ -75,15 +75,15 @@ const TESTNET_CONFIG: NetworkContractConfig = {
   contracts: {
     // Package ID from deployment
     packageId:
-      "0x04bdca4b5d72638f99934eaf4afbb9d190d65302d29268d0b527748d0f74679f",
+      "0x7c0e35909394908e79505a301860db084fa0a0d2eace8496528da995e7de3a64",
 
     // CrowdWalrus shared object from deployment
     crowdWalrusObjectId:
-      "0xf4e8ca077d99563a0829e67fc595264774a2c2f2b55085edcedaf46378779aab",
+      "0xf7f40450c3d5adabac7232e97320039bd94f19b8c3b664c90893b514cac4226f",
 
     // SuiNS Manager shared object from deployment
     suinsManagerObjectId:
-      "0x57b7c3942b7e99e2ee9cc9e265caa98e1e35da9aa4a270bcd7ac1b54410ea8e3",
+      "0x8a0b7028dcff9b0a263971caad0716cd8f295f2fc830ef72e1c0f68a42675c01",
 
     // SuiNS registry object ID for custom deployment (crowdwalrus-testnet-core-v2)
     suinsObjectId:
