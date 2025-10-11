@@ -4,6 +4,7 @@
  */
 
 import { Globe } from "lucide-react";
+import { Badge } from "@/shared/components/ui/badge";
 import { Separator } from "@/shared/components/ui/separator";
 import LinkedInSocial from "@/shared/icons/socials/LinkedInSocial";
 import InstagramSocial from "@/shared/icons/socials/InstagramSocial";
@@ -13,7 +14,9 @@ import {
   CategoryBadge,
   ContributorsBadge,
   OpenSoonBadge,
+  StartsBadge,
   StartsInBadge,
+  VerificationBadge,
 } from "./CampaignBadges";
 
 interface CampaignHeroProps {
@@ -21,8 +24,8 @@ interface CampaignHeroProps {
   campaignName: string;
   shortDescription: string;
   isActive: boolean;
-  validated: boolean;
-  startDate: number;
+  isVerified: boolean;
+  startDateMs: number;
   category: string;
   contributorsCount: number;
   publisherAddress: string;
@@ -37,7 +40,9 @@ export function CampaignHero({
   coverImageUrl,
   campaignName,
   shortDescription,
-  startDate,
+  isActive,
+  isVerified,
+  startDateMs,
   category,
   contributorsCount,
   publisherAddress,
@@ -47,9 +52,21 @@ export function CampaignHero({
   socialInstagram,
 }: CampaignHeroProps) {
   // Calculate days until start
-  const now = Date.now() / 1000;
-  const daysUntilStart = Math.ceil((startDate - now) / (24 * 60 * 60));
+  const nowMs = Date.now();
+  const msPerDay = 24 * 60 * 60 * 1000;
+  const daysUntilStart = Math.ceil((startDateMs - nowMs) / msPerDay);
   const isUpcoming = daysUntilStart > 0;
+
+  const formattedStart = Number.isFinite(startDateMs)
+    ? new Date(startDateMs).toLocaleString("en-US", {
+        day: "numeric",
+        month: "short",
+        year: "numeric",
+        hour: "numeric",
+        minute: "2-digit",
+        timeZoneName: "short",
+      })
+    : "Unknown";
 
   return (
     <div className="flex flex-col gap-6 w-full">
@@ -72,15 +89,25 @@ export function CampaignHero({
           {/* Left badges */}
           <div className="flex items-center gap-4">
             {isUpcoming && <OpenSoonBadge />}
-            {isUpcoming && daysUntilStart > 0 && (
+            {isUpcoming && Number.isFinite(daysUntilStart) && daysUntilStart > 0 && (
               <StartsInBadge daysUntilStart={daysUntilStart} />
             )}
+            <StartsBadge formattedDate={formattedStart} />
           </div>
 
           {/* Right badges */}
           <div className="flex items-center gap-4">
             <CategoryBadge category={category} />
             <ContributorsBadge contributorsCount={contributorsCount} />
+            <VerificationBadge isVerified={isVerified} />
+            <Badge
+              variant="outline"
+              className={`text-xs px-2 py-0.5 h-6 rounded-lg gap-1.5 ${
+                isActive ? "bg-blue-100 text-blue-800" : "bg-gray-200 text-gray-700"
+              }`}
+            >
+              {isActive ? "Active" : "Inactive"}
+            </Badge>
           </div>
         </div>
 
