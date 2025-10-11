@@ -170,7 +170,7 @@ export function CampaignPage() {
                 startDateMs={campaign.startDateMs}
                 category={campaign.category}
                 contributorsCount={contributorsCount}
-                publisherAddress={campaign.recipientAddress}
+                publisherAddress={campaign.adminId}
                 socialTwitter={campaign.socialTwitter}
                 socialWebsite={campaign.socialWebsite}
               />
