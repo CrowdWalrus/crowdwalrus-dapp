@@ -21,12 +21,33 @@ consistent with current contract capabilities.
 - **Owner Capability Hook:** Implement
   `useOwnedCampaignCap(campaignId: string, network: 'devnet' | 'testnet' | 'mainnet')`
   in `src/features/campaigns/hooks/useOwnedCampaignCap.ts` using
-  `useSuiClientQuery` with `getOwnedObjects` filtered on
-  `${packageId}::campaign::CampaignOwnerCap`. Get `packageId` via
-  `getContractConfig(network).contracts.packageId`. Return the matching
+  `useSuiClientQuery` with `getOwnedObjects`. **IMPORTANT:** Must pass `owner`
+  parameter with current account address (use `useCurrentAccount()` from
+  `@mysten/dapp-kit`). Filter results by type
+  `${packageId}::campaign::CampaignOwnerCap` and match against `campaignId` by
+  checking the cap's `campaign_id` field. Get `packageId` via
+  `getContractConfig(network).contracts.packageId`. Return the matching cap's
   `objectId` or `null`. Show a dedicated "Not authorized" state (no edit form)
   when the cap is absent. Default React Query caching is fine; refetch when the
   connected wallet changes.
+  ```ts
+  // Example implementation
+  export function useOwnedCampaignCap(campaignId: string, network: ...) {
+    const account = useCurrentAccount();
+    return useSuiClientQuery(
+      "getOwnedObjects",
+      {
+        owner: account?.address as string, // REQUIRED!
+        filter: {
+          StructType: `${packageId}::campaign::CampaignOwnerCap`,
+        },
+        options: { showContent: true },
+      },
+      { enabled: !!account && !!campaignId }
+    );
+    // Then filter results to find cap where cap.campaign_id === campaignId
+  }
+  ```
 - **Loading Coordination:** Gate render on
   `isLoadingCampaign || isLoadingCap || isLoadingWalrus`. Display skeletons
   while loading, "Not authorized" when the cap is missing, and "Not found" if
@@ -57,7 +78,21 @@ consistent with current contract capabilities.
       })
       .extend({
         coverImage: z.instanceof(File).optional(),
-        campaignDetails: z.string().optional(),
+        campaignDetails: z
+          .string()
+          .optional()
+          .refine(
+            (val) => {
+              if (!val || val === "") return true; // Allow empty/undefined
+              try {
+                JSON.parse(val);
+                return true;
+              } catch {
+                return false;
+              }
+            },
+            { message: "Invalid campaign details format (must be valid JSON)" },
+          ),
       });
   ```
   Timeline and funding goal edits are out of scope because the contract does not
@@ -74,8 +109,9 @@ consistent with current contract capabilities.
     `campaign.socialDiscord`, `campaign.socialWebsite`
   - `campaignDetails` → Fetched from `useWalrusDescription` (Lexical JSON
     string)
-  - Keep the original cover metadata (`name`, `size`, `lastModified`) for dirty
-    comparison.
+  - **Note on cover image:** The hook only provides the Walrus URL, not the
+    original File object metadata. For dirty detection, treat any new file
+    selection as requiring an upload (see Section 4).
 - **Metadata Storage Clarification:**
   - `campaign_type`: Stores the campaign type ("flexible", "nonprofit",
     "commercial"). This is a separate concept from category and will have
@@ -130,8 +166,10 @@ consistent with current contract capabilities.
   [Cancel]  [Proceed]
   ```
 - **Component Reuse & Audit:**
-  - ✅ `CampaignCoverImageUpload`, `CampaignDetailsEditor`,
-    `CampaignStorageRegistrationCard` - reuse with `disabled` prop
+  - ✅ `CampaignCoverImageUpload`, `CampaignDetailsEditor` - reuse with
+    `disabled` prop
+  - ⚠️ `CampaignStorageRegistrationCard` - needs new `hideRegisterButton` prop
+    to conditionally hide "Register Storage" button
   - ⚠️ `CampaignTimeline`, `CampaignSocialsSection` - require adapters to honor
     `disabled` prop (disable popovers/triggers when not editing)
   - ℹ️ `CampaignFundingTargetSection` - becomes read-only (funding goal
@@ -152,9 +190,11 @@ consistent with current contract capabilities.
   - **Metadata-backed fields:** `campaignType` (stored as `campaign_type`),
     `categories` (stored as `category`), social links (`socials`)
   - **Walrus-backed fields:** `coverImage`, `campaignDetails`, storage epochs
-- **File Comparison:** Because RHF treats any `File` re-selection as dirty,
-  compare the new file against the original metadata (name, size, lastModified)
-  to decide if an upload is truly required.
+- **File Comparison:** Since we only have the Walrus URL (not the original File
+  object), we cannot compare file metadata. Therefore, treat **any** file
+  re-selection as requiring a new Walrus upload. This is safe and ensures
+  changed files are always uploaded. If no file is selected (field is
+  `undefined`), the cover image remains unchanged.
 - **Lexical JSON:** Use string comparison for `campaignDetails`, treating
   `undefined` and `""` equivalently when both represent "unchanged".
 - **Feedback:** Each `EditableSection` should display "Unsaved changes" when
@@ -163,21 +203,57 @@ consistent with current contract capabilities.
 
 ## 5. Walrus Flow Integration
 
-- **Hook Augmentation:** Extend `useWalrusUpload` hook (in
-  `src/features/campaigns/hooks/useWalrusUpload.ts`) to accept
-  `{ existingBlobId?: string, shouldUpload: boolean }`. When `shouldUpload` is
-  false, short-circuit and return `{ blobId: existingBlobId }`. When true but no
-  content is provided, throw a descriptive error before signing any transaction.
+- **Hook Usage:** The existing `useWalrusUpload` hook (in
+  `src/features/campaigns/hooks/useWalrusUpload.ts`) provides four separate
+  mutations: `prepare`, `register`, `upload`, and `certify`. **Do not modify the
+  hook** - it's designed for stepwise control. Instead, handle conditional logic
+  in `EditCampaignPage`:
+  - If Walrus-backed fields are unchanged (`coverImage` and `campaignDetails`
+    both clean), skip the entire Walrus flow and reuse the existing
+    `walrus_quilt_id`.
+  - If either field is dirty, run the full prepare → register → upload → certify
+    pipeline with the updated files.
 - **Upload Pipeline:** When Walrus fields changed, run prepare → register →
   upload → certify. Capture the new `walrus_quilt_id`, `walrus_storage_epochs`,
-  and `cover_image_id`. Partial edits (description only) still use the same
-  pipeline—cover image re-upload is optional.
+  and `cover_image_id`.
+  - **For partial edits (description-only):** If the user hasn't selected a new
+    cover image but `campaignDetails` is dirty, you must download the existing
+    cover image from `campaign.coverImageUrl` (which is derived from
+    `walrus_quilt_id` + `cover_image_id` metadata by the `useCampaign` hook) and
+    convert it to a File object before calling `prepareCampaignFiles`:
+    ```ts
+    // Download existing cover image from Walrus
+    const coverResponse = await fetch(campaign.coverImageUrl);
+    if (!coverResponse.ok) {
+      throw new Error('Failed to fetch existing cover image from Walrus');
+    }
+    const coverBlob = await coverResponse.blob();
+    const coverFile = new File([coverBlob], 'cover.jpg', {
+      type: coverBlob.type || 'image/jpeg',
+    });
+
+    // Now prepare campaign files with existing cover + new description
+    const formDataForUpload: CampaignFormData = {
+      ...existingCampaignData,
+      cover_image: coverFile, // Reconstructed from Walrus URL
+      full_description: newDescriptionJSON, // Updated
+    };
+    const files = await prepareCampaignFiles(formDataForUpload);
+    ```
+  - This is necessary because `prepareCampaignFiles` (in
+    `src/services/walrus.ts`) expects `formData.cover_image` to be a File
+    object, not a URL. Without this step, description-only edits would fail at
+    the prepare stage.
 - **Storage Card:** Reuse `CampaignStorageRegistrationCard` to display WAL cost
-  and epochs. Lock it when unchanged; unlocking should invoke the Walrus warning
-  modal first.
-  - If no Walrus-backed field is dirty (`shouldUploadWalrus === false`), hide
-    the "Register Storage" action and surface only a "Publish Update" primary
-    CTA.
+  and epochs. **Component modification required:** Add a new prop
+  `hideRegisterButton?: boolean` to the component (in
+  `src/features/campaigns/components/new-campaign/CampaignStorageRegistrationCard.tsx`)
+  because it currently always shows the "Register Storage" button when
+  `!storageRegistered`. Lock the card when unchanged; unlocking should invoke
+  the Walrus warning modal first.
+  - If no Walrus-backed field is dirty (`shouldUploadWalrus === false`), pass
+    `hideRegisterButton={true}` to hide the "Register Storage" button and
+    surface only a "Publish Update" primary CTA outside the card.
 
 ## 6. Transaction Builders & Mutations
 
@@ -593,7 +669,7 @@ Otherwise, execute the single relevant transaction to minimize gas.
 | `CampaignTimeline`                  | ⚠️ Make read-only             | Timeline cannot be edited (no contract support); always show as locked  |
 | `CampaignFundingTargetSection`      | ℹ️ Read-only                  | Display funding goal; remove inputs (immutable on-chain)                |
 | `CampaignSocialsSection`            | ⚠️ Needs wrapper              | Disable selects, inputs, and add/remove buttons when not editing        |
-| `CampaignStorageRegistrationCard`   | ✅ Reuse                      | Toggle edit mode + Walrus warning                                       |
+| `CampaignStorageRegistrationCard`   | ⚠️ Needs new prop             | Add `hideRegisterButton` prop to conditionally hide button; toggle edit mode + Walrus warning |
 | `CampaignTypeSelector`              | ✅ Reuse                      | Editable; stored in metadata as `campaign_type`                         |
 | `CampaignCategorySelector`          | ✅ Reuse                      | Editable; stored in metadata as `category` (comma-separated)            |
 | `CampaignTermsAndConditionsSection` | ❌ Skip                       | Creation-only requirement                                               |
