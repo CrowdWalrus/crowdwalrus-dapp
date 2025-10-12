@@ -67,7 +67,11 @@ const PLATFORM_CONFIG = {
   },
 } as const;
 
-export function CampaignSocialsSection() {
+interface CampaignSocialsSectionProps {
+  disabled?: boolean;
+}
+
+export function CampaignSocialsSection({ disabled = false }: CampaignSocialsSectionProps) {
   const {
     control,
     watch,
@@ -79,6 +83,9 @@ export function CampaignSocialsSection() {
   });
 
   const handleAddMore = () => {
+    if (disabled) {
+      return;
+    }
     append({ platform: "website", url: "" });
   };
 
@@ -105,8 +112,9 @@ export function CampaignSocialsSection() {
                     <Select
                       value={controllerField.value}
                       onValueChange={controllerField.onChange}
+                      disabled={disabled}
                     >
-                      <SelectTrigger className="w-40">
+                      <SelectTrigger className="w-40" disabled={disabled}>
                         <SelectValue />
                       </SelectTrigger>
                       <SelectContent>
@@ -140,6 +148,7 @@ export function CampaignSocialsSection() {
                         placeholder={config?.placeholder || "https://"}
                         className="w-full"
                         {...controllerField}
+                        disabled={disabled}
                       />
                     )}
                   />
@@ -151,8 +160,9 @@ export function CampaignSocialsSection() {
                 </div>
                 <button
                   type="button"
-                  onClick={() => remove(index)}
-                  className="shrink-0 size-5 flex items-center justify-center text-red-300 hover:text-red-400 transition-colors mt-3"
+                  onClick={() => !disabled && remove(index)}
+                  className="shrink-0 size-5 flex items-center justify-center text-red-300 hover:text-red-400 transition-colors mt-3 disabled:opacity-50"
+                  disabled={disabled}
                 >
                   <X className="size-[15.417px]" />
                 </button>
@@ -166,6 +176,7 @@ export function CampaignSocialsSection() {
           size="sm"
           className="w-40"
           onClick={handleAddMore}
+          disabled={disabled}
           type="button"
         >
           <Plus className="size-[13.25px]" />
