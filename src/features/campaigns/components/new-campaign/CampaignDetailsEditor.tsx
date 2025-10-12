@@ -5,10 +5,12 @@ import { SerializedEditorState } from "lexical";
 
 export interface CampaignDetailsEditorProps {
   disabled?: boolean;
+  instanceKey?: number;
 }
 
 export function CampaignDetailsEditor({
   disabled = false,
+  instanceKey,
 }: CampaignDetailsEditorProps) {
   const { control } = useFormContext();
 
@@ -21,7 +23,15 @@ export function CampaignDetailsEditor({
           onChange(JSON.stringify(serializedState));
         };
 
-        const editorState = value ? JSON.parse(value) : undefined;
+        let editorState: SerializedEditorState | undefined;
+        if (value) {
+          try {
+            editorState = JSON.parse(value);
+          } catch (parseError) {
+            console.warn("Failed to parse campaign details editor state:", parseError);
+            editorState = undefined;
+          }
+        }
 
         return (
           <div>
@@ -35,6 +45,7 @@ export function CampaignDetailsEditor({
               </p>
             </div>
             <Editor
+              key={instanceKey ?? 0}
               editorSerializedState={editorState}
               onSerializedChange={handleEditorChange}
               readOnly={disabled}
