@@ -41,6 +41,8 @@ interface CampaignStorageRegistrationCardProps {
   isLocked?: boolean;
   storageRegistered?: boolean;
   estimatedCost?: StorageCostEstimate | null;
+  hideRegisterButton?: boolean;
+  disabled?: boolean;
 }
 
 export function CampaignStorageRegistrationCard({
@@ -60,6 +62,8 @@ export function CampaignStorageRegistrationCard({
   isLocked = false,
   storageRegistered = false,
   estimatedCost,
+  hideRegisterButton = false,
+  disabled = false,
 }: CampaignStorageRegistrationCardProps) {
   // Get network-specific storage duration options
   const storageDurationOptions = useNetworkVariable(
@@ -94,6 +98,8 @@ export function CampaignStorageRegistrationCard({
     ? `${format(addDays(new Date(), totalDays), "MMM d, yyyy")} (${totalDays} day${totalDays !== 1 ? "s" : ""})`
     : "Select period";
 
+  const controlsDisabled = disabled || isLocked;
+
   return (
     <section className="flex flex-col gap-8 mb-12">
       <div className="flex flex-col gap-2">
@@ -113,9 +119,9 @@ export function CampaignStorageRegistrationCard({
             </label>
             <Select
               value={defaultValue}
-              disabled={isLocked}
+              disabled={controlsDisabled}
               onValueChange={(value) => {
-                if (isLocked) {
+                if (controlsDisabled) {
                   return;
                 }
                 const option = storageDurationOptions.find(
@@ -128,7 +134,7 @@ export function CampaignStorageRegistrationCard({
             >
               <SelectTrigger
                 className="bg-white border-black-50"
-                disabled={isLocked}
+                disabled={controlsDisabled}
               >
                 <SelectValue />
               </SelectTrigger>
@@ -160,6 +166,21 @@ export function CampaignStorageRegistrationCard({
                   <span className="font-normal">Registration expires</span>
                   <span className="font-medium">{registrationExpires}</span>
                 </div>
+                {costs.length > 0 && (
+                  <div className="flex flex-col gap-2">
+                    {costs.map((cost) => (
+                      <div
+                        key={cost.label}
+                        className="flex items-center justify-between text-xs text-muted-foreground"
+                      >
+                        <span>{cost.label}</span>
+                        <span className="font-medium text-[#3d3f49]">
+                          {cost.amount}
+                        </span>
+                      </div>
+                    ))}
+                  </div>
+                )}
               </div>
               <div className="h-px bg-[#e7e7e8]" />
               <div className="flex items-center justify-between pt-1 rounded-lg">
@@ -221,7 +242,7 @@ export function CampaignStorageRegistrationCard({
           )}
 
           {/* Register Button */}
-          {!storageRegistered && (
+          {!storageRegistered && !hideRegisterButton && (
             <div className="flex justify-end">
               <Button
                 type="button"
@@ -229,7 +250,7 @@ export function CampaignStorageRegistrationCard({
                 className="bg-white border-black-50 min-h-[40px] px-6"
                 onClick={onRegister}
                 disabled={
-                  isLocked ||
+                  controlsDisabled ||
                   hasInsufficientBalance ||
                   isCalculating ||
                   isPreparing ||
