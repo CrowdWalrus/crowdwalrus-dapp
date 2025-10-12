@@ -49,6 +49,22 @@ export interface CampaignMetadata {
 }
 
 /**
+ * Partial metadata patch used when editing existing campaigns.
+ * Keys align with Move contract expectations (snake_case).
+ */
+export interface MetadataPatch {
+  walrus_quilt_id?: string;
+  walrus_storage_epochs?: string;
+  cover_image_id?: string;
+  campaign_type?: string;
+  category?: string;
+  social_twitter?: string;
+  social_discord?: string;
+  social_website?: string;
+  [key: string]: string | undefined;
+}
+
+/**
  * Result from uploading campaign files to Walrus
  */
 export interface WalrusUploadResult {
