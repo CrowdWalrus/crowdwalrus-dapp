@@ -882,7 +882,7 @@ export default function EditCampaignPage() {
                   render={({ field }) => (
                     <FormItem>
                       <div className="flex flex-wrap items-center justify-between gap-3">
-                        <FormLabel>
+                        <FormLabel className="font-medium text-base leading-[1.6]">
                           Title <span className="text-red-300">*</span>
                         </FormLabel>
                         <div className="flex items-center gap-3">
@@ -908,7 +908,7 @@ export default function EditCampaignPage() {
                   render={({ field }) => (
                     <FormItem>
                       <div className="flex flex-wrap items-center justify-between gap-3">
-                        <FormLabel>
+                        <FormLabel className="font-medium text-base leading-[1.6]">
                           Short description <span className="text-red-300">*</span>
                         </FormLabel>
                         <div className="flex items-center gap-3">
