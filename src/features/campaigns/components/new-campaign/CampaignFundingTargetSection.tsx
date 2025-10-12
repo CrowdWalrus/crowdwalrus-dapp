@@ -9,8 +9,47 @@ import {
 } from "@/shared/components/ui/form";
 import { DollarSign } from "lucide-react";
 
-export function CampaignFundingTargetSection() {
+interface CampaignFundingTargetSectionProps {
+  readOnly?: boolean;
+  fundingGoal?: string;
+  recipientAddress?: string;
+}
+
+export function CampaignFundingTargetSection({
+  readOnly = false,
+  fundingGoal,
+  recipientAddress,
+}: CampaignFundingTargetSectionProps) {
   const { control } = useFormContext();
+
+  if (readOnly) {
+    return (
+      <section className="flex flex-col gap-4">
+        <h2 className="font-bold text-2xl leading-[1.6]">Funding Target</h2>
+        <p className="text-sm text-muted-foreground">
+          Funding goal and recipient address are immutable once the campaign is live.
+        </p>
+        <div className="flex flex-col gap-4 rounded-lg border border-border bg-muted/20 p-4">
+          <div>
+            <p className="text-xs uppercase tracking-wide text-muted-foreground">
+              Funding goal
+            </p>
+            <p className="text-lg font-semibold text-foreground">
+              {fundingGoal ?? "—"}
+            </p>
+          </div>
+          <div>
+            <p className="text-xs uppercase tracking-wide text-muted-foreground">
+              Recipient address
+            </p>
+            <p className="break-all text-sm font-medium text-foreground">
+              {recipientAddress ?? "—"}
+            </p>
+          </div>
+        </div>
+      </section>
+    );
+  }
 
   return (
     <section className="flex flex-col gap-8">
