@@ -60,7 +60,12 @@ import {
 } from "@/shared/components/ui/form";
 import { Input } from "@/shared/components/ui/input";
 import { Textarea } from "@/shared/components/ui/textarea";
-import { AlertCircle as AlertCircleIcon, DollarSign } from "lucide-react";
+import {
+  AlertCircle as AlertCircleIcon,
+  DollarSign,
+  PencilIcon,
+  PencilLineIcon,
+} from "lucide-react";
 import { Label } from "@/shared/components/ui/label";
 
 interface UseWalrusDescriptionResult {
@@ -72,13 +77,7 @@ interface UseWalrusDescriptionResult {
 }
 
 function useWalrusDescription(url: string): UseWalrusDescriptionResult {
-  const {
-    data,
-    isLoading,
-    isError,
-    error,
-    refetch,
-  } = useQuery({
+  const { data, isLoading, isError, error, refetch } = useQuery({
     queryKey: ["walrus-description", url],
     enabled: Boolean(url),
     queryFn: async () => {
@@ -182,7 +181,9 @@ async function fetchCoverImageFile(url: string): Promise<File> {
   }
   const blob = await response.blob();
   const extension = blob.type === "image/png" ? "png" : "jpg";
-  return new File([blob], `cover.${extension}`, { type: blob.type || "image/jpeg" });
+  return new File([blob], `cover.${extension}`, {
+    type: blob.type || "image/jpeg",
+  });
 }
 
 export default function EditCampaignPage() {
@@ -194,7 +195,9 @@ export default function EditCampaignPage() {
   const [initialized, setInitialized] = useState(false);
   const [initialDescription, setInitialDescription] = useState("");
   const [walrusErrorAcknowledged, setWalrusErrorAcknowledged] = useState(false);
-  const [editingSections, setEditingSections] = useState<Record<SectionKey, boolean>>({
+  const [editingSections, setEditingSections] = useState<
+    Record<SectionKey, boolean>
+  >({
     campaignName: false,
     description: false,
     coverImage: false,
@@ -205,7 +208,9 @@ export default function EditCampaignPage() {
   });
   const [pendingWalrusSection, setPendingWalrusSection] =
     useState<SectionKey | null>(null);
-  const [savedSections, setSavedSections] = useState<Record<SectionKey, number>>({
+  const [savedSections, setSavedSections] = useState<
+    Record<SectionKey, number>
+  >({
     campaignName: 0,
     description: 0,
     coverImage: 0,
@@ -279,7 +284,8 @@ export default function EditCampaignPage() {
   const walrus = useWalrusUpload();
   const updateBasics = useUpdateCampaignBasics();
   const updateMetadata = useUpdateCampaignMetadata();
-  const { mutateAsync: signAndExecuteTransaction } = useSignAndExecuteTransaction();
+  const { mutateAsync: signAndExecuteTransaction } =
+    useSignAndExecuteTransaction();
 
   const hasCampaign = Boolean(campaign);
   const isDeleted = campaign?.isDeleted ?? false;
@@ -295,8 +301,7 @@ export default function EditCampaignPage() {
 
     const descriptionValue = isWalrusError ? "" : walrusDescription;
     const shouldReset =
-      !initialized ||
-      (initialDescription === "" && Boolean(descriptionValue));
+      !initialized || (initialDescription === "" && Boolean(descriptionValue));
 
     if (!shouldReset) {
       return;
@@ -362,7 +367,9 @@ export default function EditCampaignPage() {
         <div className="container max-w-4xl">
           <Card className="border-red-500">
             <CardContent className="pt-6">
-              <p className="text-red-600 font-semibold mb-2">Campaign ID missing</p>
+              <p className="text-red-600 font-semibold mb-2">
+                Campaign ID missing
+              </p>
               <p className="text-sm text-muted-foreground">
                 Please navigate to this page with a valid campaign identifier.
               </p>
@@ -417,8 +424,12 @@ export default function EditCampaignPage() {
         <div className="container max-w-4xl">
           <Card className="border-yellow-500">
             <CardContent className="pt-6 flex flex-col gap-2">
-              <p className="text-yellow-600 font-semibold">Campaign not found</p>
-              <p className="text-sm text-muted-foreground">Campaign ID: {campaignId}</p>
+              <p className="text-yellow-600 font-semibold">
+                Campaign not found
+              </p>
+              <p className="text-sm text-muted-foreground">
+                Campaign ID: {campaignId}
+              </p>
               <Button variant="link" asChild>
                 <Link to={ROUTES.HOME}>Back to home</Link>
               </Button>
@@ -435,9 +446,12 @@ export default function EditCampaignPage() {
         <div className="container max-w-4xl">
           <Card className="border-yellow-500">
             <CardContent className="pt-6 flex flex-col gap-2">
-              <p className="text-yellow-600 font-semibold">Connect your wallet</p>
+              <p className="text-yellow-600 font-semibold">
+                Connect your wallet
+              </p>
               <p className="text-sm text-muted-foreground">
-                Please connect the wallet that owns this campaign to continue with edits.
+                Please connect the wallet that owns this campaign to continue
+                with edits.
               </p>
             </CardContent>
           </Card>
@@ -456,7 +470,9 @@ export default function EditCampaignPage() {
                 <p className="text-red-600 font-semibold mb-1">
                   Error verifying ownership
                 </p>
-                <p className="text-sm text-muted-foreground">{capError.message}</p>
+                <p className="text-sm text-muted-foreground">
+                  {capError.message}
+                </p>
               </div>
               <Button variant="outline" onClick={() => refetchCap()}>
                 Retry
@@ -476,7 +492,8 @@ export default function EditCampaignPage() {
             <CardContent className="pt-6 flex flex-col gap-2">
               <p className="text-red-600 font-semibold">Not authorized</p>
               <p className="text-sm text-muted-foreground">
-                The connected wallet does not have permission to edit this campaign.
+                The connected wallet does not have permission to edit this
+                campaign.
               </p>
             </CardContent>
           </Card>
@@ -499,7 +516,8 @@ export default function EditCampaignPage() {
   const formattedFundingGoal = campaignData.fundingGoal ?? "";
   const formattedRecipientAddress = campaignData.recipientAddress ?? "";
 
-  const dirtyFields = form.formState.dirtyFields as FieldNamesMarkedBoolean<EditCampaignFormData>;
+  const dirtyFields = form.formState
+    .dirtyFields as FieldNamesMarkedBoolean<EditCampaignFormData>;
   const campaignNameDirty = isEditFieldDirty(dirtyFields, "campaignName");
   const descriptionDirty = isEditFieldDirty(dirtyFields, "description");
   const coverImageDirty = Boolean(dirtyFields.coverImage);
@@ -537,8 +555,7 @@ export default function EditCampaignPage() {
   const toggleSectionEditing = (section: SectionKey, nextValue?: boolean) => {
     setEditingSections((prev) => ({
       ...prev,
-      [section]:
-        typeof nextValue === "boolean" ? nextValue : !prev[section],
+      [section]: typeof nextValue === "boolean" ? nextValue : !prev[section],
     }));
   };
 
@@ -580,7 +597,9 @@ export default function EditCampaignPage() {
 
   const handleSubmit = form.handleSubmit(async (values) => {
     if (!ownerCapId) {
-      toast.error("Missing campaign owner capability. Connect the correct wallet and try again.");
+      toast.error(
+        "Missing campaign owner capability. Connect the correct wallet and try again.",
+      );
       return;
     }
 
@@ -612,19 +631,21 @@ export default function EditCampaignPage() {
       if (shouldUploadWalrus) {
         const epochsToUse = nextStorageEpochs ?? selectedEpochs ?? 0;
         if (!epochsToUse) {
-          throw new Error("Storage epochs must be greater than zero for Walrus uploads.");
+          throw new Error(
+            "Storage epochs must be greater than zero for Walrus uploads.",
+          );
         }
 
-        const coverImageFile = coverImageChanged && values.coverImage
-          ? values.coverImage
-          : await fetchCoverImageFile(campaignData.coverImageUrl);
+        const coverImageFile =
+          coverImageChanged && values.coverImage
+            ? values.coverImage
+            : await fetchCoverImageFile(campaignData.coverImageUrl);
 
         const walrusFormData = {
           name: campaignData.name,
           short_description: values.description,
           subdomain_name: campaignData.subdomainName,
-          category:
-            metadataUpdates.category ?? campaignData.category ?? "",
+          category: metadataUpdates.category ?? campaignData.category ?? "",
           funding_goal: campaignData.fundingGoal ?? "0",
           start_date: new Date(campaignData.startDateMs),
           end_date: new Date(campaignData.endDateMs),
@@ -632,11 +653,17 @@ export default function EditCampaignPage() {
           full_description: values.campaignDetails ?? "",
           cover_image: coverImageFile,
           social_twitter:
-            metadataUpdates.social_twitter ?? campaignData.socialTwitter ?? undefined,
+            metadataUpdates.social_twitter ??
+            campaignData.socialTwitter ??
+            undefined,
           social_discord:
-            metadataUpdates.social_discord ?? campaignData.socialDiscord ?? undefined,
+            metadataUpdates.social_discord ??
+            campaignData.socialDiscord ??
+            undefined,
           social_website:
-            metadataUpdates.social_website ?? campaignData.socialWebsite ?? undefined,
+            metadataUpdates.social_website ??
+            campaignData.socialWebsite ??
+            undefined,
         };
 
         const flowState = await walrus.prepare.mutateAsync({
@@ -653,14 +680,16 @@ export default function EditCampaignPage() {
         const certifyResult = await walrus.certify.mutateAsync(flowState);
 
         metadataUpdates.walrus_quilt_id = certifyResult.blobId;
-        metadataUpdates.walrus_storage_epochs = certifyResult.storageEpochs.toString();
+        metadataUpdates.walrus_storage_epochs =
+          certifyResult.storageEpochs.toString();
         metadataUpdates.cover_image_id = "cover.jpg";
         setInitialDescription(values.campaignDetails ?? "");
         setDescriptionInstanceKey((prev) => prev + 1);
       }
 
       const metadataKeys = Object.keys(metadataUpdates).filter(
-        (key) => metadataUpdates[key as keyof typeof metadataUpdates] !== undefined,
+        (key) =>
+          metadataUpdates[key as keyof typeof metadataUpdates] !== undefined,
       );
 
       const hasMetadataPayload = metadataKeys.length > 0;
@@ -688,7 +717,8 @@ export default function EditCampaignPage() {
         });
 
         const metadataValues = metadataKeys.map(
-          (key) => metadataUpdates[key as keyof typeof metadataUpdates] as string,
+          (key) =>
+            metadataUpdates[key as keyof typeof metadataUpdates] as string,
         );
 
         tx.moveCall({
@@ -800,13 +830,20 @@ export default function EditCampaignPage() {
     return (
       <Button
         type="button"
-        variant="outline"
+        variant="secondary"
         size="sm"
         onClick={() => handleEditToggle(section)}
         disabled={shouldDisable}
         aria-pressed={isEditing}
       >
-        {isEditing ? "Done" : "Edit"}
+        {isEditing ? (
+          "Done"
+        ) : (
+          <div className="flex items-center gap-2">
+            <PencilLineIcon className="size-4" />
+            Edit
+          </div>
+        )}
       </Button>
     );
   };
@@ -844,21 +881,28 @@ export default function EditCampaignPage() {
               <div className="flex flex-col items-center text-center gap-4">
                 <h1 className="text-4xl font-bold">Edit Campaign</h1>
                 <p className="text-muted-foreground text-base">
-                  Keep your campaign details up to date. Timeline, funding goal, and donation
-                  address stay read-only after launch.
+                  Keep your campaign details up to date. Timeline, funding goal,
+                  and donation address stay read-only after launch.
                 </p>
               </div>
 
               {walrusWarningVisible ? (
                 <Alert className="border-yellow-500 bg-yellow-50">
                   <AlertDescription className="flex flex-col gap-3 text-yellow-800">
-                    <span className="font-semibold">Unable to load Walrus content</span>
+                    <span className="font-semibold">
+                      Unable to load Walrus content
+                    </span>
                     <span className="text-sm">
-                      We couldn’t load the campaign media from Walrus. You can still edit basics
-                      and metadata, but media sections stay disabled until the content loads.
+                      We couldn’t load the campaign media from Walrus. You can
+                      still edit basics and metadata, but media sections stay
+                      disabled until the content loads.
                     </span>
                     <div className="flex gap-2">
-                      <Button size="sm" variant="outline" onClick={handleRetryWalrus}>
+                      <Button
+                        size="sm"
+                        variant="outline"
+                        onClick={handleRetryWalrus}
+                      >
                         Retry
                       </Button>
                       <Button
@@ -880,13 +924,15 @@ export default function EditCampaignPage() {
                   control={form.control}
                   name="campaignName"
                   render={({ field }) => (
-                    <FormItem>
-                      <div className="flex flex-wrap items-center justify-between gap-3">
-                        <FormLabel className="font-medium text-base leading-[1.6]">
+                    <FormItem className="flex flex-col gap-4">
+                      <div className="flex items-center justify-between">
+                        <FormLabel className="font-medium text-base">
                           Title <span className="text-red-300">*</span>
                         </FormLabel>
                         <div className="flex items-center gap-3">
-                          <FieldStatusBadge status={sectionStatuses.campaignName} />
+                          <FieldStatusBadge
+                            status={sectionStatuses.campaignName}
+                          />
                           {renderEditButton("campaignName")}
                         </div>
                       </div>
@@ -906,13 +952,16 @@ export default function EditCampaignPage() {
                   control={form.control}
                   name="description"
                   render={({ field }) => (
-                    <FormItem>
-                      <div className="flex flex-wrap items-center justify-between gap-3">
-                        <FormLabel className="font-medium text-base leading-[1.6]">
-                          Short description <span className="text-red-300">*</span>
+                    <FormItem className="flex flex-col gap-4">
+                      <div className="flex items-center justify-between">
+                        <FormLabel className="font-medium text-base">
+                          Short description{" "}
+                          <span className="text-red-300">*</span>
                         </FormLabel>
                         <div className="flex items-center gap-3">
-                          <FieldStatusBadge status={sectionStatuses.description} />
+                          <FieldStatusBadge
+                            status={sectionStatuses.description}
+                          />
                           {renderEditButton("description")}
                         </div>
                       </div>
@@ -930,8 +979,8 @@ export default function EditCampaignPage() {
                 />
 
                 <div className="flex flex-col gap-2">
-                  <div className="flex flex-wrap items-center justify-between gap-3">
-                    <Label className="font-medium text-base leading-[1.6]">
+                  <div className="flex items-center justify-between">
+                    <Label className="font-medium text-base">
                       Sub-name <span className="text-red-300">*</span>
                     </Label>
                     <FieldStatusBadge status="Can't Edit" />
@@ -947,7 +996,9 @@ export default function EditCampaignPage() {
                 <CampaignCoverImageUpload
                   disabled={!editingSections.coverImage}
                   initialPreviewUrl={coverImagePreviewUrl}
-                  labelStatus={<FieldStatusBadge status={sectionStatuses.coverImage} />}
+                  labelStatus={
+                    <FieldStatusBadge status={sectionStatuses.coverImage} />
+                  }
                   labelAction={renderEditButton("coverImage")}
                 />
               </section>
@@ -956,94 +1007,101 @@ export default function EditCampaignPage() {
 
               <CampaignTypeSelector
                 disabled={!editingSections.campaignType}
-                headerStatus={<FieldStatusBadge status={sectionStatuses.campaignType} />}
+                headerStatus={
+                  <FieldStatusBadge status={sectionStatuses.campaignType} />
+                }
                 headerAction={renderEditButton("campaignType")}
               />
 
               <CampaignCategorySelector
                 disabled={!editingSections.categories}
-              headerStatus={<FieldStatusBadge status={sectionStatuses.categories} />}
-              headerAction={renderEditButton("categories")}
-            />
+                headerStatus={
+                  <FieldStatusBadge status={sectionStatuses.categories} />
+                }
+                headerAction={renderEditButton("categories")}
+              />
 
-            <Separator />
+              <Separator />
 
-            <section className="flex flex-col gap-6">
-              <div className="flex flex-wrap items-center justify-between gap-3">
-                <h2 className="text-2xl font-semibold">Campaign Timeline</h2>
-                <FieldStatusBadge status="Can't Edit" />
-              </div>
-              <p className="text-sm text-muted-foreground">
-                Timeline cannot be edited after launch. These dates were set when the campaign was created.
-              </p>
-              <div className="grid gap-6 sm:grid-cols-2">
-                <div className="flex flex-col gap-2">
-                  <Label className="font-medium text-base leading-[1.6]">Start date</Label>
-                  <Input
-                    value={formattedStartDate}
-                    disabled
-                    readOnly
-                    placeholder="Select start date"
-                  />
+              <section className="flex flex-col gap-6">
+                <div className="flex items-center justify-between">
+                  <h2 className="text-2xl font-semibold">Campaign Timeline</h2>
+                  <FieldStatusBadge status="Can't Edit" />
                 </div>
-                <div className="flex flex-col gap-2">
-                  <Label className="font-medium text-base leading-[1.6]">End date</Label>
-                  <Input
-                    value={formattedEndDate}
-                    disabled
-                    readOnly
-                    placeholder="Select end date"
-                  />
-                </div>
-              </div>
-            </section>
-
-            <section className="flex flex-col gap-8">
-              <div className="flex flex-wrap items-center justify-between gap-3">
-                <h2 className="text-2xl font-semibold">Funding Target</h2>
-                <FieldStatusBadge status="Can't Edit" />
-              </div>
-              <div className="flex flex-col gap-8">
-                <div className="flex flex-col gap-2">
-                  <Label className="font-medium text-base leading-[1.6]">
-                    Add a max funding amount for your campaign
-                  </Label>
-                  <div className="relative">
-                    <DollarSign className="absolute left-4 top-1/2 -translate-y-1/2 size-5 text-[#737373]" />
+                <p className="text-sm text-muted-foreground">
+                  Timeline cannot be edited after launch. These dates were set
+                  when the campaign was created.
+                </p>
+                <div className="grid gap-6 sm:grid-cols-2">
+                  <div className="flex flex-col gap-2">
+                    <Label className="font-medium text-base">Start date</Label>
                     <Input
-                      value={formattedFundingGoal}
+                      value={formattedStartDate}
                       disabled
                       readOnly
-                      placeholder="Enter amount"
-                      className="pl-12"
+                      placeholder="Select start date"
+                    />
+                  </div>
+                  <div className="flex flex-col gap-2">
+                    <Label className="font-medium text-base">End date</Label>
+                    <Input
+                      value={formattedEndDate}
+                      disabled
+                      readOnly
+                      placeholder="Select end date"
                     />
                   </div>
                 </div>
-                <div className="flex flex-col gap-2">
-                  <Label className="font-medium text-base leading-[1.6]">
-                    Add a funding Sui address
-                  </Label>
-                  <Input
-                    value={formattedRecipientAddress}
-                    disabled
-                    readOnly
-                    placeholder="0x8894E0a0c962CB723c1976a4421c95949bE2D4E3"
-                  />
-                  <p className="font-normal text-xs leading-[1.6] text-[#8f9197]">
-                    This is the wallet that will receive all donation funds
-                  </p>
+              </section>
+
+              <section className="flex flex-col gap-8">
+                <div className="flex items-center justify-between">
+                  <h2 className="text-2xl font-semibold">Funding Target</h2>
+                  <FieldStatusBadge status="Can't Edit" />
                 </div>
-              </div>
-            </section>
+                <div className="flex flex-col gap-8">
+                  <div className="flex flex-col gap-2">
+                    <Label className="font-medium text-base">
+                      Add a max funding amount for your campaign
+                    </Label>
+                    <div className="relative">
+                      <DollarSign className="absolute left-4 top-1/2 -translate-y-1/2 size-5 text-[#737373]" />
+                      <Input
+                        value={formattedFundingGoal}
+                        disabled
+                        readOnly
+                        placeholder="Enter amount"
+                        className="pl-12"
+                      />
+                    </div>
+                  </div>
+                  <div className="flex flex-col gap-2">
+                    <Label className="font-medium text-base">
+                      Add a funding Sui address
+                    </Label>
+                    <Input
+                      value={formattedRecipientAddress}
+                      disabled
+                      readOnly
+                      placeholder="0x8894E0a0c962CB723c1976a4421c95949bE2D4E3"
+                    />
+                    <p className="font-normal text-xs text-[#8f9197]">
+                      This is the wallet that will receive all donation funds
+                    </p>
+                  </div>
+                </div>
+              </section>
 
-            <Separator />
+              <Separator />
 
-            <section className="flex flex-col gap-8 mb-12">
-              <h2 className="text-2xl font-semibold">Additional Details</h2>
+              <section className="flex flex-col gap-8 mb-12">
+                <h2 className="text-2xl font-semibold">Additional Details</h2>
 
                 <CampaignSocialsSection
                   disabled={!editingSections.socials}
-                  labelStatus={<FieldStatusBadge status={sectionStatuses.socials} />}
+                  labelStatus={
+                    <FieldStatusBadge status={sectionStatuses.socials} />
+                  }
                   labelAction={renderEditButton("socials")}
                 />
 
@@ -1051,7 +1109,9 @@ export default function EditCampaignPage() {
                   <CampaignDetailsEditor
                     disabled={!editingSections.details}
                     instanceKey={descriptionInstanceKey}
-                    labelStatus={<FieldStatusBadge status={sectionStatuses.details} />}
+                    labelStatus={
+                      <FieldStatusBadge status={sectionStatuses.details} />
+                    }
                     labelAction={renderEditButton("details")}
                   />
                   <CampaignStorageRegistrationCard
@@ -1063,21 +1123,23 @@ export default function EditCampaignPage() {
                     storageRegistered={false}
                     selectedEpochs={selectedEpochs}
                     onEpochsChange={(value) =>
-                      form.setValue("storageEpochs", value, { shouldDirty: true })
+                      form.setValue("storageEpochs", value, {
+                        shouldDirty: true,
+                      })
                     }
                     estimatedCost={null}
                   />
                 </div>
               </section>
 
-            <Separator />
+              <Separator />
 
               <section className="flex flex-col gap-6">
                 <Alert>
                   <AlertDescription className="flex items-center gap-2">
                     <AlertCircleIcon className="size-4" />
-                    Publishing updates requires a Sui transaction. Review your edits before
-                    proceeding.
+                    Publishing updates requires a Sui transaction. Review your
+                    edits before proceeding.
                   </AlertDescription>
                 </Alert>
 
@@ -1104,5 +1166,4 @@ export default function EditCampaignPage() {
       </div>
     </div>
   );
-
 }
