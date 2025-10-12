@@ -33,7 +33,10 @@ export function CampaignDetailsEditor({
           try {
             editorState = JSON.parse(value);
           } catch (parseError) {
-            console.warn("Failed to parse campaign details editor state:", parseError);
+            console.warn(
+              "Failed to parse campaign details editor state:",
+              parseError,
+            );
             editorState = undefined;
           }
         }
@@ -42,8 +45,11 @@ export function CampaignDetailsEditor({
           <div>
             <div className="mb-4 flex flex-col gap-1.5">
               <div className="flex flex-wrap items-center justify-between gap-3">
-                <FormLabel htmlFor="campaign-details">
-                  Campaign details <span className="text-red-300">*</span>
+                <FormLabel
+                  htmlFor="campaign-details"
+                  className="font-medium text-base"
+                >
+                  Add campaign details <span className="text-red-300">*</span>
                 </FormLabel>
                 {(labelAction || labelStatus) && (
                   <div className="flex items-center gap-3">
@@ -52,7 +58,7 @@ export function CampaignDetailsEditor({
                   </div>
                 )}
               </div>
-              <p className="text-sm text-muted-foreground">
+              <p className="text-sm text-muted-foreground pb-4">
                 Add a detailed campaign description, images, links, and
                 attachments.
               </p>

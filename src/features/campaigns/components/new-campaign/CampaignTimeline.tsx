@@ -36,7 +36,9 @@ export function CampaignTimeline({
     return (
       <section className="flex flex-col gap-4">
         <div className="flex flex-wrap items-center justify-between gap-3">
-          <h2 className="text-2xl font-bold leading-[1.6]">Campaign Timeline</h2>
+          <h2 className="text-2xl font-bold leading-[1.6]">
+            Campaign Timeline
+          </h2>
           {(headerAction || headerStatus) && (
             <div className="flex items-center gap-3">
               {headerStatus}
@@ -45,27 +47,37 @@ export function CampaignTimeline({
           )}
         </div>
         <p className="text-sm text-muted-foreground">
-          Timeline cannot be edited after launch. These dates were set when the campaign was created.
+          Timeline cannot be edited after launch. These dates were set when the
+          campaign was created.
         </p>
         <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
           <div className="rounded-lg border border-border bg-muted/20 p-4">
             <p className="text-xs uppercase tracking-wide text-muted-foreground">
               Start date
             </p>
-            <p className="text-lg font-semibold text-foreground">{startDateLabel}</p>
+            <p className="text-lg font-semibold text-foreground">
+              {startDateLabel}
+            </p>
           </div>
           <div className="rounded-lg border border-border bg-muted/20 p-4">
             <p className="text-xs uppercase tracking-wide text-muted-foreground">
               End date
             </p>
-            <p className="text-lg font-semibold text-foreground">{endDateLabel}</p>
+            <p className="text-lg font-semibold text-foreground">
+              {endDateLabel}
+            </p>
           </div>
         </div>
       </section>
     );
   }
 
-  const { watch, setValue, trigger, formState: { errors } } = useFormContext();
+  const {
+    watch,
+    setValue,
+    trigger,
+    formState: { errors },
+  } = useFormContext();
   const [startDateOpen, setStartDateOpen] = useState(false);
   const [endDateOpen, setEndDateOpen] = useState(false);
 
@@ -123,7 +135,7 @@ export function CampaignTimeline({
         )}
       </div>
       <div className="flex flex-col gap-4">
-        <p className="text-base font-medium leading-[1.6]">
+        <p className="text-base font-medium">
           Set a timeline for your campaign to start and end
         </p>
         <div className="flex gap-6 items-start">

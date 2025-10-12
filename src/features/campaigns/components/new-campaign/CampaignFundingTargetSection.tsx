@@ -31,7 +31,7 @@ export function CampaignFundingTargetSection({
     return (
       <section className="flex flex-col gap-4">
         <div className="flex flex-wrap items-center justify-between gap-3">
-          <h2 className="font-bold text-2xl leading-[1.6]">Funding Target</h2>
+          <h2 className="font-bold text-2xl">Funding Target</h2>
           {(headerAction || headerStatus) && (
             <div className="flex items-center gap-3">
               {headerStatus}
@@ -40,7 +40,8 @@ export function CampaignFundingTargetSection({
           )}
         </div>
         <p className="text-sm text-muted-foreground">
-          Funding goal and recipient address are immutable once the campaign is live.
+          Funding goal and recipient address are immutable once the campaign is
+          live.
         </p>
         <div className="flex flex-col gap-4 rounded-lg border border-border bg-muted/20 p-4">
           <div>
@@ -67,7 +68,7 @@ export function CampaignFundingTargetSection({
   return (
     <section className="flex flex-col gap-8">
       <div className="flex flex-wrap items-center justify-between gap-3">
-        <h2 className="font-bold text-2xl leading-[1.6]">
+        <h2 className="font-bold text-2xl">
           Funding Target <span className="font-normal text-red-300">*</span>
         </h2>
         {(headerAction || headerStatus) && (
@@ -83,8 +84,8 @@ export function CampaignFundingTargetSection({
           control={control}
           name="targetAmount"
           render={({ field }) => (
-            <FormItem>
-              <FormLabel className="font-medium text-base leading-[1.6]">
+            <FormItem className="flex flex-col gap-4">
+              <FormLabel className="font-medium text-base">
                 Add a max funding amount for your campaign
               </FormLabel>
               <FormControl>
@@ -107,8 +108,8 @@ export function CampaignFundingTargetSection({
           control={control}
           name="walletAddress"
           render={({ field }) => (
-            <FormItem>
-              <FormLabel className="font-medium text-base leading-[1.6]">
+            <FormItem className="flex flex-col gap-4">
+              <FormLabel className="font-medium text-base">
                 Add a funding Sui address
               </FormLabel>
               <FormControl>
@@ -117,7 +118,7 @@ export function CampaignFundingTargetSection({
                   {...field}
                 />
               </FormControl>
-              <p className="font-normal text-xs leading-[1.6] text-[#8f9197]">
+              <p className="font-normal text-xs text-[#8f9197]">
                 This is the wallet that will receive all donation funds
               </p>
               <FormMessage />
