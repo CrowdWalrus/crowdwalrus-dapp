@@ -55,15 +55,10 @@ export function EditableSection({
   };
 
   return (
-    <section
-      className={cn(
-        "rounded-xl border border-border bg-white p-6 shadow-sm",
-        className,
-      )}
-    >
-      <div className="flex items-start justify-between gap-4">
-        <div className="flex flex-col gap-2">
-          <h2 className="text-2xl font-semibold">{label}</h2>
+    <section className={cn("flex flex-col gap-4", className)}>
+      <div className="flex flex-wrap items-center justify-between gap-3">
+        <div className="flex flex-col gap-1">
+          <h3 className="text-lg font-semibold leading-6">{label}</h3>
           {description ? (
             <p className="text-sm text-muted-foreground">{description}</p>
           ) : null}
@@ -73,22 +68,24 @@ export function EditableSection({
             </p>
           ) : null}
         </div>
-        {!disabled && !isEditing ? (
-          <Button variant="outline" size="sm" onClick={handleEditClick}>
-            Edit
-          </Button>
-        ) : null}
-        {status ? (
-          <span className="text-sm font-medium text-muted-foreground">
-            {status}
-          </span>
-        ) : null}
+        <div className="flex items-center gap-3">
+          {status ? (
+            <span className="text-xs font-medium uppercase tracking-wide text-muted-foreground">
+              {status}
+            </span>
+          ) : null}
+          {!disabled && !isEditing ? (
+            <Button variant="outline" size="sm" onClick={handleEditClick}>
+              Edit
+            </Button>
+          ) : null}
+        </div>
       </div>
 
       <div
         className={cn(
-          "mt-6 flex flex-col gap-6 transition",
-          !isEditing && "pointer-events-none opacity-60",
+          "flex flex-col gap-6 rounded-lg border border-dashed border-border/60 p-4 transition",
+          !isEditing && "pointer-events-none opacity-70",
         )}
         aria-disabled={!isEditing}
       >
