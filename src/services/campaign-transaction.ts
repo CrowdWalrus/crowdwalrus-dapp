@@ -6,7 +6,11 @@
  */
 
 import { Transaction } from "@mysten/sui/transactions";
-import type { CampaignFormData, CampaignMetadata } from "@/features/campaigns/types/campaign";
+import type {
+  CampaignFormData,
+  CampaignMetadata,
+  MetadataPatch,
+} from "@/features/campaigns/types/campaign";
 import { getContractConfig, CLOCK_OBJECT_ID } from "@/shared/config/contracts";
 import { WALRUS_EPOCH_CONFIG } from "@/shared/config/networkConfig";
 import { formatSubdomain } from "@/shared/utils/subdomain";
@@ -102,6 +106,102 @@ export function buildCreateCampaignTransaction(
 
       // End date (u64 - Unix timestamp in milliseconds)
       tx.pure.u64(endDateMs),
+    ],
+  });
+
+  return tx;
+}
+
+/**
+ * Build a transaction to update campaign basics (name / description).
+ */
+export function buildUpdateCampaignBasicsTransaction(
+  campaignId: string,
+  ownerCapId: string,
+  updates: {
+    name?: string;
+    short_description?: string;
+  },
+  network: "devnet" | "testnet" | "mainnet",
+): Transaction {
+  const config = getContractConfig(network);
+  const tx = new Transaction();
+
+  const newName =
+    updates.name && updates.name.trim().length > 0
+      ? tx.pure.option("string", updates.name.trim())
+      : tx.pure.option("string", null);
+
+  const newDescription =
+    updates.short_description && updates.short_description.trim().length > 0
+      ? tx.pure.option("string", updates.short_description.trim())
+      : tx.pure.option("string", null);
+
+  tx.moveCall({
+    target: `${config.contracts.packageId}::campaign::update_campaign_basics`,
+    arguments: [
+      tx.object(campaignId),
+      tx.object(ownerCapId),
+      newName,
+      newDescription,
+      tx.object(CLOCK_OBJECT_ID),
+    ],
+  });
+
+  return tx;
+}
+
+/**
+ * Build a transaction to update campaign metadata (key/value pairs).
+ */
+export function buildUpdateCampaignMetadataTransaction(
+  campaignId: string,
+  ownerCapId: string,
+  patch: MetadataPatch,
+  network: "devnet" | "testnet" | "mainnet",
+): Transaction {
+  const config = getContractConfig(network);
+  const tx = new Transaction();
+
+  const keys: string[] = [];
+  const values: string[] = [];
+
+  Object.entries(patch).forEach(([key, value]) => {
+    if (
+      key === "funding_goal" ||
+      key === "recipient_address" ||
+      value === undefined
+    ) {
+      if (key === "funding_goal" || key === "recipient_address") {
+        console.warn(
+          `Skipping immutable metadata key "${key}". Update will be ignored.`,
+        );
+      }
+      return;
+    }
+
+    keys.push(key);
+    values.push(value);
+  });
+
+  if (keys.length !== values.length) {
+    throw new Error(
+      `Metadata key/value mismatch: ${keys.length} keys, ${values.length} values`,
+    );
+  }
+
+  if (keys.length === 0) {
+    return tx;
+  }
+
+  tx.moveCall({
+    target: `${config.contracts.packageId}::campaign::update_campaign_metadata`,
+    arguments: [
+      tx.object(campaignId),
+      tx.object(ownerCapId),
+      tx.pure.vector("string", keys),
+      tx.pure.vector("string", values),
+      tx.object(CLOCK_OBJECT_ID),
     ],
   });
 
