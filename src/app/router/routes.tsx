@@ -3,6 +3,7 @@ import { HomePage } from "@/pages/HomePage";
 
 import NewCampaignPage from "@/pages/NewCampaignPage";
 import { CampaignPage } from "@/pages/CampaignPage";
+import EditCampaignPage from "@/pages/EditCampaignPage";
 import { ROUTES } from "@/shared/config/routes";
 
 export function AppRoutes() {
@@ -10,6 +11,7 @@ export function AppRoutes() {
     <Routes>
       <Route path={ROUTES.HOME} element={<HomePage />} />
       <Route path={ROUTES.CAMPAIGNS_NEW} element={<NewCampaignPage />} />
+      <Route path={ROUTES.CAMPAIGNS_EDIT} element={<EditCampaignPage />} />
       <Route path={ROUTES.CAMPAIGNS_DETAIL} element={<CampaignPage />} />
     </Routes>
   );
