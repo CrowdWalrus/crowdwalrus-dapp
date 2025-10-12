@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, type ReactNode } from "react";
 import { useFormContext } from "react-hook-form";
 import { Calendar } from "lucide-react";
 import { Calendar as CalendarComponent } from "@/shared/components/ui/calendar";
@@ -14,12 +14,16 @@ interface CampaignTimelineProps {
   readOnly?: boolean;
   startDateMs?: number;
   endDateMs?: number;
+  headerAction?: ReactNode;
+  headerStatus?: ReactNode;
 }
 
 export function CampaignTimeline({
   readOnly = false,
   startDateMs,
   endDateMs,
+  headerAction,
+  headerStatus,
 }: CampaignTimelineProps) {
   if (readOnly) {
     const startDateLabel = startDateMs
@@ -31,7 +35,15 @@ export function CampaignTimeline({
 
     return (
       <section className="flex flex-col gap-4">
-        <h2 className="text-2xl font-bold leading-[1.6]">Campaign Timeline</h2>
+        <div className="flex flex-wrap items-center justify-between gap-3">
+          <h2 className="text-2xl font-bold leading-[1.6]">Campaign Timeline</h2>
+          {(headerAction || headerStatus) && (
+            <div className="flex items-center gap-3">
+              {headerStatus}
+              {headerAction}
+            </div>
+          )}
+        </div>
         <p className="text-sm text-muted-foreground">
           Timeline cannot be edited after launch. These dates were set when the campaign was created.
         </p>
@@ -99,9 +111,17 @@ export function CampaignTimeline({
 
   return (
     <section className="flex flex-col gap-8">
-      <h2 className="text-2xl font-bold leading-[1.6]">
-        Campaign Timeline <span className="text-red-300">*</span>
-      </h2>
+      <div className="flex flex-wrap items-center justify-between gap-3">
+        <h2 className="text-2xl font-bold leading-[1.6]">
+          Campaign Timeline <span className="text-red-300">*</span>
+        </h2>
+        {(headerAction || headerStatus) && (
+          <div className="flex items-center gap-3">
+            {headerStatus}
+            {headerAction}
+          </div>
+        )}
+      </div>
       <div className="flex flex-col gap-4">
         <p className="text-base font-medium leading-[1.6]">
           Set a timeline for your campaign to start and end

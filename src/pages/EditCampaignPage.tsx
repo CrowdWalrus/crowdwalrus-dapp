@@ -36,8 +36,6 @@ import {
   CampaignCategorySelector,
   CampaignSocialsSection,
   CampaignStorageRegistrationCard,
-  CampaignTimeline,
-  CampaignFundingTargetSection,
 } from "@/features/campaigns/components/new-campaign";
 import { WalrusReuploadWarningModal } from "@/features/campaigns/components/modals/WalrusReuploadWarningModal";
 import { Card, CardContent } from "@/shared/components/ui/card";
@@ -62,7 +60,8 @@ import {
 } from "@/shared/components/ui/form";
 import { Input } from "@/shared/components/ui/input";
 import { Textarea } from "@/shared/components/ui/textarea";
-import { AlertCircle as AlertCircleIcon } from "lucide-react";
+import { AlertCircle as AlertCircleIcon, DollarSign } from "lucide-react";
+import { Label } from "@/shared/components/ui/label";
 
 interface UseWalrusDescriptionResult {
   data: string;
@@ -487,6 +486,18 @@ export default function EditCampaignPage() {
   }
 
   const campaignData = campaign!;
+
+  const formattedSubdomain = campaignData.subdomainName ?? "";
+  const formattedStartDate =
+    campaignData.startDateMs != null
+      ? new Date(campaignData.startDateMs).toLocaleDateString()
+      : "";
+  const formattedEndDate =
+    campaignData.endDateMs != null
+      ? new Date(campaignData.endDateMs).toLocaleDateString()
+      : "";
+  const formattedFundingGoal = campaignData.fundingGoal ?? "";
+  const formattedRecipientAddress = campaignData.recipientAddress ?? "";
 
   const dirtyFields = form.formState.dirtyFields as FieldNamesMarkedBoolean<EditCampaignFormData>;
   const campaignNameDirty = isEditFieldDirty(dirtyFields, "campaignName");
@@ -918,6 +929,21 @@ export default function EditCampaignPage() {
                   )}
                 />
 
+                <div className="flex flex-col gap-2">
+                  <div className="flex flex-wrap items-center justify-between gap-3">
+                    <Label className="font-medium text-base leading-[1.6]">
+                      Sub-name <span className="text-red-300">*</span>
+                    </Label>
+                    <FieldStatusBadge status="Can't Edit" />
+                  </div>
+                  <Input
+                    value={formattedSubdomain}
+                    disabled
+                    readOnly
+                    placeholder="yourcampaign"
+                  />
+                </div>
+
                 <CampaignCoverImageUpload
                   disabled={!editingSections.coverImage}
                   initialPreviewUrl={coverImagePreviewUrl}
@@ -936,14 +962,84 @@ export default function EditCampaignPage() {
 
               <CampaignCategorySelector
                 disabled={!editingSections.categories}
-                headerStatus={<FieldStatusBadge status={sectionStatuses.categories} />}
-                headerAction={renderEditButton("categories")}
-              />
+              headerStatus={<FieldStatusBadge status={sectionStatuses.categories} />}
+              headerAction={renderEditButton("categories")}
+            />
 
-              <Separator />
+            <Separator />
 
-              <section className="flex flex-col gap-8 mb-12">
-                <h2 className="text-2xl font-semibold">Additional Details</h2>
+            <section className="flex flex-col gap-6">
+              <div className="flex flex-wrap items-center justify-between gap-3">
+                <h2 className="text-2xl font-semibold">Campaign Timeline</h2>
+                <FieldStatusBadge status="Can't Edit" />
+              </div>
+              <p className="text-sm text-muted-foreground">
+                Timeline cannot be edited after launch. These dates were set when the campaign was created.
+              </p>
+              <div className="grid gap-6 sm:grid-cols-2">
+                <div className="flex flex-col gap-2">
+                  <Label className="font-medium text-base leading-[1.6]">Start date</Label>
+                  <Input
+                    value={formattedStartDate}
+                    disabled
+                    readOnly
+                    placeholder="Select start date"
+                  />
+                </div>
+                <div className="flex flex-col gap-2">
+                  <Label className="font-medium text-base leading-[1.6]">End date</Label>
+                  <Input
+                    value={formattedEndDate}
+                    disabled
+                    readOnly
+                    placeholder="Select end date"
+                  />
+                </div>
+              </div>
+            </section>
+
+            <section className="flex flex-col gap-8">
+              <div className="flex flex-wrap items-center justify-between gap-3">
+                <h2 className="text-2xl font-semibold">Funding Target</h2>
+                <FieldStatusBadge status="Can't Edit" />
+              </div>
+              <div className="flex flex-col gap-8">
+                <div className="flex flex-col gap-2">
+                  <Label className="font-medium text-base leading-[1.6]">
+                    Add a max funding amount for your campaign
+                  </Label>
+                  <div className="relative">
+                    <DollarSign className="absolute left-4 top-1/2 -translate-y-1/2 size-5 text-[#737373]" />
+                    <Input
+                      value={formattedFundingGoal}
+                      disabled
+                      readOnly
+                      placeholder="Enter amount"
+                      className="pl-12"
+                    />
+                  </div>
+                </div>
+                <div className="flex flex-col gap-2">
+                  <Label className="font-medium text-base leading-[1.6]">
+                    Add a funding Sui address
+                  </Label>
+                  <Input
+                    value={formattedRecipientAddress}
+                    disabled
+                    readOnly
+                    placeholder="0x8894E0a0c962CB723c1976a4421c95949bE2D4E3"
+                  />
+                  <p className="font-normal text-xs leading-[1.6] text-[#8f9197]">
+                    This is the wallet that will receive all donation funds
+                  </p>
+                </div>
+              </div>
+            </section>
+
+            <Separator />
+
+            <section className="flex flex-col gap-8 mb-12">
+              <h2 className="text-2xl font-semibold">Additional Details</h2>
 
                 <CampaignSocialsSection
                   disabled={!editingSections.socials}
@@ -974,48 +1070,7 @@ export default function EditCampaignPage() {
                 </div>
               </section>
 
-              <Separator />
-
-              <section className="flex flex-col gap-8">
-                <div className="flex flex-wrap items-center justify-between gap-3">
-                  <h2 className="text-2xl font-semibold">Immutable settings</h2>
-                  <span className="text-xs font-medium uppercase tracking-wide text-muted-foreground">
-                    Can&apos;t Edit
-                  </span>
-                </div>
-                <div className="grid gap-4 sm:grid-cols-2">
-                  <div className="rounded-lg border border-border bg-muted/20 p-4">
-                    <p className="text-xs uppercase tracking-wide text-muted-foreground">
-                      Subdomain
-                    </p>
-                    <p className="text-sm font-medium text-foreground">
-                      {campaignData.subdomainName}
-                    </p>
-                  </div>
-                  <div className="rounded-lg border border-border bg-muted/20 p-4">
-                    <p className="text-xs uppercase tracking-wide text-muted-foreground">
-                      Status
-                    </p>
-                    <p className="text-sm font-medium text-foreground">
-                      {campaignData.isActive ? "Active" : "Paused"}
-                    </p>
-                  </div>
-                </div>
-
-                <CampaignTimeline
-                  readOnly
-                  startDateMs={campaignData.startDateMs}
-                  endDateMs={campaignData.endDateMs}
-                />
-
-                <CampaignFundingTargetSection
-                  readOnly
-                  fundingGoal={campaignData.fundingGoal}
-                  recipientAddress={campaignData.recipientAddress}
-                />
-              </section>
-
-              <Separator />
+            <Separator />
 
               <section className="flex flex-col gap-6">
                 <Alert>

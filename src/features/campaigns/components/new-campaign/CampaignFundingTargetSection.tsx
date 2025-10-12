@@ -1,4 +1,5 @@
 import { useFormContext } from "react-hook-form";
+import type { ReactNode } from "react";
 import { Input } from "@/shared/components/ui/input";
 import {
   FormControl,
@@ -13,19 +14,31 @@ interface CampaignFundingTargetSectionProps {
   readOnly?: boolean;
   fundingGoal?: string;
   recipientAddress?: string;
+  headerAction?: ReactNode;
+  headerStatus?: ReactNode;
 }
 
 export function CampaignFundingTargetSection({
   readOnly = false,
   fundingGoal,
   recipientAddress,
+  headerAction,
+  headerStatus,
 }: CampaignFundingTargetSectionProps) {
   const { control } = useFormContext();
 
   if (readOnly) {
     return (
       <section className="flex flex-col gap-4">
-        <h2 className="font-bold text-2xl leading-[1.6]">Funding Target</h2>
+        <div className="flex flex-wrap items-center justify-between gap-3">
+          <h2 className="font-bold text-2xl leading-[1.6]">Funding Target</h2>
+          {(headerAction || headerStatus) && (
+            <div className="flex items-center gap-3">
+              {headerStatus}
+              {headerAction}
+            </div>
+          )}
+        </div>
         <p className="text-sm text-muted-foreground">
           Funding goal and recipient address are immutable once the campaign is live.
         </p>
@@ -53,9 +66,17 @@ export function CampaignFundingTargetSection({
 
   return (
     <section className="flex flex-col gap-8">
-      <h2 className="font-bold text-2xl leading-[1.6]">
-        Funding Target <span className="font-normal text-red-300">*</span>
-      </h2>
+      <div className="flex flex-wrap items-center justify-between gap-3">
+        <h2 className="font-bold text-2xl leading-[1.6]">
+          Funding Target <span className="font-normal text-red-300">*</span>
+        </h2>
+        {(headerAction || headerStatus) && (
+          <div className="flex items-center gap-3">
+            {headerStatus}
+            {headerAction}
+          </div>
+        )}
+      </div>
 
       <div className="flex flex-col gap-8">
         <FormField
