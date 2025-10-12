@@ -8,14 +8,49 @@ import { FormLabel, FormMessage } from "@/shared/components/ui/form";
 
 export interface CampaignCoverImageUploadProps {
   disabled?: boolean;
+  initialPreviewUrl?: string | null;
 }
 
 export function CampaignCoverImageUpload({
   disabled = false,
+  initialPreviewUrl = null,
 }: CampaignCoverImageUploadProps) {
-  const { control } = useFormContext();
+  const { control, watch } = useFormContext();
   const [isDragging, setIsDragging] = useState(false);
   const [previewUrl, setPreviewUrl] = useState<string | null>(null);
+  const [isObjectUrl, setIsObjectUrl] = useState(false);
+  const [hasLocalPreview, setHasLocalPreview] = useState(false);
+  const coverImageValue = watch("coverImage");
+
+  useEffect(() => {
+    if (hasLocalPreview) {
+      return;
+    }
+    if (initialPreviewUrl) {
+      setPreviewUrl(initialPreviewUrl);
+      setIsObjectUrl(false);
+    } else {
+      setPreviewUrl(null);
+      setIsObjectUrl(false);
+    }
+  }, [initialPreviewUrl, hasLocalPreview]);
+
+  useEffect(() => {
+    if (!coverImageValue && hasLocalPreview) {
+      if (previewUrl && isObjectUrl) {
+        URL.revokeObjectURL(previewUrl);
+      }
+      setPreviewUrl(initialPreviewUrl);
+      setHasLocalPreview(false);
+      setIsObjectUrl(false);
+    }
+  }, [
+    coverImageValue,
+    hasLocalPreview,
+    previewUrl,
+    isObjectUrl,
+    initialPreviewUrl,
+  ]);
 
   const validateImage = (file: File): Promise<string | null> => {
     return new Promise((resolve) => {
@@ -65,12 +100,16 @@ export function CampaignCoverImageUpload({
 
     // Clean up old preview URL
     if (previewUrl) {
-      URL.revokeObjectURL(previewUrl);
+      if (isObjectUrl) {
+        URL.revokeObjectURL(previewUrl);
+      }
     }
 
     // Create new preview URL
     const newPreviewUrl = URL.createObjectURL(file);
     setPreviewUrl(newPreviewUrl);
+    setIsObjectUrl(true);
+    setHasLocalPreview(true);
 
     // Set the File object in the form
     onChange(file);
@@ -80,11 +119,11 @@ export function CampaignCoverImageUpload({
   // Cleanup preview URL on unmount
   useEffect(() => {
     return () => {
-      if (previewUrl) {
+      if (previewUrl && isObjectUrl) {
         URL.revokeObjectURL(previewUrl);
       }
     };
-  }, [previewUrl]);
+  }, [previewUrl, isObjectUrl]);
 
   const handleImageChange = async (
     e: React.ChangeEvent<HTMLInputElement>,
@@ -102,6 +141,8 @@ export function CampaignCoverImageUpload({
     if (!file) {
       onChange(null);
       setPreviewUrl(null);
+      setHasLocalPreview(false);
+      setIsObjectUrl(false);
       return;
     }
 
@@ -109,6 +150,8 @@ export function CampaignCoverImageUpload({
     if (!success) {
       onChange(null);
       setPreviewUrl(null);
+      setHasLocalPreview(false);
+      setIsObjectUrl(false);
       e.target.value = "";
     }
   };
@@ -163,11 +206,15 @@ export function CampaignCoverImageUpload({
     }
     // Clean up preview URL
     if (previewUrl) {
-      URL.revokeObjectURL(previewUrl);
+      if (isObjectUrl) {
+        URL.revokeObjectURL(previewUrl);
+      }
       setPreviewUrl(null);
     }
 
     onChange(null);
+    setHasLocalPreview(false);
+    setIsObjectUrl(false);
     const fileInput = document.getElementById(
       "cover-image",
     ) as HTMLInputElement;
