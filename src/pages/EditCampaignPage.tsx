@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { Link, useParams } from "react-router-dom";
 import { useQuery } from "@tanstack/react-query";
 import { useForm, type FieldNamesMarkedBoolean } from "react-hook-form";
@@ -12,7 +12,11 @@ import { toast } from "sonner";
 
 import { useCampaign } from "@/features/campaigns/hooks/useCampaign";
 import { useOwnedCampaignCap } from "@/features/campaigns/hooks/useOwnedCampaignCap";
-import { useWalrusUpload } from "@/features/campaigns/hooks/useWalrusUpload";
+import {
+  useWalrusUpload,
+  type RegisterResult,
+  type CertifyResult,
+} from "@/features/campaigns/hooks/useWalrusUpload";
 import {
   useUpdateCampaignBasics,
   useUpdateCampaignMetadata,
@@ -36,6 +40,7 @@ import {
   CampaignCategorySelector,
   CampaignSocialsSection,
   CampaignStorageRegistrationCard,
+  type StorageCost,
 } from "@/features/campaigns/components/new-campaign";
 import { WalrusReuploadWarningModal } from "@/features/campaigns/components/modals/WalrusReuploadWarningModal";
 import { Card, CardContent } from "@/shared/components/ui/card";
@@ -63,10 +68,11 @@ import { Textarea } from "@/shared/components/ui/textarea";
 import {
   AlertCircle as AlertCircleIcon,
   DollarSign,
-  PencilIcon,
   PencilLineIcon,
 } from "lucide-react";
 import { Label } from "@/shared/components/ui/label";
+import { useWalBalance } from "@/shared/hooks/useWalBalance";
+import { useEstimateStorageCost } from "@/features/campaigns/hooks/useCreateCampaign";
 
 interface UseWalrusDescriptionResult {
   data: string;
@@ -186,6 +192,36 @@ async function fetchCoverImageFile(url: string): Promise<File> {
   });
 }
 
+interface WalrusSnapshot {
+  details: string;
+  coverImageKey: string;
+  storageEpochs?: number;
+}
+
+const buildCoverImageKey = (
+  coverImage: File | null | undefined,
+  fallbackUrl: string | null,
+) => {
+  if (coverImage instanceof File) {
+    return `${coverImage.name}-${coverImage.size}-${coverImage.lastModified}`;
+  }
+  return fallbackUrl ?? "no-cover-image";
+};
+
+const areSnapshotsEqual = (
+  a: WalrusSnapshot | null,
+  b: WalrusSnapshot | null,
+) => {
+  if (!a || !b) {
+    return false;
+  }
+  return (
+    a.details === b.details &&
+    a.coverImageKey === b.coverImageKey &&
+    (a.storageEpochs ?? null) === (b.storageEpochs ?? null)
+  );
+};
+
 export default function EditCampaignPage() {
   const { id: campaignIdParam } = useParams<{ id: string }>();
   const campaignId = campaignIdParam ?? "";
@@ -220,7 +256,25 @@ export default function EditCampaignPage() {
     socials: 0,
   });
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [walrusStatus, setWalrusStatus] = useState<"idle" | "completed">(
+    "idle",
+  );
+  const [walrusRegisterResult, setWalrusRegisterResult] =
+    useState<RegisterResult | null>(null);
+  const [walrusCertifyResult, setWalrusCertifyResult] =
+    useState<CertifyResult | null>(null);
+  const [certifyRejectionMessage, setCertifyRejectionMessage] = useState<
+    string | null
+  >(null);
+  const walrusBaselineRef = useRef<WalrusSnapshot | null>(null);
   const [descriptionInstanceKey, setDescriptionInstanceKey] = useState(0);
+
+  const resetWalrusState = useCallback(() => {
+    setWalrusStatus("idle");
+    setWalrusRegisterResult(null);
+    setWalrusCertifyResult(null);
+    setCertifyRejectionMessage(null);
+  }, []);
 
   const initialValuesRef = useRef<EditCampaignFormData>(DEFAULT_FORM_VALUES);
 
@@ -282,6 +336,17 @@ export default function EditCampaignPage() {
   }, [walrusCoverImageUrl]);
 
   const walrus = useWalrusUpload();
+  const {
+    formattedBalance,
+    isLoading: isLoadingWalBalance,
+    balance: walBalanceRaw,
+  } = useWalBalance();
+  const {
+    mutateAsync: estimateStorageCost,
+    data: costEstimate,
+    isPending: isEstimatingStorage,
+    reset: resetStorageEstimate,
+  } = useEstimateStorageCost();
   const updateBasics = useUpdateCampaignBasics();
   const updateMetadata = useUpdateCampaignMetadata();
   const { mutateAsync: signAndExecuteTransaction } =
@@ -340,24 +405,97 @@ export default function EditCampaignPage() {
     walrusDescription,
   ]);
 
-  const handleRetryWalrus = () => {
-    if (isWalrusError) {
-      refetchWalrus();
-    }
-    if (isWalrusImageError) {
+const handleRetryWalrus = () => {
+  if (isWalrusError) {
+    refetchWalrus();
+  }
+  if (isWalrusImageError) {
       if (walrusCoverImageUrl) {
         URL.revokeObjectURL(walrusCoverImageUrl);
       }
       refetchWalrusImage();
-    }
-    setWalrusErrorAcknowledged(false);
+  }
+  setWalrusErrorAcknowledged(false);
+};
+
+const watchCampaignDetails = form.watch("campaignDetails");
+const watchCoverImage = form.watch("coverImage");
+const watchStorageEpochs = form.watch("storageEpochs");
+const selectedEpochs =
+  watchStorageEpochs ??
+  (campaign?.walrusStorageEpochs
+    ? Number(campaign.walrusStorageEpochs)
+    : undefined);
+const coverImagePreviewUrl =
+  walrusCoverImageUrl || campaign?.coverImageUrl || null;
+
+const currentWalrusSnapshot = useMemo<WalrusSnapshot | null>(() => {
+  if (!initialized) {
+    return null;
+  }
+
+  const details =
+    typeof watchCampaignDetails === "string"
+      ? watchCampaignDetails
+      : watchCampaignDetails ?? "";
+
+  return {
+    details,
+    coverImageKey: buildCoverImageKey(
+      watchCoverImage as File | null | undefined,
+      campaign?.coverImageUrl ?? null,
+    ),
+    storageEpochs:
+      typeof selectedEpochs === "number" ? selectedEpochs : undefined,
   };
+}, [
+  campaign?.coverImageUrl,
+  initialized,
+  selectedEpochs,
+  watchCampaignDetails,
+  watchCoverImage,
+]);
 
-  const showConnectWalletMessage = !account;
-  const notAuthorized = Boolean(account) && !ownerCapId && !isCapLoading;
+useEffect(() => {
+  if (!initialized || !currentWalrusSnapshot) {
+    return;
+  }
+  if (!walrusBaselineRef.current) {
+    walrusBaselineRef.current = currentWalrusSnapshot;
+  }
+}, [initialized, currentWalrusSnapshot]);
 
-  const loading =
-    isCampaignLoading ||
+useEffect(() => {
+  if (walrusStatus !== "completed" || !currentWalrusSnapshot) {
+    return;
+  }
+  if (
+    walrusBaselineRef.current &&
+    !areSnapshotsEqual(walrusBaselineRef.current, currentWalrusSnapshot)
+  ) {
+    resetWalrusState();
+    resetStorageEstimate();
+  }
+}, [
+  currentWalrusSnapshot,
+  resetWalrusState,
+  resetStorageEstimate,
+  walrusStatus,
+]);
+
+const walrusChangesPending = Boolean(
+  walrusBaselineRef.current &&
+    currentWalrusSnapshot &&
+    !areSnapshotsEqual(walrusBaselineRef.current, currentWalrusSnapshot),
+);
+const storageRegistrationComplete =
+  walrusStatus === "completed" && Boolean(walrusCertifyResult);
+
+const showConnectWalletMessage = !account;
+const notAuthorized = Boolean(account) && !ownerCapId && !isCapLoading;
+
+const loading =
+  isCampaignLoading ||
     isCapLoading ||
     (!initialized && isWalrusLoading && !isWalrusError);
 
@@ -502,19 +640,33 @@ export default function EditCampaignPage() {
     );
   }
 
-  const campaignData = campaign!;
+const campaignData = campaign!;
 
-  const formattedSubdomain = campaignData.subdomainName ?? "";
-  const formattedStartDate =
-    campaignData.startDateMs != null
-      ? new Date(campaignData.startDateMs).toLocaleDateString()
-      : "";
-  const formattedEndDate =
-    campaignData.endDateMs != null
-      ? new Date(campaignData.endDateMs).toLocaleDateString()
-      : "";
-  const formattedFundingGoal = campaignData.fundingGoal ?? "";
-  const formattedRecipientAddress = campaignData.recipientAddress ?? "";
+const formattedSubdomain = campaignData.subdomainName ?? "";
+const formattedStartDate =
+  campaignData.startDateMs != null
+    ? new Date(campaignData.startDateMs).toLocaleDateString()
+    : "";
+const formattedEndDate =
+  campaignData.endDateMs != null
+    ? new Date(campaignData.endDateMs).toLocaleDateString()
+    : "";
+const formattedFundingGoal = campaignData.fundingGoal ?? "";
+const formattedRecipientAddress = campaignData.recipientAddress ?? "";
+
+const isUserRejectedError = (error: unknown) => {
+    if (!(error instanceof Error)) {
+      return false;
+    }
+    const message = error.message.toLowerCase();
+    return (
+      message.includes("user rejected") ||
+      message.includes("rejected the request") ||
+      message.includes("user cancelled") ||
+      message.includes("user canceled") ||
+      message.includes("request rejected")
+    );
+  };
 
   const dirtyFields = form.formState
     .dirtyFields as FieldNamesMarkedBoolean<EditCampaignFormData>;
@@ -530,6 +682,171 @@ export default function EditCampaignPage() {
   const mediaSectionDisabled = isWalrusError || isWalrusImageError;
   const walrusWarningVisible =
     (isWalrusError || isWalrusImageError) && !walrusErrorAcknowledged;
+
+  const handleRegisterStorage = async () => {
+    if (!account) {
+      toast.error("Connect your wallet before registering Walrus storage.");
+      return;
+    }
+
+    if (!walrusChangesPending) {
+      toast.info("No Walrus-related changes detected.");
+      return;
+    }
+
+    const values = form.getValues();
+    const {
+      metadataPatch,
+      coverImageChanged,
+      descriptionChanged,
+      storageEpochsChanged,
+    } = transformEditCampaignFormData({
+      values,
+      dirtyFields,
+      campaign: campaignData,
+      initialDescription,
+    });
+
+    const walrusChanges =
+      coverImageChanged || descriptionChanged || storageEpochsChanged;
+
+    if (!walrusChanges) {
+      toast.info("No Walrus-related changes detected.");
+      return;
+    }
+
+    const epochsToUse =
+      typeof selectedEpochs === "number" ? selectedEpochs : 0;
+
+    if (!epochsToUse) {
+      toast.error("Storage epochs must be greater than zero.");
+      return;
+    }
+
+    try {
+      resetWalrusState();
+
+      let coverImageFile: File | null = null;
+      if (coverImageChanged && values.coverImage instanceof File) {
+        coverImageFile = values.coverImage;
+      } else if (campaignData.coverImageUrl) {
+        coverImageFile = await fetchCoverImageFile(campaignData.coverImageUrl);
+      }
+
+      if (!coverImageFile) {
+        toast.error("Cover image is required for Walrus storage registration.");
+        return;
+      }
+
+      const walrusFormData = {
+        name: campaignData.name,
+        short_description: values.description,
+        subdomain_name: campaignData.subdomainName,
+        category: metadataPatch.category ?? campaignData.category ?? "",
+        funding_goal: campaignData.fundingGoal ?? "0",
+        start_date: new Date(campaignData.startDateMs),
+        end_date: new Date(campaignData.endDateMs),
+        recipient_address: campaignData.recipientAddress,
+        full_description: values.campaignDetails ?? "",
+        cover_image: coverImageFile,
+        social_twitter:
+          metadataPatch.social_twitter ??
+          campaignData.socialTwitter ??
+          undefined,
+        social_discord:
+          metadataPatch.social_discord ??
+          campaignData.socialDiscord ??
+          undefined,
+        social_website:
+          metadataPatch.social_website ??
+          campaignData.socialWebsite ??
+          undefined,
+      };
+
+      const estimate = await estimateStorageCost({
+        formData: walrusFormData,
+        epochs: epochsToUse,
+      });
+
+      if (!isLoadingWalBalance) {
+        const requiredWalUnits = BigInt(
+          Math.floor(estimate.subsidizedTotalCost * 10 ** 9),
+        );
+        const availableWal = BigInt(walBalanceRaw || "0");
+        if (requiredWalUnits > availableWal) {
+          toast.error("Insufficient WAL balance to register storage.");
+          return;
+        }
+      }
+
+      const flowState = await walrus.prepare.mutateAsync({
+        formData: walrusFormData,
+        storageEpochs: epochsToUse,
+        network,
+      });
+
+      const registerResult = await walrus.register.mutateAsync(flowState);
+      setWalrusRegisterResult(registerResult);
+
+      await walrus.upload.mutateAsync({
+        flowState,
+        registerDigest: registerResult.transactionDigest,
+      });
+
+      const certifyResult = await walrus.certify.mutateAsync(flowState);
+      setWalrusCertifyResult(certifyResult);
+      setWalrusStatus("completed");
+      walrusBaselineRef.current = currentWalrusSnapshot;
+      toast.success(
+        "Walrus storage registered. Publish update to finalize on-chain metadata.",
+      );
+    } catch (error) {
+      if (isUserRejectedError(error)) {
+        setCertifyRejectionMessage(
+          "Approve the Walrus certification transaction in your wallet to continue.",
+        );
+        toast.info(
+          "Certification transaction rejected. Retry when you are ready to approve it.",
+        );
+      } else if (error instanceof Error) {
+        toast.error(error.message);
+      } else {
+        toast.error("Failed to complete Walrus storage registration.");
+      }
+    }
+  };
+
+  const handleRetryCertify = async () => {
+    if (!walrusRegisterResult) {
+      return;
+    }
+
+    try {
+      setCertifyRejectionMessage(null);
+      const certifyResult = await walrus.certify.mutateAsync(
+        walrusRegisterResult.flowState,
+      );
+      setWalrusCertifyResult(certifyResult);
+      setWalrusStatus("completed");
+      walrusBaselineRef.current = currentWalrusSnapshot;
+      toast.success(
+        "Walrus storage certification completed. Publish update to finalize on-chain metadata.",
+      );
+    } catch (error) {
+      if (isUserRejectedError(error)) {
+        setCertifyRejectionMessage(
+          "Approve the Walrus certification transaction in your wallet to continue.",
+        );
+        toast.info(
+          "Certification transaction rejected. Retry when you are ready to approve it.",
+        );
+      } else if (error instanceof Error) {
+        toast.error(error.message);
+      } else {
+        toast.error("Failed to certify Walrus storage.");
+      }
+    }
+  };
 
   const getSectionStatus = (section: SectionKey, dirty: boolean) => {
     if (dirty) {
@@ -586,15 +903,6 @@ export default function EditCampaignPage() {
     setPendingWalrusSection(null);
   };
 
-  const watchStorageEpochs = form.watch("storageEpochs");
-  const selectedEpochs =
-    watchStorageEpochs ??
-    (campaignData.walrusStorageEpochs
-      ? Number(campaignData.walrusStorageEpochs)
-      : undefined);
-  const coverImagePreviewUrl =
-    walrusCoverImageUrl || campaignData.coverImageUrl || null;
-
   const handleSubmit = form.handleSubmit(async (values) => {
     if (!ownerCapId) {
       toast.error(
@@ -606,9 +914,9 @@ export default function EditCampaignPage() {
     const {
       basicsUpdates,
       metadataPatch,
-      shouldUploadWalrus,
       coverImageChanged,
-      nextStorageEpochs,
+      descriptionChanged,
+      storageEpochsChanged,
       hasBasicsChanges,
       hasMetadataChanges,
     } = transformEditCampaignFormData({
@@ -619,72 +927,29 @@ export default function EditCampaignPage() {
     });
 
     const metadataUpdates = { ...metadataPatch };
+    const walrusChanges =
+      coverImageChanged || descriptionChanged || storageEpochsChanged;
 
-    if (!hasBasicsChanges && !hasMetadataChanges && !shouldUploadWalrus) {
+    if (!hasBasicsChanges && !hasMetadataChanges && !walrusChanges) {
       toast.info("No changes detected.");
+      return;
+    }
+
+    if (walrusChanges && !storageRegistrationComplete) {
+      toast.error(
+        "Complete Walrus storage registration before publishing updates.",
+      );
       return;
     }
 
     setIsSubmitting(true);
 
     try {
-      if (shouldUploadWalrus) {
-        const epochsToUse = nextStorageEpochs ?? selectedEpochs ?? 0;
-        if (!epochsToUse) {
-          throw new Error(
-            "Storage epochs must be greater than zero for Walrus uploads.",
-          );
-        }
-
-        const coverImageFile =
-          coverImageChanged && values.coverImage
-            ? values.coverImage
-            : await fetchCoverImageFile(campaignData.coverImageUrl);
-
-        const walrusFormData = {
-          name: campaignData.name,
-          short_description: values.description,
-          subdomain_name: campaignData.subdomainName,
-          category: metadataUpdates.category ?? campaignData.category ?? "",
-          funding_goal: campaignData.fundingGoal ?? "0",
-          start_date: new Date(campaignData.startDateMs),
-          end_date: new Date(campaignData.endDateMs),
-          recipient_address: campaignData.recipientAddress,
-          full_description: values.campaignDetails ?? "",
-          cover_image: coverImageFile,
-          social_twitter:
-            metadataUpdates.social_twitter ??
-            campaignData.socialTwitter ??
-            undefined,
-          social_discord:
-            metadataUpdates.social_discord ??
-            campaignData.socialDiscord ??
-            undefined,
-          social_website:
-            metadataUpdates.social_website ??
-            campaignData.socialWebsite ??
-            undefined,
-        };
-
-        const flowState = await walrus.prepare.mutateAsync({
-          formData: walrusFormData,
-          storageEpochs: epochsToUse,
-          network,
-        });
-
-        const registerResult = await walrus.register.mutateAsync(flowState);
-        await walrus.upload.mutateAsync({
-          flowState,
-          registerDigest: registerResult.transactionDigest,
-        });
-        const certifyResult = await walrus.certify.mutateAsync(flowState);
-
-        metadataUpdates.walrus_quilt_id = certifyResult.blobId;
+      if (walrusChanges && storageRegistrationComplete && walrusCertifyResult) {
+        metadataUpdates.walrus_quilt_id = walrusCertifyResult.blobId;
         metadataUpdates.walrus_storage_epochs =
-          certifyResult.storageEpochs.toString();
+          walrusCertifyResult.storageEpochs.toString();
         metadataUpdates.cover_image_id = "cover.jpg";
-        setInitialDescription(values.campaignDetails ?? "");
-        setDescriptionInstanceKey((prev) => prev + 1);
       }
 
       const metadataKeys = Object.keys(metadataUpdates).filter(
@@ -745,10 +1010,10 @@ export default function EditCampaignPage() {
       if (descriptionDirty) {
         markSectionSaved("description");
       }
-      if (coverImageDirty || shouldUploadWalrus) {
+      if (coverImageDirty || walrusChanges) {
         markSectionSaved("coverImage");
       }
-      if (detailsDirty || storageEpochsDirty || shouldUploadWalrus) {
+      if (detailsDirty || storageEpochsDirty || walrusChanges) {
         markSectionSaved("details");
       }
       if (campaignTypeDirty) {
@@ -759,6 +1024,14 @@ export default function EditCampaignPage() {
       }
       if (socialsDirty) {
         markSectionSaved("socials");
+      }
+
+      if (walrusChanges && storageRegistrationComplete && walrusCertifyResult) {
+        setInitialDescription(values.campaignDetails ?? "");
+        setDescriptionInstanceKey((prev) => prev + 1);
+        walrusBaselineRef.current = currentWalrusSnapshot;
+        resetWalrusState();
+        resetStorageEstimate();
       }
 
       setEditingSections({
@@ -794,6 +1067,7 @@ export default function EditCampaignPage() {
 
   const disableSubmit =
     isSubmitting ||
+    walrusChangesPending ||
     !(
       campaignNameDirty ||
       descriptionDirty ||
@@ -847,6 +1121,79 @@ export default function EditCampaignPage() {
       </Button>
     );
   };
+
+  const walrusBalanceDisplay = isLoadingWalBalance
+    ? "Loading..."
+    : formattedBalance;
+  const hasInsufficientWalBalance =
+    Boolean(costEstimate) &&
+    !isLoadingWalBalance &&
+    BigInt(
+      Math.floor(
+        (costEstimate?.subsidizedTotalCost ?? 0) * 10 ** 9,
+      ),
+    ) > BigInt(walBalanceRaw || "0");
+
+  const storageCosts: StorageCost[] = costEstimate
+    ? [
+        {
+          label: "JSON content",
+          amount: `${(costEstimate.breakdown.jsonSize / 1024).toFixed(2)} KB`,
+        },
+        {
+          label: "Cover image",
+          amount: `${(costEstimate.breakdown.imagesSize / 1024 / 1024).toFixed(2)} MB`,
+        },
+        {
+          label: "Encoded size (with redundancy)",
+          amount: `${(costEstimate.encodedSize / 1024 / 1024).toFixed(2)} MB`,
+        },
+        {
+          label: `Storage (${costEstimate.epochs} epochs)`,
+          amount: `${costEstimate.subsidizedStorageCost.toFixed(6)} WAL`,
+        },
+        {
+          label: "Upload cost",
+          amount: `${costEstimate.subsidizedUploadCost.toFixed(6)} WAL`,
+        },
+        ...(costEstimate.subsidyRate && costEstimate.subsidyRate > 0
+          ? [
+              {
+                label: `Subsidy discount (${(costEstimate.subsidyRate * 100).toFixed(0)}%)`,
+                amount: `-${(costEstimate.totalCostWal - costEstimate.subsidizedTotalCost).toFixed(6)} WAL`,
+              },
+            ]
+          : []),
+      ]
+    : walrusChangesPending
+      ? [
+          { label: "Campaign metadata", amount: "Calculate first" },
+          { label: "Cover image", amount: "Calculate first" },
+          { label: "Campaign description", amount: "Calculate first" },
+          { label: "Storage epoch", amount: "Calculate first" },
+        ]
+      : [
+          {
+            label: "Walrus storage status",
+            amount: storageRegistrationComplete ? "Registered" : "No changes",
+          },
+        ];
+
+  const totalCostDisplay = costEstimate
+    ? `${costEstimate.subsidizedTotalCost.toFixed(6)} WAL`
+    : storageRegistrationComplete
+      ? "Registered"
+      : walrusChangesPending
+        ? "Calculate first"
+        : "—";
+
+  const shouldHideRegisterButton =
+    !editingSections.details || !walrusChangesPending;
+  const isWalrusOperationPending =
+    walrus.prepare.isPending ||
+    walrus.register.isPending ||
+    walrus.upload.isPending ||
+    walrus.certify.isPending;
 
   return (
     <div className="py-8">
@@ -1118,19 +1465,28 @@ export default function EditCampaignPage() {
                     labelAction={renderEditButton("details")}
                   />
                   <CampaignStorageRegistrationCard
-                    costs={[]}
-                    totalCost="—"
-                    hideRegisterButton={!editingSections.details}
+                    costs={storageCosts}
+                    totalCost={totalCostDisplay}
+                    isCalculating={isEstimatingStorage}
+                    onRegister={handleRegisterStorage}
+                    isPreparing={isWalrusOperationPending}
+                    walBalance={walrusBalanceDisplay}
+                    hasInsufficientBalance={hasInsufficientWalBalance}
+                    requiredWalAmount={costEstimate?.subsidizedTotalCost}
+                    hideRegisterButton={shouldHideRegisterButton}
                     isLocked={!editingSections.details}
                     disabled={!editingSections.details}
-                    storageRegistered={false}
+                    storageRegistered={storageRegistrationComplete}
                     selectedEpochs={selectedEpochs}
                     onEpochsChange={(value) =>
                       form.setValue("storageEpochs", value, {
                         shouldDirty: true,
                       })
                     }
-                    estimatedCost={null}
+                    certifyErrorMessage={certifyRejectionMessage}
+                    onRetryCertify={handleRetryCertify}
+                    isRetryingCertify={walrus.certify.isPending}
+                    estimatedCost={costEstimate ?? null}
                   />
                 </div>
               </section>
