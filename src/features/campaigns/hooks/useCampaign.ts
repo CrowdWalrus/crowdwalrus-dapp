@@ -88,6 +88,7 @@ export function useCampaign(
         walrusQuiltId,
         walrusStorageEpochs: metadataMap['walrus_storage_epochs'] || '0',
         coverImageId: metadataMap['cover_image_id'] || 'cover.jpg',
+        campaignType: metadataMap['campaign_type'] || '',
         socialTwitter: metadataMap['social_twitter'],
         socialDiscord: metadataMap['social_discord'],
         socialWebsite: metadataMap['social_website'],
