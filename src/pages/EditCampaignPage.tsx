@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
-import { Link, useParams } from "react-router-dom";
+import { Link, useNavigate, useParams } from "react-router-dom";
 import { useQuery } from "@tanstack/react-query";
 import { useForm, type FieldNamesMarkedBoolean } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
@@ -14,6 +14,7 @@ import { useCampaign } from "@/features/campaigns/hooks/useCampaign";
 import { useOwnedCampaignCap } from "@/features/campaigns/hooks/useOwnedCampaignCap";
 import {
   useWalrusUpload,
+  type WalrusFlowState,
   type RegisterResult,
   type CertifyResult,
 } from "@/features/campaigns/hooks/useWalrusUpload";
@@ -42,6 +43,10 @@ import {
   CampaignStorageRegistrationCard,
   type StorageCost,
 } from "@/features/campaigns/components/new-campaign";
+import {
+  CampaignCreationModal,
+  useCampaignCreationModal,
+} from "@/features/campaigns/components/campaign-creation-modal";
 import { WalrusReuploadWarningModal } from "@/features/campaigns/components/modals/WalrusReuploadWarningModal";
 import { Card, CardContent } from "@/shared/components/ui/card";
 import { Button } from "@/shared/components/ui/button";
@@ -73,6 +78,7 @@ import {
 import { Label } from "@/shared/components/ui/label";
 import { useWalBalance } from "@/shared/hooks/useWalBalance";
 import { useEstimateStorageCost } from "@/features/campaigns/hooks/useCreateCampaign";
+import { WizardStep } from "@/features/campaigns/types/campaign";
 
 interface UseWalrusDescriptionResult {
   data: string;
@@ -225,6 +231,7 @@ const areSnapshotsEqual = (
 export default function EditCampaignPage() {
   const { id: campaignIdParam } = useParams<{ id: string }>();
   const campaignId = campaignIdParam ?? "";
+  const navigate = useNavigate();
   const account = useCurrentAccount();
   const network = DEFAULT_NETWORK;
 
@@ -256,6 +263,13 @@ export default function EditCampaignPage() {
     socials: 0,
   });
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const modal = useCampaignCreationModal();
+  const [wizardStep, setWizardStep] = useState<WizardStep>(WizardStep.FORM);
+  const [walrusFlowState, setWalrusFlowState] =
+    useState<WalrusFlowState | null>(null);
+  const [uploadCompleted, setUploadCompleted] = useState(false);
+  const [walrusError, setWalrusError] = useState<Error | null>(null);
+  const [walrusErrorTitle, setWalrusErrorTitle] = useState<string | null>(null);
   const [walrusStatus, setWalrusStatus] = useState<"idle" | "completed">(
     "idle",
   );
@@ -271,9 +285,14 @@ export default function EditCampaignPage() {
 
   const resetWalrusState = useCallback(() => {
     setWalrusStatus("idle");
+    setWalrusFlowState(null);
     setWalrusRegisterResult(null);
     setWalrusCertifyResult(null);
     setCertifyRejectionMessage(null);
+    setUploadCompleted(false);
+    setWalrusError(null);
+    setWalrusErrorTitle(null);
+    setWizardStep(WizardStep.FORM);
   }, []);
 
   const initialValuesRef = useRef<EditCampaignFormData>(DEFAULT_FORM_VALUES);
@@ -354,6 +373,14 @@ export default function EditCampaignPage() {
 
   const hasCampaign = Boolean(campaign);
   const isDeleted = campaign?.isDeleted ?? false;
+
+  useEffect(() => {
+    if (wizardStep !== WizardStep.FORM) {
+      modal.openModal(wizardStep);
+    } else {
+      modal.closeModal();
+    }
+  }, [wizardStep]);
 
   useEffect(() => {
     if (!hasCampaign) {
@@ -655,198 +682,300 @@ const formattedFundingGoal = campaignData.fundingGoal ?? "";
 const formattedRecipientAddress = campaignData.recipientAddress ?? "";
 
 const isUserRejectedError = (error: unknown) => {
-    if (!(error instanceof Error)) {
-      return false;
+  if (!(error instanceof Error)) {
+    return false;
+  }
+  const message = error.message.toLowerCase();
+  return (
+    message.includes("user rejected") ||
+    message.includes("rejected the request") ||
+    message.includes("user cancelled") ||
+    message.includes("user canceled") ||
+    message.includes("request rejected")
+  );
+};
+
+const dirtyFields = form.formState
+  .dirtyFields as FieldNamesMarkedBoolean<EditCampaignFormData>;
+const campaignNameDirty = isEditFieldDirty(dirtyFields, "campaignName");
+const descriptionDirty = isEditFieldDirty(dirtyFields, "description");
+const coverImageDirty = Boolean(dirtyFields.coverImage);
+const detailsDirty = isEditFieldDirty(dirtyFields, "campaignDetails");
+const storageEpochsDirty = isEditFieldDirty(dirtyFields, "storageEpochs");
+const campaignTypeDirty = isEditFieldDirty(dirtyFields, "campaignType");
+const categoriesDirty = isEditFieldDirty(dirtyFields, "categories");
+const socialsDirty = isEditFieldDirty(dirtyFields, "socials");
+
+const mediaSectionDisabled = isWalrusError || isWalrusImageError;
+const walrusWarningVisible =
+  (isWalrusError || isWalrusImageError) && !walrusErrorAcknowledged;
+
+const startCertifyFlow = async (flowState: WalrusFlowState | null) => {
+  if (!flowState || walrus.certify.isPending) {
+    return;
+  }
+
+  setWalrusError(null);
+  setWalrusErrorTitle(null);
+  setCertifyRejectionMessage(null);
+  setWizardStep(WizardStep.CERTIFYING);
+
+  try {
+    const result = await walrus.certify.mutateAsync(flowState);
+    setWalrusCertifyResult(result);
+    setWalrusStatus("completed");
+    if (currentWalrusSnapshot) {
+      walrusBaselineRef.current = currentWalrusSnapshot;
     }
-    const message = error.message.toLowerCase();
-    return (
-      message.includes("user rejected") ||
-      message.includes("rejected the request") ||
-      message.includes("user cancelled") ||
-      message.includes("user canceled") ||
-      message.includes("request rejected")
+    modal.closeModal();
+    setWizardStep(WizardStep.FORM);
+    toast.success(
+      "Walrus storage registered. Publish update to finalize on-chain metadata.",
     );
-  };
-
-  const dirtyFields = form.formState
-    .dirtyFields as FieldNamesMarkedBoolean<EditCampaignFormData>;
-  const campaignNameDirty = isEditFieldDirty(dirtyFields, "campaignName");
-  const descriptionDirty = isEditFieldDirty(dirtyFields, "description");
-  const coverImageDirty = Boolean(dirtyFields.coverImage);
-  const detailsDirty = isEditFieldDirty(dirtyFields, "campaignDetails");
-  const storageEpochsDirty = isEditFieldDirty(dirtyFields, "storageEpochs");
-  const campaignTypeDirty = isEditFieldDirty(dirtyFields, "campaignType");
-  const categoriesDirty = isEditFieldDirty(dirtyFields, "categories");
-  const socialsDirty = isEditFieldDirty(dirtyFields, "socials");
-
-  const mediaSectionDisabled = isWalrusError || isWalrusImageError;
-  const walrusWarningVisible =
-    (isWalrusError || isWalrusImageError) && !walrusErrorAcknowledged;
-
-  const handleRegisterStorage = async () => {
-    if (!account) {
-      toast.error("Connect your wallet before registering Walrus storage.");
+  } catch (error) {
+    if (isUserRejectedError(error)) {
+      setCertifyRejectionMessage(
+        "Approve the certification transaction in your wallet to continue.",
+      );
+      modal.closeModal();
+      setWizardStep(WizardStep.FORM);
       return;
     }
 
-    if (!walrusChangesPending) {
-      toast.info("No Walrus-related changes detected.");
+    const err = error instanceof Error ? error : new Error("Unknown error");
+    setWalrusError(err);
+    setWalrusErrorTitle("Walrus certification failed");
+    setWizardStep(WizardStep.ERROR);
+  }
+};
+
+const handleRegisterStorage = async () => {
+  if (!account) {
+    toast.error("Connect your wallet before registering Walrus storage.");
+    return;
+  }
+
+  if (!walrusChangesPending) {
+    toast.info("No Walrus-related changes detected.");
+    return;
+  }
+
+  const values = form.getValues();
+  const {
+    metadataPatch,
+    coverImageChanged,
+    descriptionChanged,
+    storageEpochsChanged,
+  } = transformEditCampaignFormData({
+    values,
+    dirtyFields,
+    campaign: campaignData,
+    initialDescription,
+  });
+
+  const walrusChanges =
+    coverImageChanged || descriptionChanged || storageEpochsChanged;
+
+  if (!walrusChanges) {
+    toast.info("No Walrus-related changes detected.");
+    return;
+  }
+
+  const epochsToUse =
+    typeof selectedEpochs === "number" ? selectedEpochs : 0;
+
+  if (!epochsToUse) {
+    toast.error("Storage epochs must be greater than zero.");
+    return;
+  }
+
+  try {
+    setWalrusStatus("idle");
+    setWalrusCertifyResult(null);
+    setWalrusError(null);
+    setWalrusErrorTitle(null);
+    setUploadCompleted(false);
+    setCertifyRejectionMessage(null);
+    setWalrusFlowState(null);
+    setWalrusRegisterResult(null);
+
+    let coverImageFile: File | null = null;
+    if (coverImageChanged && values.coverImage instanceof File) {
+      coverImageFile = values.coverImage;
+    } else if (campaignData.coverImageUrl) {
+      coverImageFile = await fetchCoverImageFile(campaignData.coverImageUrl);
+    }
+
+    if (!coverImageFile) {
+      toast.error("Cover image is required for Walrus storage registration.");
       return;
     }
 
-    const values = form.getValues();
-    const {
-      metadataPatch,
-      coverImageChanged,
-      descriptionChanged,
-      storageEpochsChanged,
-    } = transformEditCampaignFormData({
-      values,
-      dirtyFields,
-      campaign: campaignData,
-      initialDescription,
+    const walrusFormData = {
+      name: campaignData.name,
+      short_description: values.description,
+      subdomain_name: campaignData.subdomainName,
+      category: metadataPatch.category ?? campaignData.category ?? "",
+      funding_goal: campaignData.fundingGoal ?? "0",
+      start_date: new Date(campaignData.startDateMs),
+      end_date: new Date(campaignData.endDateMs),
+      recipient_address: campaignData.recipientAddress,
+      full_description: values.campaignDetails ?? "",
+      cover_image: coverImageFile,
+      social_twitter:
+        metadataPatch.social_twitter ??
+        campaignData.socialTwitter ??
+        undefined,
+      social_discord:
+        metadataPatch.social_discord ??
+        campaignData.socialDiscord ??
+        undefined,
+      social_website:
+        metadataPatch.social_website ??
+        campaignData.socialWebsite ??
+        undefined,
+    };
+
+    const estimate = await estimateStorageCost({
+      formData: walrusFormData,
+      epochs: epochsToUse,
     });
 
-    const walrusChanges =
-      coverImageChanged || descriptionChanged || storageEpochsChanged;
-
-    if (!walrusChanges) {
-      toast.info("No Walrus-related changes detected.");
-      return;
-    }
-
-    const epochsToUse =
-      typeof selectedEpochs === "number" ? selectedEpochs : 0;
-
-    if (!epochsToUse) {
-      toast.error("Storage epochs must be greater than zero.");
-      return;
-    }
-
-    try {
-      resetWalrusState();
-
-      let coverImageFile: File | null = null;
-      if (coverImageChanged && values.coverImage instanceof File) {
-        coverImageFile = values.coverImage;
-      } else if (campaignData.coverImageUrl) {
-        coverImageFile = await fetchCoverImageFile(campaignData.coverImageUrl);
-      }
-
-      if (!coverImageFile) {
-        toast.error("Cover image is required for Walrus storage registration.");
+    if (!isLoadingWalBalance) {
+      const requiredWalUnits = BigInt(
+        Math.floor(estimate.subsidizedTotalCost * 10 ** 9),
+      );
+      const availableWal = BigInt(walBalanceRaw || "0");
+      if (requiredWalUnits > availableWal) {
+        toast.error("Insufficient WAL balance to register storage.");
         return;
       }
-
-      const walrusFormData = {
-        name: campaignData.name,
-        short_description: values.description,
-        subdomain_name: campaignData.subdomainName,
-        category: metadataPatch.category ?? campaignData.category ?? "",
-        funding_goal: campaignData.fundingGoal ?? "0",
-        start_date: new Date(campaignData.startDateMs),
-        end_date: new Date(campaignData.endDateMs),
-        recipient_address: campaignData.recipientAddress,
-        full_description: values.campaignDetails ?? "",
-        cover_image: coverImageFile,
-        social_twitter:
-          metadataPatch.social_twitter ??
-          campaignData.socialTwitter ??
-          undefined,
-        social_discord:
-          metadataPatch.social_discord ??
-          campaignData.socialDiscord ??
-          undefined,
-        social_website:
-          metadataPatch.social_website ??
-          campaignData.socialWebsite ??
-          undefined,
-      };
-
-      const estimate = await estimateStorageCost({
-        formData: walrusFormData,
-        epochs: epochsToUse,
-      });
-
-      if (!isLoadingWalBalance) {
-        const requiredWalUnits = BigInt(
-          Math.floor(estimate.subsidizedTotalCost * 10 ** 9),
-        );
-        const availableWal = BigInt(walBalanceRaw || "0");
-        if (requiredWalUnits > availableWal) {
-          toast.error("Insufficient WAL balance to register storage.");
-          return;
-        }
-      }
-
-      const flowState = await walrus.prepare.mutateAsync({
-        formData: walrusFormData,
-        storageEpochs: epochsToUse,
-        network,
-      });
-
-      const registerResult = await walrus.register.mutateAsync(flowState);
-      setWalrusRegisterResult(registerResult);
-
-      await walrus.upload.mutateAsync({
-        flowState,
-        registerDigest: registerResult.transactionDigest,
-      });
-
-      const certifyResult = await walrus.certify.mutateAsync(flowState);
-      setWalrusCertifyResult(certifyResult);
-      setWalrusStatus("completed");
-      walrusBaselineRef.current = currentWalrusSnapshot;
-      toast.success(
-        "Walrus storage registered. Publish update to finalize on-chain metadata.",
-      );
-    } catch (error) {
-      if (isUserRejectedError(error)) {
-        setCertifyRejectionMessage(
-          "Approve the Walrus certification transaction in your wallet to continue.",
-        );
-        toast.info(
-          "Certification transaction rejected. Retry when you are ready to approve it.",
-        );
-      } else if (error instanceof Error) {
-        toast.error(error.message);
-      } else {
-        toast.error("Failed to complete Walrus storage registration.");
-      }
     }
-  };
 
-  const handleRetryCertify = async () => {
-    if (!walrusRegisterResult) {
+    const flowState = await walrus.prepare.mutateAsync({
+      formData: walrusFormData,
+      storageEpochs: epochsToUse,
+      network,
+    });
+
+    setWalrusFlowState(flowState);
+    setWizardStep(WizardStep.CONFIRM_REGISTER);
+  } catch (error) {
+    const err = error instanceof Error ? error : new Error("Unknown error");
+    setWalrusError(err);
+    setWalrusErrorTitle("Unable to prepare Walrus upload");
+    setWizardStep(WizardStep.ERROR);
+  }
+};
+
+const handleConfirmRegisterStorage = async () => {
+  if (!walrusFlowState) {
+    return;
+  }
+
+  setWalrusError(null);
+  setWalrusErrorTitle(null);
+  setCertifyRejectionMessage(null);
+
+  try {
+    setWizardStep(WizardStep.REGISTERING);
+    const registerResult = await walrus.register.mutateAsync(walrusFlowState);
+    setWalrusRegisterResult(registerResult);
+
+    setWizardStep(WizardStep.UPLOADING);
+    await walrus.upload.mutateAsync({
+      flowState: registerResult.flowState,
+      registerDigest: registerResult.transactionDigest,
+    });
+    setUploadCompleted(true);
+
+    await startCertifyFlow(registerResult.flowState);
+  } catch (error) {
+    if (isUserRejectedError(error)) {
+      setCertifyRejectionMessage(
+        "Approve the storage registration transaction in your wallet to continue.",
+      );
+      setWizardStep(WizardStep.FORM);
       return;
     }
 
-    try {
-      setCertifyRejectionMessage(null);
-      const certifyResult = await walrus.certify.mutateAsync(
-        walrusRegisterResult.flowState,
-      );
-      setWalrusCertifyResult(certifyResult);
-      setWalrusStatus("completed");
-      walrusBaselineRef.current = currentWalrusSnapshot;
-      toast.success(
-        "Walrus storage certification completed. Publish update to finalize on-chain metadata.",
-      );
-    } catch (error) {
-      if (isUserRejectedError(error)) {
-        setCertifyRejectionMessage(
-          "Approve the Walrus certification transaction in your wallet to continue.",
-        );
-        toast.info(
-          "Certification transaction rejected. Retry when you are ready to approve it.",
-        );
-      } else if (error instanceof Error) {
-        toast.error(error.message);
-      } else {
-        toast.error("Failed to certify Walrus storage.");
-      }
-    }
-  };
+    const err = error instanceof Error ? error : new Error("Unknown error");
+    setWalrusError(err);
+    setWalrusErrorTitle("Walrus registration failed");
+    setWizardStep(WizardStep.ERROR);
+  }
+};
+
+const handleRetryUpload = async () => {
+  if (!walrusRegisterResult) {
+    return;
+  }
+
+  setWalrusError(null);
+  setWalrusErrorTitle(null);
+  setWizardStep(WizardStep.UPLOADING);
+
+  try {
+    await walrus.upload.mutateAsync({
+      flowState: walrusRegisterResult.flowState,
+      registerDigest: walrusRegisterResult.transactionDigest,
+    });
+    setUploadCompleted(true);
+    await startCertifyFlow(walrusRegisterResult.flowState);
+  } catch (error) {
+    const err = error instanceof Error ? error : new Error("Unknown error");
+    setWalrusError(err);
+    setWalrusErrorTitle("Walrus upload failed");
+    setWizardStep(WizardStep.ERROR);
+  }
+};
+
+const handleRetryCertify = () => {
+  if (!walrusRegisterResult) {
+    return;
+  }
+
+  void startCertifyFlow(walrusRegisterResult.flowState);
+};
+
+const handleWalrusModalRetry = () => {
+  setWalrusError(null);
+  setWalrusErrorTitle(null);
+
+  if (uploadCompleted && walrusRegisterResult) {
+    void startCertifyFlow(walrusRegisterResult.flowState);
+    return;
+  }
+
+  if (walrusRegisterResult) {
+    void handleRetryUpload();
+    return;
+  }
+
+  if (walrusFlowState) {
+    setWizardStep(WizardStep.CONFIRM_REGISTER);
+    return;
+  }
+
+  setWizardStep(WizardStep.FORM);
+};
+
+const handleCancelRegister = () => {
+  setWizardStep(WizardStep.FORM);
+  setWalrusFlowState(null);
+  setWalrusRegisterResult(null);
+  setUploadCompleted(false);
+  setWalrusError(null);
+  setWalrusErrorTitle(null);
+  setCertifyRejectionMessage(null);
+  modal.closeModal();
+};
+
+const handleModalClose = () => {
+  if (wizardStep === WizardStep.ERROR || wizardStep === WizardStep.FORM) {
+    setWizardStep(WizardStep.FORM);
+  }
+};
 
   const getSectionStatus = (section: SectionKey, dirty: boolean) => {
     if (dirty) {
@@ -1051,6 +1180,7 @@ const isUserRejectedError = (error: unknown) => {
       await refetchCampaign();
       toast.success("Campaign updated successfully.");
       setInitialized(false);
+      navigate(ROUTES.CAMPAIGNS_DETAIL.replace(":id", campaignId));
     } catch (error) {
       const abortCode = extractMoveAbortCode(error);
       if (abortCode !== null) {
@@ -1196,13 +1326,27 @@ const isUserRejectedError = (error: unknown) => {
     walrus.certify.isPending;
 
   return (
-    <div className="py-8">
-      <div className="container">
-        <Breadcrumb className="mb-8">
-          <BreadcrumbList>
-            <BreadcrumbItem>
-              <BreadcrumbLink asChild>
-                <Link to={ROUTES.HOME}>Home</Link>
+    <>
+      <CampaignCreationModal
+        isOpen={modal.isOpen}
+        currentStep={modal.currentStep ?? (wizardStep !== WizardStep.FORM ? wizardStep : null)}
+        onClose={handleModalClose}
+        onConfirmRegister={handleConfirmRegisterStorage}
+        onCancelRegister={handleCancelRegister}
+        onRetry={handleWalrusModalRetry}
+        estimatedCost={costEstimate}
+        uploadProgress={uploadCompleted ? 100 : 0}
+        errorTitle={walrusErrorTitle ?? undefined}
+        error={walrusError?.message ?? undefined}
+      />
+
+      <div className="py-8">
+        <div className="container">
+          <Breadcrumb className="mb-8">
+            <BreadcrumbList>
+              <BreadcrumbItem>
+                <BreadcrumbLink asChild>
+                  <Link to={ROUTES.HOME}>Home</Link>
               </BreadcrumbLink>
             </BreadcrumbItem>
             <BreadcrumbSeparator />
@@ -1524,5 +1668,6 @@ const isUserRejectedError = (error: unknown) => {
         </div>
       </div>
     </div>
+    </>
   );
 }
