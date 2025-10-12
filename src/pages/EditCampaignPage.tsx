@@ -879,10 +879,13 @@ export default function EditCampaignPage() {
           <Form {...form}>
             <form className="flex flex-col gap-16" onSubmit={handleSubmit}>
               <div className="flex flex-col items-center text-center gap-4">
-                <h1 className="text-4xl font-bold">Edit Campaign</h1>
-                <p className="text-muted-foreground text-base">
-                  Keep your campaign details up to date. Timeline, funding goal,
-                  and donation address stay read-only after launch.
+                <h1 className="text-5xl font-bold">
+                  Edit <span className="text-primary">{campaignData.name}</span>{" "}
+                  Campaign
+                </h1>
+                <p>
+                  Any updates to campaign details may incur extra storage fees.
+                  Please review the fields and update them as needed.
                 </p>
               </div>
 
