@@ -374,9 +374,6 @@ export default function NewCampaignPage() {
     isExecuting;
 
   // For all operations (includes everything)
-  const isPending =
-    isEstimating || walrus.prepare.isPending || isRegistrationPending;
-
   const hasCompletedStorageRegistration = certifyResult !== null;
   const isFormLocked =
     hasCompletedStorageRegistration ||
