@@ -10,7 +10,49 @@ import {
 import { FormMessage } from "@/shared/components/ui/form";
 import { cn } from "@/shared/lib/utils";
 
-export function CampaignTimeline() {
+interface CampaignTimelineProps {
+  readOnly?: boolean;
+  startDateMs?: number;
+  endDateMs?: number;
+}
+
+export function CampaignTimeline({
+  readOnly = false,
+  startDateMs,
+  endDateMs,
+}: CampaignTimelineProps) {
+  if (readOnly) {
+    const startDateLabel = startDateMs
+      ? new Date(startDateMs).toLocaleDateString()
+      : "—";
+    const endDateLabel = endDateMs
+      ? new Date(endDateMs).toLocaleDateString()
+      : "—";
+
+    return (
+      <section className="flex flex-col gap-4">
+        <h2 className="text-2xl font-bold leading-[1.6]">Campaign Timeline</h2>
+        <p className="text-sm text-muted-foreground">
+          Timeline cannot be edited after launch. These dates were set when the campaign was created.
+        </p>
+        <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
+          <div className="rounded-lg border border-border bg-muted/20 p-4">
+            <p className="text-xs uppercase tracking-wide text-muted-foreground">
+              Start date
+            </p>
+            <p className="text-lg font-semibold text-foreground">{startDateLabel}</p>
+          </div>
+          <div className="rounded-lg border border-border bg-muted/20 p-4">
+            <p className="text-xs uppercase tracking-wide text-muted-foreground">
+              End date
+            </p>
+            <p className="text-lg font-semibold text-foreground">{endDateLabel}</p>
+          </div>
+        </div>
+      </section>
+    );
+  }
+
   const { watch, setValue, trigger, formState: { errors } } = useFormContext();
   const [startDateOpen, setStartDateOpen] = useState(false);
   const [endDateOpen, setEndDateOpen] = useState(false);
