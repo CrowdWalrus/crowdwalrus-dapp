@@ -29,7 +29,6 @@ import {
 import { getContractConfig, CLOCK_OBJECT_ID } from "@/shared/config/contracts";
 import { DEFAULT_NETWORK } from "@/shared/config/networkConfig";
 import { ROUTES } from "@/shared/config/routes";
-import { EditableSection } from "@/features/campaigns/components/EditableSection";
 import {
   CampaignCoverImageUpload,
   CampaignDetailsEditor,
@@ -40,6 +39,7 @@ import {
   CampaignTimeline,
   CampaignFundingTargetSection,
 } from "@/features/campaigns/components/new-campaign";
+import { WalrusReuploadWarningModal } from "@/features/campaigns/components/modals/WalrusReuploadWarningModal";
 import { Card, CardContent } from "@/shared/components/ui/card";
 import { Button } from "@/shared/components/ui/button";
 import {
@@ -204,6 +204,8 @@ export default function EditCampaignPage() {
     categories: false,
     socials: false,
   });
+  const [pendingWalrusSection, setPendingWalrusSection] =
+    useState<SectionKey | null>(null);
   const [savedSections, setSavedSections] = useState<Record<SectionKey, number>>({
     campaignName: 0,
     description: 0,
@@ -518,57 +520,42 @@ export default function EditCampaignPage() {
     }, SAVE_STATUS_TIMEOUT);
   };
 
-  const handleToggleSection = (section: SectionKey) => {
-    if (
-      mediaSectionDisabled &&
-      (section === "coverImage" || section === "details")
-    ) {
-      return;
-    }
-    setEditingSections((prev) => ({ ...prev, [section]: !prev[section] }));
+  const requiresWalrusSubscription = (section: SectionKey) =>
+    section === "coverImage" || section === "details";
+
+  const toggleSectionEditing = (section: SectionKey, nextValue?: boolean) => {
+    setEditingSections((prev) => ({
+      ...prev,
+      [section]:
+        typeof nextValue === "boolean" ? nextValue : !prev[section],
+    }));
   };
 
-  const cancelSection = (section: SectionKey) => {
-    const initialValues = initialValuesRef.current;
-    switch (section) {
-      case "campaignName":
-        form.setValue("campaignName", initialValues.campaignName, {
-          shouldDirty: false,
-        });
-        break;
-      case "description":
-        form.setValue("description", initialValues.description, {
-          shouldDirty: false,
-        });
-        break;
-      case "coverImage":
-        form.setValue("coverImage", undefined, { shouldDirty: false });
-        break;
-      case "details":
-        form.setValue("campaignDetails", initialValues.campaignDetails, {
-          shouldDirty: false,
-        });
-        form.setValue("storageEpochs", initialValues.storageEpochs, {
-          shouldDirty: false,
-        });
-        break;
-      case "campaignType":
-        form.setValue("campaignType", initialValues.campaignType, {
-          shouldDirty: false,
-        });
-        break;
-      case "categories":
-        form.setValue("categories", initialValues.categories, {
-          shouldDirty: false,
-        });
-        break;
-      case "socials":
-        form.setValue("socials", initialValues.socials, {
-          shouldDirty: false,
-        });
-        break;
+  const handleEditToggle = (section: SectionKey) => {
+    if (requiresWalrusSubscription(section) && mediaSectionDisabled) {
+      return;
     }
-    setEditingSections((prev) => ({ ...prev, [section]: false }));
+
+    const isEditing = editingSections[section];
+
+    if (!isEditing && requiresWalrusSubscription(section)) {
+      setPendingWalrusSection(section);
+      return;
+    }
+
+    toggleSectionEditing(section);
+  };
+
+  const handleConfirmWalrusEdit = () => {
+    if (!pendingWalrusSection) {
+      return;
+    }
+    toggleSectionEditing(pendingWalrusSection, true);
+    setPendingWalrusSection(null);
+  };
+
+  const handleCloseWalrusModal = () => {
+    setPendingWalrusSection(null);
   };
 
   const watchStorageEpochs = form.watch("storageEpochs");
@@ -777,6 +764,42 @@ export default function EditCampaignPage() {
       socialsDirty
     );
 
+  const sectionStatuses: Record<SectionKey, string | null> = {
+    campaignName: getSectionStatus("campaignName", campaignNameDirty),
+    description: getSectionStatus("description", descriptionDirty),
+    coverImage: getSectionStatus("coverImage", coverImageDirty),
+    details: getSectionStatus("details", detailsDirty || storageEpochsDirty),
+    campaignType: getSectionStatus("campaignType", campaignTypeDirty),
+    categories: getSectionStatus("categories", categoriesDirty),
+    socials: getSectionStatus("socials", socialsDirty),
+  };
+
+  const FieldStatusBadge = ({ status }: { status: string | null }) =>
+    status ? (
+      <span className="text-xs font-medium uppercase tracking-wide text-muted-foreground">
+        {status}
+      </span>
+    ) : null;
+
+  const renderEditButton = (section: SectionKey) => {
+    const isEditing = editingSections[section];
+    const shouldDisable =
+      !isEditing && requiresWalrusSubscription(section) && mediaSectionDisabled;
+
+    return (
+      <Button
+        type="button"
+        variant="outline"
+        size="sm"
+        onClick={() => handleEditToggle(section)}
+        disabled={shouldDisable}
+        aria-pressed={isEditing}
+      >
+        {isEditing ? "Done" : "Edit"}
+      </Button>
+    );
+  };
+
   return (
     <div className="py-8">
       <div className="container">
@@ -839,214 +862,102 @@ export default function EditCampaignPage() {
                 </Alert>
               ) : null}
 
-              <section className="flex flex-col gap-8">
+              <section className="flex flex-col mb-12 gap-8">
                 <h2 className="text-2xl font-semibold">Campaign Details</h2>
 
-                <EditableSection
-                  label="Title"
-                  isEditing={editingSections.campaignName}
-                  onToggleEdit={() => handleToggleSection("campaignName")}
-                  status={getSectionStatus("campaignName", campaignNameDirty)}
-                  actions={
-                    editingSections.campaignName ? (
-                      <Button
-                        type="button"
-                        variant="ghost"
-                        onClick={() => cancelSection("campaignName")}
-                      >
-                        Cancel
-                      </Button>
-                    ) : null
-                  }
-                >
-                  <FormField
-                    control={form.control}
-                    name="campaignName"
-                    render={({ field }) => (
-                      <FormItem>
+                <FormField
+                  control={form.control}
+                  name="campaignName"
+                  render={({ field }) => (
+                    <FormItem>
+                      <div className="flex flex-wrap items-center justify-between gap-3">
                         <FormLabel>
                           Title <span className="text-red-300">*</span>
                         </FormLabel>
-                        <FormControl>
-                          <Input
-                            placeholder="Enter your campaign name"
-                            {...field}
-                            disabled={!editingSections.campaignName}
-                          />
-                        </FormControl>
-                        <FormMessage />
-                      </FormItem>
-                    )}
-                  />
-                </EditableSection>
+                        <div className="flex items-center gap-3">
+                          <FieldStatusBadge status={sectionStatuses.campaignName} />
+                          {renderEditButton("campaignName")}
+                        </div>
+                      </div>
+                      <FormControl>
+                        <Input
+                          placeholder="Enter your campaign name"
+                          {...field}
+                          disabled={!editingSections.campaignName}
+                        />
+                      </FormControl>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
 
-                <EditableSection
-                  label="Short description"
-                  isEditing={editingSections.description}
-                  onToggleEdit={() => handleToggleSection("description")}
-                  status={getSectionStatus("description", descriptionDirty)}
-                  actions={
-                    editingSections.description ? (
-                      <Button
-                        type="button"
-                        variant="ghost"
-                        onClick={() => cancelSection("description")}
-                      >
-                        Cancel
-                      </Button>
-                    ) : null
-                  }
-                >
-                  <FormField
-                    control={form.control}
-                    name="description"
-                    render={({ field }) => (
-                      <FormItem>
+                <FormField
+                  control={form.control}
+                  name="description"
+                  render={({ field }) => (
+                    <FormItem>
+                      <div className="flex flex-wrap items-center justify-between gap-3">
                         <FormLabel>
                           Short description <span className="text-red-300">*</span>
                         </FormLabel>
-                        <FormControl>
-                          <Textarea
-                            placeholder="Brief description of your campaign"
-                            rows={4}
-                            {...field}
-                            disabled={!editingSections.description}
-                          />
-                        </FormControl>
-                        <FormMessage />
-                      </FormItem>
-                    )}
-                  />
-                </EditableSection>
+                        <div className="flex items-center gap-3">
+                          <FieldStatusBadge status={sectionStatuses.description} />
+                          {renderEditButton("description")}
+                        </div>
+                      </div>
+                      <FormControl>
+                        <Textarea
+                          placeholder="Brief description of your campaign"
+                          rows={4}
+                          {...field}
+                          disabled={!editingSections.description}
+                        />
+                      </FormControl>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
 
-                <EditableSection
-                  label="Cover image"
-                  isEditing={editingSections.coverImage}
-                  onToggleEdit={() => handleToggleSection("coverImage")}
-                  requiresWalrusWarning
-                  onWalrusWarningAccepted={() =>
-                    setEditingSections((prev) => ({ ...prev, coverImage: true }))
-                  }
-                  disabled={mediaSectionDisabled}
-                  status={getSectionStatus("coverImage", coverImageDirty)}
-                  actions={
-                    editingSections.coverImage ? (
-                      <Button
-                        type="button"
-                        variant="ghost"
-                        onClick={() => cancelSection("coverImage")}
-                      >
-                        Cancel
-                      </Button>
-                    ) : null
-                  }
-                >
-                  <CampaignCoverImageUpload
-                    disabled={!editingSections.coverImage}
-                    initialPreviewUrl={coverImagePreviewUrl}
-                  />
-                </EditableSection>
+                <CampaignCoverImageUpload
+                  disabled={!editingSections.coverImage}
+                  initialPreviewUrl={coverImagePreviewUrl}
+                  labelStatus={<FieldStatusBadge status={sectionStatuses.coverImage} />}
+                  labelAction={renderEditButton("coverImage")}
+                />
               </section>
 
               <Separator />
 
-              <section className="flex flex-col gap-8">
-                <h2 className="text-2xl font-semibold">Campaign Configuration</h2>
+              <CampaignTypeSelector
+                disabled={!editingSections.campaignType}
+                headerStatus={<FieldStatusBadge status={sectionStatuses.campaignType} />}
+                headerAction={renderEditButton("campaignType")}
+              />
 
-                <EditableSection
-                  label="Campaign type"
-                  isEditing={editingSections.campaignType}
-                  onToggleEdit={() => handleToggleSection("campaignType")}
-                  status={getSectionStatus("campaignType", campaignTypeDirty)}
-                  actions={
-                    editingSections.campaignType ? (
-                      <Button
-                        type="button"
-                        variant="ghost"
-                        onClick={() => cancelSection("campaignType")}
-                      >
-                        Cancel
-                      </Button>
-                    ) : null
-                  }
-                >
-                  <CampaignTypeSelector disabled={!editingSections.campaignType} />
-                </EditableSection>
-
-                <EditableSection
-                  label="Categories"
-                  isEditing={editingSections.categories}
-                  onToggleEdit={() => handleToggleSection("categories")}
-                  status={getSectionStatus("categories", categoriesDirty)}
-                  actions={
-                    editingSections.categories ? (
-                      <Button
-                        type="button"
-                        variant="ghost"
-                        onClick={() => cancelSection("categories")}
-                      >
-                        Cancel
-                      </Button>
-                    ) : null
-                  }
-                >
-                  <CampaignCategorySelector disabled={!editingSections.categories} />
-                </EditableSection>
-              </section>
+              <CampaignCategorySelector
+                disabled={!editingSections.categories}
+                headerStatus={<FieldStatusBadge status={sectionStatuses.categories} />}
+                headerAction={renderEditButton("categories")}
+              />
 
               <Separator />
 
-              <section className="flex flex-col gap-8">
+              <section className="flex flex-col gap-8 mb-12">
                 <h2 className="text-2xl font-semibold">Additional Details</h2>
 
-                <EditableSection
-                  label="Social links"
-                  isEditing={editingSections.socials}
-                  onToggleEdit={() => handleToggleSection("socials")}
-                  status={getSectionStatus("socials", socialsDirty)}
-                  actions={
-                    editingSections.socials ? (
-                      <Button
-                        type="button"
-                        variant="ghost"
-                        onClick={() => cancelSection("socials")}
-                      >
-                        Cancel
-                      </Button>
-                    ) : null
-                  }
-                >
-                  <CampaignSocialsSection disabled={!editingSections.socials} />
-                </EditableSection>
+                <CampaignSocialsSection
+                  disabled={!editingSections.socials}
+                  labelStatus={<FieldStatusBadge status={sectionStatuses.socials} />}
+                  labelAction={renderEditButton("socials")}
+                />
 
-                <EditableSection
-                  label="Campaign story"
-                  description="Update the rich text description stored on Walrus."
-                  isEditing={editingSections.details}
-                  onToggleEdit={() => handleToggleSection("details")}
-                  requiresWalrusWarning
-                  onWalrusWarningAccepted={() =>
-                    setEditingSections((prev) => ({ ...prev, details: true }))
-                  }
-                  disabled={mediaSectionDisabled}
-                  status={getSectionStatus("details", detailsDirty || storageEpochsDirty)}
-                  actions={
-                    editingSections.details ? (
-                      <Button
-                        type="button"
-                        variant="ghost"
-                        onClick={() => cancelSection("details")}
-                      >
-                        Cancel
-                      </Button>
-                    ) : null
-                  }
-                >
+                <div className="flex flex-col gap-6">
                   <CampaignDetailsEditor
                     disabled={!editingSections.details}
                     instanceKey={descriptionInstanceKey}
+                    labelStatus={<FieldStatusBadge status={sectionStatuses.details} />}
+                    labelAction={renderEditButton("details")}
                   />
-
                   <CampaignStorageRegistrationCard
                     costs={[]}
                     totalCost="—"
@@ -1060,13 +971,18 @@ export default function EditCampaignPage() {
                     }
                     estimatedCost={null}
                   />
-                </EditableSection>
+                </div>
               </section>
 
               <Separator />
 
               <section className="flex flex-col gap-8">
-                <h2 className="text-2xl font-semibold">Immutable settings</h2>
+                <div className="flex flex-wrap items-center justify-between gap-3">
+                  <h2 className="text-2xl font-semibold">Immutable settings</h2>
+                  <span className="text-xs font-medium uppercase tracking-wide text-muted-foreground">
+                    Can&apos;t Edit
+                  </span>
+                </div>
                 <div className="grid gap-4 sm:grid-cols-2">
                   <div className="rounded-lg border border-border bg-muted/20 p-4">
                     <p className="text-xs uppercase tracking-wide text-muted-foreground">
@@ -1121,6 +1037,12 @@ export default function EditCampaignPage() {
                   </Button>
                 </div>
               </section>
+
+              <WalrusReuploadWarningModal
+                open={pendingWalrusSection !== null}
+                onConfirm={handleConfirmWalrusEdit}
+                onClose={handleCloseWalrusModal}
+              />
             </form>
           </Form>
         </div>

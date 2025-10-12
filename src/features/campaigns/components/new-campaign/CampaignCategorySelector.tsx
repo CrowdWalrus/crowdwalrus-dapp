@@ -1,13 +1,20 @@
 import { useFormContext, Controller } from "react-hook-form";
+import type { ReactNode } from "react";
 import { Checkbox } from "@/shared/components/ui/checkbox";
 import { Label } from "@/shared/components/ui/label";
 import { FormMessage } from "@/shared/components/ui/form";
 
 interface CampaignCategorySelectorProps {
   disabled?: boolean;
+  headerAction?: ReactNode;
+  headerStatus?: ReactNode;
 }
 
-export function CampaignCategorySelector({ disabled = false }: CampaignCategorySelectorProps) {
+export function CampaignCategorySelector({
+  disabled = false,
+  headerAction,
+  headerStatus,
+}: CampaignCategorySelectorProps) {
   const { control } = useFormContext();
 
   const handleCheckboxChange = (
@@ -29,10 +36,18 @@ export function CampaignCategorySelector({ disabled = false }: CampaignCategoryS
       name="categories"
       render={({ field: { onChange, value }, fieldState: { error } }) => (
         <div className="flex flex-col gap-8">
-          <p className="font-bold text-2xl leading-[1.6]">
-            <span>Select Category </span>
-            <span className="font-normal text-[#f5827a]">*</span>
-          </p>
+          <div className="flex flex-wrap items-center justify-between gap-3">
+            <p className="font-bold text-2xl leading-[1.6]">
+              <span>Select Category </span>
+              <span className="font-normal text-[#f5827a]">*</span>
+            </p>
+            {(headerAction || headerStatus) && (
+              <div className="flex items-center gap-3">
+                {headerStatus}
+                {headerAction}
+              </div>
+            )}
+          </div>
           <div className="flex flex-col gap-4">
             <p className="font-medium text-base leading-[1.6]">
               Pick a category that best describes your campaign. You can select

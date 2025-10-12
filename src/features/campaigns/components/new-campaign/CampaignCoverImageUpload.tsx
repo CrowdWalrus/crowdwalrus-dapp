@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, type ReactNode } from "react";
 import { useFormContext, Controller } from "react-hook-form";
 import { Upload, X } from "lucide-react";
 import { toast } from "sonner";
@@ -9,11 +9,15 @@ import { FormLabel, FormMessage } from "@/shared/components/ui/form";
 export interface CampaignCoverImageUploadProps {
   disabled?: boolean;
   initialPreviewUrl?: string | null;
+  labelAction?: ReactNode;
+  labelStatus?: ReactNode;
 }
 
 export function CampaignCoverImageUpload({
   disabled = false,
   initialPreviewUrl = null,
+  labelAction,
+  labelStatus,
 }: CampaignCoverImageUploadProps) {
   const { control, watch } = useFormContext();
   const [isDragging, setIsDragging] = useState(false);
@@ -235,9 +239,20 @@ export function CampaignCoverImageUpload({
       name="coverImage"
       render={({ field: { onChange }, fieldState: { error } }) => (
         <div>
-          <FormLabel htmlFor="cover-image" className="block pb-4">
-            Cover image <span className="text-red-300">*</span>
-          </FormLabel>
+          <div className="flex flex-wrap items-center justify-between gap-3 pb-4">
+            <FormLabel
+              htmlFor="cover-image"
+              className="font-medium text-base leading-[1.6]"
+            >
+              Cover image <span className="text-red-300">*</span>
+            </FormLabel>
+            {(labelAction || labelStatus) && (
+              <div className="flex items-center gap-3">
+                {labelStatus}
+                {labelAction}
+              </div>
+            )}
+          </div>
           <Input
             id="cover-image"
             type="file"

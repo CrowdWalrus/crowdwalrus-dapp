@@ -1,4 +1,5 @@
 import { useFormContext, useFieldArray, Controller } from "react-hook-form";
+import type { ReactNode } from "react";
 import { Plus, Globe, X } from "lucide-react";
 import { Button } from "@/shared/components/ui/button";
 import { Input } from "@/shared/components/ui/input";
@@ -69,9 +70,15 @@ const PLATFORM_CONFIG = {
 
 interface CampaignSocialsSectionProps {
   disabled?: boolean;
+  labelAction?: ReactNode;
+  labelStatus?: ReactNode;
 }
 
-export function CampaignSocialsSection({ disabled = false }: CampaignSocialsSectionProps) {
+export function CampaignSocialsSection({
+  disabled = false,
+  labelAction,
+  labelStatus,
+}: CampaignSocialsSectionProps) {
   const {
     control,
     watch,
@@ -93,7 +100,15 @@ export function CampaignSocialsSection({ disabled = false }: CampaignSocialsSect
 
   return (
     <div className="flex flex-col gap-4">
-      <p className="font-medium text-base leading-[1.6]">Add socials</p>
+      <div className="flex flex-wrap items-center justify-between gap-3">
+        <p className="font-medium text-base leading-[1.6]">Add socials</p>
+        {(labelAction || labelStatus) && (
+          <div className="flex items-center gap-3">
+            {labelStatus}
+            {labelAction}
+          </div>
+        )}
+      </div>
       <div className="flex flex-col gap-4 w-full">
         {fields.map((field, index) => {
           const platformValue = socials?.[index]?.platform || "website";

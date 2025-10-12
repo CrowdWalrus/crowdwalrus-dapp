@@ -1,13 +1,20 @@
 import { useFormContext, Controller } from "react-hook-form";
+import type { ReactNode } from "react";
 import { RadioGroup, RadioGroupItem } from "@/shared/components/ui/radio-group";
 import { FormMessage } from "@/shared/components/ui/form";
 import { cn } from "@/shared/lib/utils";
 
 interface CampaignTypeSelectorProps {
   disabled?: boolean;
+  headerAction?: ReactNode;
+  headerStatus?: ReactNode;
 }
 
-export function CampaignTypeSelector({ disabled = false }: CampaignTypeSelectorProps) {
+export function CampaignTypeSelector({
+  disabled = false,
+  headerAction,
+  headerStatus,
+}: CampaignTypeSelectorProps) {
   const { control } = useFormContext();
 
   return (
@@ -16,9 +23,17 @@ export function CampaignTypeSelector({ disabled = false }: CampaignTypeSelectorP
       name="campaignType"
       render={({ field: { onChange, value }, fieldState: { error } }) => (
         <section className="flex flex-col gap-8">
-          <h2 className="text-2xl font-bold leading-[1.6]">
-            Campaign Type <span className="text-red-300">*</span>
-          </h2>
+          <div className="flex flex-wrap items-center justify-between gap-3">
+            <h2 className="text-2xl font-bold leading-[1.6]">
+              Campaign Type <span className="text-red-300">*</span>
+            </h2>
+            {(headerAction || headerStatus) && (
+              <div className="flex items-center gap-3">
+                {headerStatus}
+                {headerAction}
+              </div>
+            )}
+          </div>
 
           <RadioGroup
             value={value}
