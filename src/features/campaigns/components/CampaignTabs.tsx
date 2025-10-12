@@ -24,13 +24,13 @@ export function CampaignTabs({
   };
 
   return (
-    <div className="bg-[#f7f7f7] rounded-[12px] p-1 flex items-center gap-0 w-fit">
+    <div className="bg-white-500 rounded-[12px] p-1 flex items-center gap-0 w-fit">
       <button
         onClick={() => handleTabClick("about")}
         className={` text-sm font-medium leading-[1.5] tracking-[0.07px] px-2.5 py-1.5 rounded-[10px] min-h-8 transition-all ${
           activeTab === "about"
-            ? "bg-white text-[#0c0f1c] shadow-[0px_1px_3px_0px_rgba(0,0,0,0.1),0px_1px_2px_-1px_rgba(0,0,0,0.1)]"
-            : "text-[#5c5e67]"
+            ? "bg-white text-black-500 shadow-[0px_1px_3px_0px_rgba(0,0,0,0.1),0px_1px_2px_-1px_rgba(0,0,0,0.1)]"
+            : "text-black-300"
         }`}
       >
         About
@@ -39,8 +39,8 @@ export function CampaignTabs({
         onClick={() => handleTabClick("contributions")}
         className={` text-sm font-medium leading-[1.5] tracking-[0.07px] px-2.5 py-1.5 rounded-[10px] min-h-8 transition-all ${
           activeTab === "contributions"
-            ? "bg-white text-[#0c0f1c] shadow-[0px_1px_3px_0px_rgba(0,0,0,0.1),0px_1px_2px_-1px_rgba(0,0,0,0.1)]"
-            : "text-[#5c5e67]"
+            ? "bg-white text-black-500 shadow-[0px_1px_3px_0px_rgba(0,0,0,0.1),0px_1px_2px_-1px_rgba(0,0,0,0.1)]"
+            : "text-black-300"
         }`}
       >
         Contributions
@@ -49,8 +49,8 @@ export function CampaignTabs({
         onClick={() => handleTabClick("updates")}
         className={` text-sm font-medium leading-[1.5] tracking-[0.07px] px-2.5 py-1.5 rounded-[10px] min-h-8 transition-all ${
           activeTab === "updates"
-            ? "bg-white text-[#0c0f1c] shadow-[0px_1px_3px_0px_rgba(0,0,0,0.1),0px_1px_2px_-1px_rgba(0,0,0,0.1)]"
-            : "text-[#5c5e67]"
+            ? "bg-white text-black-500 shadow-[0px_1px_3px_0px_rgba(0,0,0,0.1),0px_1px_2px_-1px_rgba(0,0,0,0.1)]"
+            : "text-black-300"
         }`}
       >
         Updates

@@ -87,21 +87,21 @@ export const ReviewWalrusTransaction = ({
         <CardContent className="p-4 flex flex-col gap-4 ">
           <CardContent className="flex flex-col gap-4 p-0">
             <div className="flex flex-col gap-4">
-              <div className="flex items-center justify-between text-sm text-[#3d3f49]">
+              <div className="flex items-center justify-between text-sm text-black-400">
                 <span className="font-normal">Walrus storage fees</span>
                 <span className="font-medium">{walrusStorageFees}</span>
               </div>
-              <div className="flex items-center justify-between text-sm text-[#3d3f49]">
+              <div className="flex items-center justify-between text-sm text-black-400">
                 <span className="font-normal">Registration expires</span>
                 <span className="font-medium">{registrationExpires}</span>
               </div>
             </div>
-            <div className="h-px bg-[#e7e7e8]" />
+            <div className="h-px bg-black-50" />
             <div className="flex items-center justify-between pt-1 rounded-lg">
-              <span className="text-sm font-semibold text-[#0c0f1c]">
+              <span className="text-sm font-semibold text-black-500">
                 Total Due
               </span>
-              <span className="text-sm font-semibold text-[#3d3f49]">
+              <span className="text-sm font-semibold text-black-400">
                 {totalDue}
               </span>
             </div>

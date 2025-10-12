@@ -1088,7 +1088,7 @@ export default function EditCampaignPage() {
                       readOnly
                       placeholder="0x8894E0a0c962CB723c1976a4421c95949bE2D4E3"
                     />
-                    <p className="font-normal text-xs text-[#8f9197]">
+                    <p className="font-normal text-xs text-black-200">
                       This is the wallet that will receive all donation funds
                     </p>
                   </div>

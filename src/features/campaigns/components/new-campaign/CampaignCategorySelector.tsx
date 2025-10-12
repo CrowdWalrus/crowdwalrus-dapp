@@ -39,7 +39,7 @@ export function CampaignCategorySelector({
           <div className="flex flex-wrap items-center justify-between gap-3">
             <p className="font-bold text-2xl leading-[1.6]">
               <span>Select Category </span>
-              <span className="font-normal text-[#f5827a]">*</span>
+              <span className="font-normal text-red-300">*</span>
             </p>
             {(headerAction || headerStatus) && (
               <div className="flex items-center gap-3">
