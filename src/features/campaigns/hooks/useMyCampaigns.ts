@@ -14,6 +14,11 @@ import { getContractConfig } from '@/shared/config/contracts';
 import { DEFAULT_NETWORK } from '@/shared/config/networkConfig';
 import { getWalrusUrl } from '@/services/walrus';
 import { useMemo } from 'react';
+import {
+  parseOptionalTimestampFromMove,
+  parseTimestampFromMove,
+  parseU64FromMove,
+} from '@/shared/utils/onchainParsing';
 
 export interface CampaignData {
   // Sui blockchain data
@@ -22,11 +27,15 @@ export interface CampaignData {
   name: string;
   shortDescription: string;
   subdomainName: string;
-  startDate: number;
-  endDate: number;
-  createdAt: number;
-  validated: boolean;
+  recipientAddress: string;
+  startDateMs: number;
+  endDateMs: number;
+  createdAtMs: number;
+  isVerified: boolean;
   isActive: boolean;
+  isDeleted: boolean;
+  deletedAtMs: number | null;
+  nextUpdateSeq: number;
 
   // Metadata fields
   fundingGoal: string;
@@ -127,11 +136,15 @@ export function useMyCampaigns(network: 'devnet' | 'testnet' | 'mainnet' = DEFAU
             name: fields.name,
             shortDescription: fields.short_description,
             subdomainName: fields.subdomain_name,
-            startDate: Number(fields.start_date),
-            endDate: Number(fields.end_date),
-            createdAt: Number(fields.created_at),
-            validated: fields.validated,
-            isActive: fields.isActive,
+            recipientAddress: fields.recipient_address ?? metadataMap['recipient_address'] ?? '',
+            startDateMs: parseTimestampFromMove(fields.start_date),
+            endDateMs: parseTimestampFromMove(fields.end_date),
+            createdAtMs: parseTimestampFromMove(fields.created_at_ms ?? fields.created_at),
+            isVerified: fields.is_verified !== undefined ? Boolean(fields.is_verified) : Boolean(fields.validated),
+            isActive: Boolean(fields.is_active ?? fields.isActive),
+            isDeleted: Boolean(fields.is_deleted ?? fields.isDeleted),
+            deletedAtMs: parseOptionalTimestampFromMove(fields.deleted_at_ms),
+            nextUpdateSeq: parseU64FromMove(fields.next_update_seq ?? fields.nextUpdateSeq ?? 0),
             fundingGoal: metadataMap['funding_goal'] || '0',
             category: metadataMap['category'] || 'Other',
             walrusQuiltId,
@@ -160,7 +173,7 @@ export function useMyCampaigns(network: 'devnet' | 'testnet' | 'mainnet' = DEFAU
         }
       })
       .filter((campaign): campaign is CampaignData => campaign !== null)
-      .sort((a, b) => b.createdAt - a.createdAt);
+      .sort((a, b) => b.createdAtMs - a.createdAtMs);
 
     return processedCampaigns;
   }, [campaignObjects, network]);

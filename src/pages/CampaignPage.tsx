@@ -166,8 +166,8 @@ export function CampaignPage() {
                 campaignName={campaign.name}
                 shortDescription={campaign.shortDescription}
                 isActive={campaign.isActive}
-                validated={campaign.validated}
-                startDate={campaign.startDate}
+                isVerified={campaign.isVerified}
+                startDateMs={campaign.startDateMs}
                 category={campaign.category}
                 contributorsCount={contributorsCount}
                 publisherAddress={campaign.adminId}
@@ -195,12 +195,12 @@ export function CampaignPage() {
           <div className="w-[480px] shrink-0 sticky top-[38px]">
             <DonationCard
               campaignId={campaign.id}
-              validated={campaign.validated}
-              startDate={campaign.startDate}
+              isVerified={campaign.isVerified}
+              startDateMs={campaign.startDateMs}
               amountRaised={amountRaised}
               contributorsCount={contributorsCount}
               fundingGoal={Number(campaign.fundingGoal)}
-              recipientAddress={campaign.adminId}
+              recipientAddress={campaign.recipientAddress}
               isActive={campaign.isActive}
             />
           </div>

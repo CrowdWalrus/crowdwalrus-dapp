@@ -12,8 +12,8 @@ import { StartsBadge, VerificationBadge } from "./CampaignBadges";
 
 interface DonationCardProps {
   campaignId: string;
-  validated: boolean;
-  startDate: number;
+  isVerified: boolean;
+  startDateMs: number;
   amountRaised: number;
   contributorsCount: number;
   fundingGoal: number;
@@ -22,8 +22,8 @@ interface DonationCardProps {
 }
 
 export function DonationCard({
-  validated,
-  startDate,
+  isVerified,
+  startDateMs,
   amountRaised,
   contributorsCount,
   fundingGoal,
@@ -38,29 +38,41 @@ export function DonationCard({
     fundingGoal > 0 ? (amountRaised / fundingGoal) * 100 : 0;
 
   // Format start date
-  const formatStartDate = (timestamp: number) => {
-    return new Date(timestamp * 1000).toLocaleDateString("en-US", {
+  const formatStartDate = (timestampMs: number) => {
+    if (!Number.isFinite(timestampMs) || timestampMs <= 0) {
+      return "Unknown";
+    }
+    return new Date(timestampMs).toLocaleString("en-US", {
       day: "numeric",
       month: "short",
       year: "numeric",
+      hour: "numeric",
+      minute: "2-digit",
+      timeZoneName: "short",
     });
   };
 
   // Mock balance - in real app, fetch from wallet
   const balance = "100.09";
 
-  const formattedStartDate = formatStartDate(startDate);
+  const formattedStartDate = formatStartDate(startDateMs);
+  const formattedStartDateUtc = Number.isFinite(startDateMs)
+    ? new Date(startDateMs).toUTCString()
+    : "Unknown";
 
   return (
     <div className="bg-white rounded-3xl p-10 flex flex-col gap-6 w-full shadow-[0px_0px_16px_0px_rgba(0,0,0,0.16)]">
       {/* Verification Badge */}
       <div className="flex items-start">
-        <VerificationBadge validated={validated} />
+        <VerificationBadge isVerified={isVerified} />
       </div>
 
       {/* Start Date */}
-      <div className="flex items-center gap-6">
-        <StartsBadge formattedDate={formattedStartDate} />
+      <div className="flex flex-col gap-1">
+        <div className="flex items-center gap-6">
+          <StartsBadge formattedDate={formattedStartDate} />
+        </div>
+        <p className="text-xs text-muted-foreground">({formattedStartDateUtc})</p>
       </div>
 
       {/* Amount Raised */}

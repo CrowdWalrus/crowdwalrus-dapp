@@ -34,9 +34,9 @@ export function buildCreateCampaignTransaction(
     epochs,
   );
 
-  // Convert dates to Unix timestamps (in seconds)
-  const startDate = Math.floor(formData.start_date.getTime() / 1000);
-  const endDate = Math.floor(formData.end_date.getTime() / 1000);
+  // Convert dates to Unix timestamps in milliseconds (UTC)
+  const startDateMs = BigInt(formData.start_date.getTime());
+  const endDateMs = BigInt(formData.end_date.getTime());
 
   // Append configured SuiNS domain when user only provides the label
   const fullSubdomain = formatSubdomain(
@@ -55,8 +55,9 @@ export function buildCreateCampaignTransaction(
   console.log("Short Description:", formData.short_description);
   console.log("Subdomain Name (original):", formData.subdomain_name);
   console.log("Subdomain Name (full):", fullSubdomain);
-  console.log("Start Date (u64):", startDate);
-  console.log("End Date (u64):", endDate);
+  console.log("Recipient Address:", formData.recipient_address);
+  console.log("Start Date (ms):", startDateMs.toString());
+  console.log("End Date (ms):", endDateMs.toString());
   console.log("\n--- Metadata VecMap ---");
   console.log("Keys:", keys);
   console.log("Values:", values);
@@ -93,11 +94,14 @@ export function buildCreateCampaignTransaction(
       // Metadata values (vector<String>)
       tx.pure.vector("string", values),
 
-      // Start date (u64 - Unix timestamp in seconds)
-      tx.pure.u64(startDate),
+      // Recipient address for donations
+      tx.pure.address(formData.recipient_address),
 
-      // End date (u64 - Unix timestamp in seconds)
-      tx.pure.u64(endDate),
+      // Start date (u64 - Unix timestamp in milliseconds)
+      tx.pure.u64(startDateMs),
+
+      // End date (u64 - Unix timestamp in milliseconds)
+      tx.pure.u64(endDateMs),
     ],
   });
 
@@ -189,19 +193,26 @@ export function buildAddUpdateTransaction(
 export function buildToggleActiveTransaction(
   campaignId: string,
   campaignOwnerCapId: string,
+  newStatus: boolean,
   network: "devnet" | "testnet" | "mainnet",
 ): Transaction {
   const config = getContractConfig(network);
   const tx = new Transaction();
 
   tx.moveCall({
-    target: `${config.contracts.packageId}::campaign::toggle_active`,
+    target: `${config.contracts.packageId}::campaign::update_active_status`,
     arguments: [
       // Campaign object
       tx.object(campaignId),
 
       // Campaign owner capability
       tx.object(campaignOwnerCapId),
+
+      // Desired active status
+      tx.pure.bool(newStatus),
+
+      // Clock object for timestamping
+      tx.object(CLOCK_OBJECT_ID),
     ],
   });
 
@@ -223,17 +234,25 @@ export function extractCampaignIdFromEffects(
     console.log("Transaction result:", JSON.stringify(result, null, 2));
 
     // objectChanges is at the top level of the result object
-    const createdObjects = result?.objectChanges?.filter(
-      (change: any) =>
-        change.type === "created" &&
-        change.objectType?.includes(`${packageId}::campaign::Campaign`),
+    const objectChanges: any[] = Array.isArray(result?.objectChanges)
+      ? result.objectChanges
+      : [];
+
+    const campaignType = `${packageId}::campaign::Campaign`;
+
+    const campaignChange = objectChanges.find(
+      (change) =>
+        change?.type === "created" &&
+        (change.objectType === campaignType ||
+          // Some Sui responses flatten type names, so defensively match suffix
+          change.objectType?.endsWith("::campaign::Campaign")),
     );
 
-    console.log("Created objects found:", createdObjects);
-    console.log("Number of created objects:", createdObjects?.length || 0);
+    console.log("Created objects found:", objectChanges);
+    console.log("Campaign change:", campaignChange);
 
-    if (createdObjects && createdObjects.length > 0) {
-      const campaignId = createdObjects[0].objectId;
+    if (campaignChange?.objectId) {
+      const campaignId = campaignChange.objectId;
       console.log("Extracted Campaign ID:", campaignId);
       console.log("==============================\n");
       return campaignId;
@@ -294,6 +313,14 @@ export function validateCampaignFormData(formData: CampaignFormData): void {
   }
   if (formData.start_date >= formData.end_date) {
     throw new Error("End date must be after start date");
+  }
+
+  // Recipient address validation
+  if (!formData.recipient_address || formData.recipient_address.trim().length === 0) {
+    throw new Error("Recipient address is required");
+  }
+  if (!/^0x[a-fA-F0-9]+$/.test(formData.recipient_address)) {
+    throw new Error("Recipient address must be a valid Sui address");
   }
 
   // Cover image validation

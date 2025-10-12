@@ -42,6 +42,7 @@ export function transformNewCampaignFormData(
     funding_goal: formData.targetAmount,
     start_date: new Date(formData.startDate),
     end_date: new Date(formData.endDate),
+    recipient_address: formData.walletAddress,
 
     // Rich Content
     full_description: formData.campaignDetails, // Lexical JSON string

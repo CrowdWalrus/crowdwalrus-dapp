@@ -17,6 +17,7 @@ export interface CampaignFormData {
   funding_goal: string; // In SUI tokens
   start_date: Date;
   end_date: Date;
+  recipient_address: string;
 
   // Rich Content
   full_description: string; // HTML content
