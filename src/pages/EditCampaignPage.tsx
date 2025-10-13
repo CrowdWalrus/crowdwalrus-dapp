@@ -23,6 +23,7 @@ import {
   useUpdateCampaignBasics,
   useUpdateCampaignMetadata,
 } from "@/features/campaigns/hooks/useCampaignMutations";
+import { useWalrusDescription } from "@/features/campaigns/hooks/useWalrusDescription";
 import {
   buildEditCampaignSchema,
   type EditCampaignFormData,
@@ -82,43 +83,6 @@ import { Label } from "@/shared/components/ui/label";
 import { useWalBalance } from "@/shared/hooks/useWalBalance";
 import { useEstimateStorageCost } from "@/features/campaigns/hooks/useCreateCampaign";
 import { WizardStep } from "@/features/campaigns/types/campaign";
-
-interface UseWalrusDescriptionResult {
-  data: string;
-  isLoading: boolean;
-  isError: boolean;
-  error: Error | null;
-  refetch: () => void;
-}
-
-function useWalrusDescription(url: string): UseWalrusDescriptionResult {
-  const { data, isLoading, isError, error, refetch } = useQuery({
-    queryKey: ["walrus-description", url],
-    enabled: Boolean(url),
-    queryFn: async () => {
-      if (!url) {
-        return "";
-      }
-
-      const response = await fetch(url);
-      if (!response.ok) {
-        throw new Error(`Failed to fetch description: ${response.statusText}`);
-      }
-
-      return await response.text();
-    },
-    staleTime: 5 * 60 * 1000,
-    gcTime: 10 * 60 * 1000,
-  });
-
-  return {
-    data: data ?? "",
-    isLoading,
-    isError,
-    error: (error as Error) ?? null,
-    refetch,
-  };
-}
 
 const DEFAULT_FORM_VALUES: EditCampaignFormData = {
   campaignName: "",
@@ -309,12 +273,13 @@ export default function EditCampaignPage() {
     refetch: refetchCap,
   } = useOwnedCampaignCap(campaignId, network);
 
-  const {
-    data: walrusDescription,
-    isLoading: isWalrusLoading,
-    isError: isWalrusError,
-    refetch: refetchWalrus,
-  } = useWalrusDescription(campaign?.descriptionUrl || "");
+  const walrusDescriptionQuery = useWalrusDescription(
+    campaign?.descriptionUrl,
+  );
+  const walrusDescription = walrusDescriptionQuery.data ?? "";
+  const isWalrusLoading = walrusDescriptionQuery.isLoading;
+  const isWalrusError = walrusDescriptionQuery.isError;
+  const refetchWalrus = walrusDescriptionQuery.refetch;
 
   const {
     data: walrusCoverImageUrl,
