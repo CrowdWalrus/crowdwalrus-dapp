@@ -19,6 +19,7 @@ import {
   useMyCampaigns,
   type CampaignData,
 } from "@/features/campaigns/hooks/useMyCampaigns";
+import { SOCIAL_PLATFORM_CONFIG } from "@/features/campaigns/constants/socialPlatforms";
 import { getContractConfig } from "@/shared/config/contracts";
 import { DEFAULT_NETWORK } from "@/shared/config/networkConfig";
 import { EditorViewer } from "@/shared/components/editor/blocks/editor-00/viewer";
@@ -176,6 +177,13 @@ function CampaignCard({ campaign, network }: CampaignCardProps) {
 
   const { campaignDomain } = getContractConfig(network);
   const fullSubdomain = formatSubdomain(campaign.subdomainName, campaignDomain);
+  const socialLinks = campaign.socialLinks ?? [];
+  const platformTotals = socialLinks.reduce<Record<string, number>>((acc, link) => {
+    const key = link.platform;
+    acc[key] = (acc[key] ?? 0) + 1;
+    return acc;
+  }, {});
+  const platformRenderedCounts: Record<string, number> = {};
 
   return (
     <Card className="overflow-hidden">
@@ -273,42 +281,36 @@ function CampaignCard({ campaign, network }: CampaignCardProps) {
         )}
 
         {/* Social Links */}
-        {(campaign.socialTwitter ||
-          campaign.socialDiscord ||
-          campaign.socialWebsite) && (
+        {socialLinks.length > 0 && (
           <div className="pt-2 border-t">
             <p className="text-xs text-muted-foreground mb-2">Social Links</p>
-            <div className="flex flex-wrap gap-2">
-              {campaign.socialTwitter && (
-                <a
-                  href={campaign.socialTwitter}
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  className="text-xs text-blue-600 hover:underline"
-                >
-                  Twitter
-                </a>
-              )}
-              {campaign.socialDiscord && (
-                <a
-                  href={campaign.socialDiscord}
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  className="text-xs text-blue-600 hover:underline"
-                >
-                  Discord
-                </a>
-              )}
-              {campaign.socialWebsite && (
-                <a
-                  href={campaign.socialWebsite}
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  className="text-xs text-blue-600 hover:underline"
-                >
-                  Website
-                </a>
-              )}
+            <div className="flex flex-col gap-1">
+              {socialLinks.map((link, index) => {
+                const config =
+                  SOCIAL_PLATFORM_CONFIG[
+                    link.platform as keyof typeof SOCIAL_PLATFORM_CONFIG
+                  ];
+                const baseLabel =
+                  config?.label ??
+                  `${link.platform.charAt(0).toUpperCase()}${link.platform.slice(1)}`;
+                const occurrence =
+                  (platformRenderedCounts[link.platform] ?? 0) + 1;
+                platformRenderedCounts[link.platform] = occurrence;
+                const suffix = platformTotals[link.platform] > 1 ? ` #${occurrence}` : "";
+                const label = `${baseLabel}${suffix}`;
+
+                return (
+                  <a
+                    key={`${link.platform}-${index}-${link.url}`}
+                    href={link.url}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="text-xs text-blue-600 hover:underline"
+                  >
+                    {label}
+                  </a>
+                );
+              })}
             </div>
           </div>
         )}
