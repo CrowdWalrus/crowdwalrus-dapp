@@ -171,8 +171,7 @@ export function CampaignPage() {
                 category={campaign.category}
                 contributorsCount={contributorsCount}
                 publisherAddress={campaign.adminId}
-                socialTwitter={campaign.socialTwitter}
-                socialWebsite={campaign.socialWebsite}
+                socialLinks={campaign.socialLinks}
               />
             )}
 
