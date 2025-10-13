@@ -1,5 +1,45 @@
 import { Badge } from "@/shared/components/ui/badge";
-import { AlertCircle, Briefcase, Clock, Users } from "lucide-react";
+import type { LucideIcon } from "lucide-react";
+import {
+  AlertCircle,
+  Building2,
+  Clock,
+  Cpu,
+  GraduationCap,
+  Handshake,
+  HeartPulse,
+  Leaf,
+  Palette,
+  Sparkles,
+  Tag,
+  Users,
+} from "lucide-react";
+
+type CategoryKey =
+  | "arts"
+  | "community"
+  | "education"
+  | "environment"
+  | "health"
+  | "ngo"
+  | "tech"
+  | "other";
+
+const CATEGORY_BADGE_CONFIG: Record<
+  CategoryKey,
+  { Icon: LucideIcon; label: string }
+> = {
+  arts: { Icon: Palette, label: "Art & Culture" },
+  community: { Icon: Handshake, label: "Community" },
+  education: { Icon: GraduationCap, label: "Education" },
+  environment: { Icon: Leaf, label: "Environment & Energy" },
+  health: { Icon: HeartPulse, label: "Health & Wellness" },
+  ngo: { Icon: Building2, label: "NGO / NonProfits" },
+  tech: { Icon: Cpu, label: "Technology" },
+  other: { Icon: Sparkles, label: "Others" },
+};
+
+const DEFAULT_CATEGORY_ICON: LucideIcon = Tag;
 
 export function OpenSoonBadge() {
   return (
@@ -34,13 +74,25 @@ interface CategoryBadgeProps {
 }
 
 export function CategoryBadge({ category }: CategoryBadgeProps) {
+  const normalizedCategory = category.trim().toLowerCase();
+  const config = CATEGORY_BADGE_CONFIG[normalizedCategory as CategoryKey];
+  const IconComponent = config?.Icon ?? DEFAULT_CATEGORY_ICON;
+  const label =
+    config?.label ??
+    category
+      .trim()
+      .split(/[\s_-]+/)
+      .filter(Boolean)
+      .map((word) => word.charAt(0).toUpperCase() + word.slice(1))
+      .join(" ");
+
   return (
     <Badge
       variant="outline"
       className="bg-black-50 text-xs font-medium px-2 py-0.5 h-6 rounded-lg gap-1.5"
     >
-      <Briefcase className="size-3" />
-      {category}
+      <IconComponent className="size-3" />
+      {label || "Campaign"}
     </Badge>
   );
 }

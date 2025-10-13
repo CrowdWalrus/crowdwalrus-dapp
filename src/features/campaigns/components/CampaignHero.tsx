@@ -6,7 +6,6 @@
 import { Globe } from "lucide-react";
 import { SOCIAL_PLATFORM_CONFIG } from "@/features/campaigns/constants/socialPlatforms";
 import type { CampaignSocialLink } from "@/features/campaigns/types/campaign";
-import { Badge } from "@/shared/components/ui/badge";
 import { Separator } from "@/shared/components/ui/separator";
 import {
   CategoryBadge,
@@ -14,7 +13,6 @@ import {
   OpenSoonBadge,
   StartsBadge,
   StartsInBadge,
-  VerificationBadge,
 } from "./CampaignBadges";
 
 interface CampaignHeroProps {
@@ -59,11 +57,15 @@ export function CampaignHero({
       })
     : "Unknown";
 
-  // Capitalize first letter of each category
-  const capitalizedCategory = category
-    .split(',')
-    .map(cat => cat.trim().charAt(0).toUpperCase() + cat.trim().slice(1))
-    .join(',');
+  // Derive unique, trimmed category identifiers from comma-separated string
+  const categories = Array.from(
+    new Set(
+      category
+        .split(",")
+        .map((value) => value.trim())
+        .filter(Boolean),
+    ),
+  );
 
   return (
     <div className="flex flex-col gap-6 w-full">
@@ -86,15 +88,23 @@ export function CampaignHero({
           {/* Left badges */}
           <div className="flex items-center gap-4 flex-wrap">
             {isUpcoming && <OpenSoonBadge />}
-            {isUpcoming && Number.isFinite(daysUntilStart) && daysUntilStart > 0 && (
-              <StartsInBadge daysUntilStart={daysUntilStart} />
-            )}
+            {isUpcoming &&
+              Number.isFinite(daysUntilStart) &&
+              daysUntilStart > 0 && (
+                <StartsInBadge daysUntilStart={daysUntilStart} />
+              )}
             <StartsBadge formattedDate={formattedStart} />
           </div>
 
           {/* Right badges */}
           <div className="flex items-center gap-4 flex-wrap">
-            <CategoryBadge category={capitalizedCategory} />
+            {categories.length > 0 ? (
+              categories.map((cat) => (
+                <CategoryBadge key={cat} category={cat} />
+              ))
+            ) : (
+              <CategoryBadge category={category} />
+            )}
             <ContributorsBadge contributorsCount={contributorsCount} />
           </div>
         </div>
