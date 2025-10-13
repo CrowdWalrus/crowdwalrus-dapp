@@ -46,7 +46,6 @@ interface CampaignStorageRegistrationCardProps {
 }
 
 export function CampaignStorageRegistrationCard({
-  costs,
   totalCost,
   isCalculating = false,
   onRegister,
@@ -166,21 +165,6 @@ export function CampaignStorageRegistrationCard({
                   <span className="font-normal">Registration expires</span>
                   <span className="font-medium">{registrationExpires}</span>
                 </div>
-                {costs.length > 0 && (
-                  <div className="flex flex-col gap-2">
-                    {costs.map((cost) => (
-                      <div
-                        key={cost.label}
-                        className="flex items-center justify-between text-xs text-muted-foreground"
-                      >
-                        <span>{cost.label}</span>
-                        <span className="font-medium text-black-400">
-                          {cost.amount}
-                        </span>
-                      </div>
-                    ))}
-                  </div>
-                )}
               </div>
               <div className="h-px bg-black-50" />
               <div className="flex items-center justify-between pt-1 rounded-lg">
