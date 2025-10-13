@@ -4,12 +4,10 @@
  */
 
 import { Globe } from "lucide-react";
+import { SOCIAL_PLATFORM_CONFIG } from "@/features/campaigns/constants/socialPlatforms";
+import type { CampaignSocialLink } from "@/features/campaigns/types/campaign";
 import { Badge } from "@/shared/components/ui/badge";
 import { Separator } from "@/shared/components/ui/separator";
-import LinkedInSocial from "@/shared/icons/socials/LinkedInSocial";
-import InstagramSocial from "@/shared/icons/socials/InstagramSocial";
-import XSocial from "@/shared/icons/socials/XSocial";
-import TelegramSocial from "@/shared/icons/socials/TelegramSocial";
 import {
   CategoryBadge,
   ContributorsBadge,
@@ -29,11 +27,7 @@ interface CampaignHeroProps {
   category: string;
   contributorsCount: number;
   publisherAddress: string;
-  socialTwitter?: string;
-  socialDiscord?: string;
-  socialWebsite?: string;
-  socialLinkedin?: string;
-  socialInstagram?: string;
+  socialLinks: CampaignSocialLink[];
 }
 
 export function CampaignHero({
@@ -46,10 +40,7 @@ export function CampaignHero({
   category,
   contributorsCount,
   publisherAddress,
-  socialTwitter,
-  socialWebsite,
-  socialLinkedin,
-  socialInstagram,
+  socialLinks,
 }: CampaignHeroProps) {
   // Calculate days until start
   const nowMs = Date.now();
@@ -126,42 +117,29 @@ export function CampaignHero({
 
           {/* Social Icons */}
           <div className="flex text-black-200 items-center gap-4">
-            {socialLinkedin && (
-              <a
-                href={socialLinkedin}
-                target="_blank"
-                rel="noopener noreferrer"
-              >
-                <LinkedInSocial />
-              </a>
-            )}
-            {socialInstagram && (
-              <a
-                href={socialInstagram}
-                target="_blank"
-                rel="noopener noreferrer"
-              >
-                <InstagramSocial />
-              </a>
-            )}
-            {socialWebsite && (
-              <a href={socialWebsite} target="_blank" rel="noopener noreferrer">
-                <Globe />
-              </a>
-            )}
-            {socialTwitter && (
-              <a
-                href={socialTwitter}
-                className="text-black-200"
-                target="_blank"
-                rel="noopener noreferrer"
-              >
-                <XSocial />
-              </a>
-            )}
-            <a href="#">
-              <TelegramSocial />
-            </a>
+            {socialLinks.map((link, index) => {
+              const config =
+                SOCIAL_PLATFORM_CONFIG[
+                  link.platform as keyof typeof SOCIAL_PLATFORM_CONFIG
+                ];
+              const IconComponent = config?.icon ?? Globe;
+              const label =
+                config?.label ??
+                `${link.platform.charAt(0).toUpperCase()}${link.platform.slice(1)}`;
+
+              return (
+                <a
+                  key={`${link.platform}-${index}`}
+                  href={link.url}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  title={label}
+                  aria-label={label}
+                >
+                  <IconComponent className="size-5 shrink-0" />
+                </a>
+              );
+            })}
           </div>
         </div>
 
