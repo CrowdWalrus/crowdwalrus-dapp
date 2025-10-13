@@ -59,6 +59,12 @@ export function CampaignHero({
       })
     : "Unknown";
 
+  // Capitalize first letter of each category
+  const capitalizedCategory = category
+    .split(',')
+    .map(cat => cat.trim().charAt(0).toUpperCase() + cat.trim().slice(1))
+    .join(',');
+
   return (
     <div className="flex flex-col gap-6 w-full">
       {/* Cover Image */}
@@ -88,7 +94,7 @@ export function CampaignHero({
 
           {/* Right badges */}
           <div className="flex items-center gap-4 flex-wrap">
-            <CategoryBadge category={category} />
+            <CategoryBadge category={capitalizedCategory} />
             <ContributorsBadge contributorsCount={contributorsCount} />
           </div>
         </div>
