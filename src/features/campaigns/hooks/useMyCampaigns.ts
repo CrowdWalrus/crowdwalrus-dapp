@@ -10,6 +10,8 @@
  */
 
 import { useSuiClientQuery } from '@mysten/dapp-kit';
+import type { CampaignSocialLink } from '@/features/campaigns/types/campaign';
+import { getPrimarySocialUrl, parseSocialLinksFromMetadata } from '@/features/campaigns/utils/socials';
 import { getContractConfig } from '@/shared/config/contracts';
 import { DEFAULT_NETWORK } from '@/shared/config/networkConfig';
 import { getWalrusUrl } from '@/services/walrus';
@@ -44,6 +46,7 @@ export interface CampaignData {
   walrusStorageEpochs: string;
   coverImageId: string;
   campaignType?: string;
+  socialLinks: CampaignSocialLink[];
   socialTwitter?: string;
   socialDiscord?: string;
   socialWebsite?: string;
@@ -131,6 +134,11 @@ export function useMyCampaigns(network: 'devnet' | 'testnet' | 'mainnet' = DEFAU
           console.log(`Campaign "${fields.name}" metadata:`, metadataMap);
           console.log(`Walrus Quilt ID:`, walrusQuiltId);
 
+          const socialLinks = parseSocialLinksFromMetadata(metadataMap);
+          const socialTwitter = getPrimarySocialUrl(socialLinks, 'twitter');
+          const socialDiscord = getPrimarySocialUrl(socialLinks, 'discord');
+          const socialWebsite = getPrimarySocialUrl(socialLinks, 'website');
+
           const campaignData: CampaignData = {
             id: fields.id?.id || obj.data?.objectId || '',
             adminId: fields.admin_id,
@@ -152,9 +160,10 @@ export function useMyCampaigns(network: 'devnet' | 'testnet' | 'mainnet' = DEFAU
             walrusStorageEpochs: metadataMap['walrus_storage_epochs'] || '0',
             coverImageId: metadataMap['cover_image_id'] || 'cover.jpg',
             campaignType: metadataMap['campaign_type'] || '',
-            socialTwitter: metadataMap['social_twitter'],
-            socialDiscord: metadataMap['social_discord'],
-            socialWebsite: metadataMap['social_website'],
+            socialLinks,
+            socialTwitter,
+            socialDiscord,
+            socialWebsite,
             coverImageUrl: walrusQuiltId
               ? getWalrusUrl(walrusQuiltId, network, metadataMap['cover_image_id'] || 'cover.jpg')
               : '',
