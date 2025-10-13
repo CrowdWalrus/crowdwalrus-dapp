@@ -6,7 +6,7 @@
  */
 
 import { useEffect, useState } from "react";
-import { useParams } from "react-router-dom";
+import { Link, useParams } from "react-router-dom";
 import { useCampaign } from "@/features/campaigns/hooks/useCampaign";
 import { useWalrusDescription } from "@/features/campaigns/hooks/useWalrusDescription";
 import { useWalrusImage } from "@/features/campaigns/hooks/useWalrusImage";
@@ -23,11 +23,14 @@ import { DonationCard } from "@/features/campaigns/components/DonationCard";
 import { useCampaignOwnership } from "@/features/campaigns/hooks/useCampaignOwnership";
 import { useDeactivateCampaign } from "@/features/campaigns/hooks/useDeactivateCampaign";
 import { useActivateCampaign } from "@/features/campaigns/hooks/useActivateCampaign";
+import { useDeleteCampaign } from "@/features/campaigns/hooks/useDeleteCampaign";
 import { OwnerViewBanner } from "@/features/campaigns/components/OwnerViewBanner";
 import { DeactivateCampaignModal } from "@/features/campaigns/components/modals/DeactivateCampaignModal";
 import { ActivateCampaignModal } from "@/features/campaigns/components/modals/ActivateCampaignModal";
+import { DeleteCampaignModal } from "@/features/campaigns/components/modals/DeleteCampaignModal";
 import { ProcessingState } from "@/features/campaigns/components/campaign-creation-modal/states/ProcessingState";
 import { CircleCheck, OctagonMinus, Trash2 } from "lucide-react";
+import { ROUTES } from "@/shared/config/routes";
 
 export function CampaignPage() {
   const { id } = useParams<{ id: string }>();
@@ -48,10 +51,11 @@ export function CampaignPage() {
   const { data: description, isLoading: loadingDescription } =
     useWalrusDescription(campaign?.descriptionUrl);
 
-  const { isOwner, accountAddress, ownerCapId } = useCampaignOwnership({
-    campaignId: id ?? "",
-    network,
-  });
+  const { isOwner, accountAddress, ownerCapId, refetchOwnership } =
+    useCampaignOwnership({
+      campaignId: id ?? "",
+      network,
+    });
 
   const { deactivateCampaign, isProcessing: isDeactivationProcessing } =
     useDeactivateCampaign({
@@ -75,6 +79,18 @@ export function CampaignPage() {
         await refetch();
       },
     });
+  const { deleteCampaign, isProcessing: isDeleteProcessing } =
+    useDeleteCampaign({
+      campaignId: campaign?.id,
+      ownerCapId,
+      isDeleted: campaign?.isDeleted,
+      accountAddress,
+      network,
+      onSuccess: async () => {
+        await refetch();
+        refetchOwnership();
+      },
+    });
 
   // State to toggle between owner view and public view
   const [isOwnerView, setIsOwnerView] = useState(true);
@@ -82,8 +98,9 @@ export function CampaignPage() {
   // State for deactivate modal
   const [isDeactivateModalOpen, setIsDeactivateModalOpen] = useState(false);
   const [isActivateModalOpen, setIsActivateModalOpen] = useState(false);
+  const [isDeleteModalOpen, setIsDeleteModalOpen] = useState(false);
   const [processingType, setProcessingType] = useState<
-    "deactivate" | "activate" | null
+    "deactivate" | "activate" | "delete" | null
   >(null);
 
   const handleConfirmDeactivate = async () => {
@@ -119,6 +136,25 @@ export function CampaignPage() {
       result === "error"
     ) {
       setIsActivateModalOpen(true);
+    }
+
+    setProcessingType(null);
+  };
+
+  const handleConfirmDelete = async () => {
+    setIsDeleteModalOpen(false);
+    setProcessingType("delete");
+
+    const result = await deleteCampaign();
+
+    if (
+      result === "user_rejected" ||
+      result === "missing_owner_cap" ||
+      result === "missing_wallet" ||
+      result === "missing_campaign" ||
+      result === "error"
+    ) {
+      setIsDeleteModalOpen(true);
     }
 
     setProcessingType(null);
@@ -198,24 +234,50 @@ export function CampaignPage() {
     );
   }
 
+  if (campaign.isDeleted) {
+    return (
+      <div className="py-8">
+        <div className="container px-4 max-w-4xl">
+          <Card className="border-red-500">
+            <CardContent className="pt-6 flex flex-col gap-2">
+              <p className="text-red-600 font-semibold">Campaign deleted</p>
+              <p className="text-sm text-muted-foreground">
+                This campaign has been permanently removed and is no longer
+                available.
+              </p>
+              <Button variant="link" asChild>
+                <Link to={ROUTES.HOME}>Back to home</Link>
+              </Button>
+            </CardContent>
+          </Card>
+        </div>
+      </div>
+    );
+  }
+
   // Mock contributors count and amount raised (replace with real data)
   const contributorsCount = 0;
   const amountRaised = 0;
   const showProcessingDialog =
     (processingType === "deactivate" && isDeactivationProcessing) ||
-    (processingType === "activate" && isActivationProcessing);
+    (processingType === "activate" && isActivationProcessing) ||
+    (processingType === "delete" && isDeleteProcessing);
   const processingMessage =
     processingType === "activate"
       ? "Activating campaign..."
       : processingType === "deactivate"
         ? "Deactivating campaign..."
-        : "Processing campaign transaction...";
+        : processingType === "delete"
+          ? "Deleting campaign..."
+          : "Processing campaign transaction...";
   const processingDescription =
     processingType === "activate"
       ? "Confirm the activation transaction in your wallet to continue."
       : processingType === "deactivate"
         ? "Confirm the deactivation transaction in your wallet to continue."
-        : "Confirm the transaction in your wallet to continue.";
+        : processingType === "delete"
+          ? "Confirm the deletion transaction in your wallet to continue."
+          : "Confirm the transaction in your wallet to continue.";
 
   return (
     <>
@@ -301,7 +363,10 @@ export function CampaignPage() {
                         Activate Campaign
                       </Button>
                     )}
-                    <Button className="bg-red-50 border border-red-200 text-red-500 hover:bg-red-100">
+                    <Button
+                      onClick={() => setIsDeleteModalOpen(true)}
+                      className="bg-red-50 border border-red-200 text-red-500 hover:bg-red-100"
+                    >
                       <Trash2 />
                       Delete Campaign
                     </Button>
@@ -344,6 +409,12 @@ export function CampaignPage() {
           onConfirm={handleConfirmActivate}
         />
       )}
+
+      <DeleteCampaignModal
+        open={isDeleteModalOpen}
+        onClose={() => setIsDeleteModalOpen(false)}
+        onConfirm={handleConfirmDelete}
+      />
 
       {showProcessingDialog && (
         <Dialog open onOpenChange={() => {}}>
