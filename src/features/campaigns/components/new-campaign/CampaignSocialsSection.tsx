@@ -1,6 +1,7 @@
 import { useFormContext, useFieldArray, Controller } from "react-hook-form";
 import type { ReactNode } from "react";
-import { Plus, Globe, X } from "lucide-react";
+import { Plus, X } from "lucide-react";
+import { SOCIAL_PLATFORM_CONFIG } from "@/features/campaigns/constants/socialPlatforms";
 import { Button } from "@/shared/components/ui/button";
 import { Input } from "@/shared/components/ui/input";
 import {
@@ -10,63 +11,6 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/shared/components/ui/select";
-
-import XSocial from "@/shared/icons/socials/XSocial";
-import FacebookSocial from "@/shared/icons/socials/FacebookSocial";
-import GithubSocial from "@/shared/icons/socials/GithubSocial";
-import TelegramSocial from "@/shared/icons/socials/TelegramSocial";
-import DiscordSocial from "@/shared/icons/socials/DiscordSocial";
-import InstagramSocial from "@/shared/icons/socials/InstagramSocial";
-import LinkedInSocial from "@/shared/icons/socials/LinkedInSocial";
-import SlackSocial from "@/shared/icons/socials/SlackSocial";
-
-const PLATFORM_CONFIG = {
-  website: {
-    label: "Website",
-    icon: Globe,
-    placeholder: "https://www.yourwebsite.com",
-  },
-  twitter: {
-    label: "Twitter (X)",
-    icon: XSocial,
-    placeholder: "https://x.com/username",
-  },
-  instagram: {
-    label: "Instagram",
-    icon: InstagramSocial,
-    placeholder: "https://instagram.com/username",
-  },
-  facebook: {
-    label: "Facebook",
-    icon: FacebookSocial,
-    placeholder: "https://facebook.com/username",
-  },
-  linkedin: {
-    label: "LinkedIn",
-    icon: LinkedInSocial,
-    placeholder: "https://linkedin.com/username",
-  },
-  discord: {
-    label: "Discord",
-    icon: DiscordSocial,
-    placeholder: "https://discord.gg/username",
-  },
-  github: {
-    label: "GitHub",
-    icon: GithubSocial,
-    placeholder: "https://github.com/username",
-  },
-  telegram: {
-    label: "Telegram",
-    icon: TelegramSocial,
-    placeholder: "https://t.me/username",
-  },
-  slack: {
-    label: "Slack",
-    icon: SlackSocial,
-    placeholder: "https://slack.com/workspace",
-  },
-} as const;
 
 interface CampaignSocialsSectionProps {
   disabled?: boolean;
@@ -113,7 +57,7 @@ export function CampaignSocialsSection({
         {fields.map((field, index) => {
           const platformValue = socials?.[index]?.platform || "website";
           const config =
-            PLATFORM_CONFIG[platformValue as keyof typeof PLATFORM_CONFIG];
+            SOCIAL_PLATFORM_CONFIG[platformValue as keyof typeof SOCIAL_PLATFORM_CONFIG];
 
           const urlError = (errors?.socials as any)?.[index]?.url;
 
@@ -133,7 +77,7 @@ export function CampaignSocialsSection({
                         <SelectValue />
                       </SelectTrigger>
                       <SelectContent>
-                        {Object.entries(PLATFORM_CONFIG).map(
+                        {Object.entries(SOCIAL_PLATFORM_CONFIG).map(
                           ([value, config]) => {
                             const ItemIcon = config.icon;
                             return (
