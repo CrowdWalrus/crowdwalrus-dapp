@@ -11,6 +11,7 @@ import { Transaction } from "@mysten/sui/transactions";
 import { toast } from "sonner";
 
 import { useCampaign } from "@/features/campaigns/hooks/useCampaign";
+import type { CampaignData } from "@/features/campaigns/hooks/useMyCampaigns";
 import { useOwnedCampaignCap } from "@/features/campaigns/hooks/useOwnedCampaignCap";
 import {
   useWalrusUpload,
@@ -27,6 +28,8 @@ import {
   type EditCampaignFormData,
 } from "@/features/campaigns/schemas/editCampaignSchema";
 import { transformEditCampaignFormData } from "@/features/campaigns/utils/transformEditCampaignFormData";
+import { sanitizeSocialLinks } from "@/features/campaigns/utils/socials";
+import type { CampaignSocialLink } from "@/features/campaigns/types/campaign";
 import {
   mapCampaignError,
   extractMoveAbortCode,
@@ -151,25 +154,14 @@ function parseCategories(category: string | undefined | null): string[] {
 }
 
 function buildSocialsFromMetadata(
-  socialWebsite?: string,
-  socialDiscord?: string,
-  socialTwitter?: string,
+  campaign: CampaignData | null,
 ): EditCampaignFormData["socials"] {
-  const socials: EditCampaignFormData["socials"] = [];
+  const socialLinks: CampaignSocialLink[] = campaign?.socialLinks ?? [];
 
-  if (socialWebsite) {
-    socials.push({ platform: "website", url: socialWebsite });
-  }
-
-  if (socialTwitter) {
-    socials.push({ platform: "twitter", url: socialTwitter });
-  }
-
-  if (socialDiscord) {
-    socials.push({ platform: "discord", url: socialDiscord });
-  }
-
-  return socials;
+  return socialLinks.map(({ platform, url }) => ({
+    platform,
+    url,
+  }));
 }
 
 const isEditFieldDirty = (
@@ -404,11 +396,7 @@ export default function EditCampaignPage() {
       description: campaign?.shortDescription ?? "",
       campaignType: campaign?.campaignType ?? "",
       categories: parseCategories(campaign?.category),
-      socials: buildSocialsFromMetadata(
-        campaign?.socialWebsite,
-        campaign?.socialDiscord,
-        campaign?.socialTwitter,
-      ),
+      socials: buildSocialsFromMetadata(campaign),
       campaignDetails: descriptionValue,
       coverImage: undefined,
       storageEpochs: campaign?.walrusStorageEpochs
@@ -811,6 +799,8 @@ const handleRegisterStorage = async () => {
       return;
     }
 
+    const sanitizedSocials = sanitizeSocialLinks(values.socials);
+
     const walrusFormData = {
       name: campaignData.name,
       short_description: values.description,
@@ -822,18 +812,7 @@ const handleRegisterStorage = async () => {
       recipient_address: campaignData.recipientAddress,
       full_description: values.campaignDetails ?? "",
       cover_image: coverImageFile,
-      social_twitter:
-        metadataPatch.social_twitter ??
-        campaignData.socialTwitter ??
-        undefined,
-      social_discord:
-        metadataPatch.social_discord ??
-        campaignData.socialDiscord ??
-        undefined,
-      social_website:
-        metadataPatch.social_website ??
-        campaignData.socialWebsite ??
-        undefined,
+      socials: sanitizedSocials,
     };
 
     const estimate = await estimateStorageCost({
