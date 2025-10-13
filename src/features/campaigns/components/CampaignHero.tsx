@@ -76,9 +76,9 @@ export function CampaignHero({
         <p className="text-black-400">{shortDescription}</p>
 
         {/* Badges Row */}
-        <div className="flex items-center justify-between w-full">
+        <div className="flex items-center justify-between gap-4 w-full flex-wrap">
           {/* Left badges */}
-          <div className="flex items-center gap-4">
+          <div className="flex items-center gap-4 flex-wrap">
             {isUpcoming && <OpenSoonBadge />}
             {isUpcoming && Number.isFinite(daysUntilStart) && daysUntilStart > 0 && (
               <StartsInBadge daysUntilStart={daysUntilStart} />
@@ -87,18 +87,9 @@ export function CampaignHero({
           </div>
 
           {/* Right badges */}
-          <div className="flex items-center gap-4">
+          <div className="flex items-center gap-4 flex-wrap">
             <CategoryBadge category={category} />
             <ContributorsBadge contributorsCount={contributorsCount} />
-            <VerificationBadge isVerified={isVerified} />
-            <Badge
-              variant="outline"
-              className={`text-xs px-2 py-0.5 h-6 rounded-lg gap-1.5 ${
-                isActive ? "bg-blue-100 text-blue-800" : "bg-gray-200 text-gray-700"
-              }`}
-            >
-              {isActive ? "Active" : "Inactive"}
-            </Badge>
           </div>
         </div>
 
