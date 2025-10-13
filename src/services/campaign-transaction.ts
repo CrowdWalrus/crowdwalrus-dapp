@@ -11,6 +11,10 @@ import type {
   CampaignMetadata,
   MetadataPatch,
 } from "@/features/campaigns/types/campaign";
+import {
+  serializeSocialLinks,
+  sanitizeSocialLinks,
+} from "@/features/campaigns/utils/socials";
 import { getContractConfig, CLOCK_OBJECT_ID } from "@/shared/config/contracts";
 import { WALRUS_EPOCH_CONFIG } from "@/shared/config/networkConfig";
 import { formatSubdomain } from "@/shared/utils/subdomain";
@@ -225,15 +229,10 @@ export function prepareMetadataVectors(
     cover_image_id: "cover.jpg", // Standard identifier in the Quilt
   };
 
-  // Add optional social links if provided
-  if (formData.social_twitter) {
-    metadata.social_twitter = formData.social_twitter;
-  }
-  if (formData.social_discord) {
-    metadata.social_discord = formData.social_discord;
-  }
-  if (formData.social_website) {
-    metadata.social_website = formData.social_website;
+  const socials = sanitizeSocialLinks(formData.socials ?? []);
+
+  if (socials.length > 0) {
+    metadata.socials_json = serializeSocialLinks(socials);
   }
 
   // Convert metadata object to parallel arrays
