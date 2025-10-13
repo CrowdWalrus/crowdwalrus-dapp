@@ -166,8 +166,8 @@ export function CampaignPage() {
                 campaignName={campaign.name}
                 shortDescription={campaign.shortDescription}
                 isActive={campaign.isActive}
-                isVerified={campaign.isVerified}
                 startDateMs={campaign.startDateMs}
+                endDateMs={campaign.endDateMs}
                 category={campaign.category}
                 contributorsCount={contributorsCount}
                 publisherAddress={campaign.adminId}
@@ -196,6 +196,7 @@ export function CampaignPage() {
               campaignId={campaign.id}
               isVerified={campaign.isVerified}
               startDateMs={campaign.startDateMs}
+              endDateMs={campaign.endDateMs}
               amountRaised={amountRaised}
               contributorsCount={contributorsCount}
               fundingGoal={Number(campaign.fundingGoal)}

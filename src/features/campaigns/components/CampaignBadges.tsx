@@ -9,7 +9,7 @@ import {
   GraduationCap,
   Handshake,
   HeartPulse,
-  HourglassIcon,
+  Hourglass,
   Leaf,
   Palette,
   Sparkles,
@@ -67,8 +67,21 @@ interface StartsInBadgeProps {
 export function StartsInBadge({ daysUntilStart }: StartsInBadgeProps) {
   return (
     <Badge variant="outline" className={cn(BADGE_TEXT_CLASS, "bg-black-50")}>
-      <HourglassIcon className="size-3" />
+      <Hourglass className="size-3" />
       Starts in {daysUntilStart} days
+    </Badge>
+  );
+}
+
+interface EndsInBadgeProps {
+  daysUntilEnd: number;
+}
+
+export function EndsInBadge({ daysUntilEnd }: EndsInBadgeProps) {
+  return (
+    <Badge variant="outline" className={cn(BADGE_TEXT_CLASS, "bg-black-50")}>
+      <Hourglass className="size-3" />
+      Ends in {daysUntilEnd} days
     </Badge>
   );
 }
@@ -129,25 +142,6 @@ export function VerificationBadge({ isVerified }: VerificationBadgeProps) {
     >
       <AlertCircle className="size-3" />
       {isVerified ? "Verified" : "Not Verified"}
-    </Badge>
-  );
-}
-
-interface StartsBadgeProps {
-  formattedDate: string;
-}
-
-export function StartsBadge({ formattedDate }: StartsBadgeProps) {
-  return (
-    <Badge
-      variant="outline"
-      className={cn(
-        BADGE_TEXT_CLASS,
-        "bg-black-50 border-transparent text-black-500",
-      )}
-    >
-      <Clock className="size-3" />
-      Starts {formattedDate}
     </Badge>
   );
 }

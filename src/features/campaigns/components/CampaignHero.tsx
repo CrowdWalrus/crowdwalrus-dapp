@@ -10,8 +10,8 @@ import { Separator } from "@/shared/components/ui/separator";
 import {
   CategoryBadge,
   ContributorsBadge,
+  EndsInBadge,
   OpenSoonBadge,
-  StartsBadge,
   StartsInBadge,
 } from "./CampaignBadges";
 
@@ -20,8 +20,8 @@ interface CampaignHeroProps {
   campaignName: string;
   shortDescription: string;
   isActive: boolean;
-  isVerified: boolean;
   startDateMs: number;
+  endDateMs: number;
   category: string;
   contributorsCount: number;
   publisherAddress: string;
@@ -32,7 +32,9 @@ export function CampaignHero({
   coverImageUrl,
   campaignName,
   shortDescription,
+  isActive,
   startDateMs,
+  endDateMs,
   category,
   contributorsCount,
   publisherAddress,
@@ -44,16 +46,11 @@ export function CampaignHero({
   const daysUntilStart = Math.ceil((startDateMs - nowMs) / msPerDay);
   const isUpcoming = daysUntilStart > 0;
 
-  const formattedStart = Number.isFinite(startDateMs)
-    ? new Date(startDateMs).toLocaleString("en-US", {
-        day: "numeric",
-        month: "short",
-        year: "numeric",
-        hour: "numeric",
-        minute: "2-digit",
-        timeZoneName: "short",
-      })
-    : "Unknown";
+  const daysUntilEnd = Number.isFinite(endDateMs)
+    ? Math.ceil((endDateMs - nowMs) / msPerDay)
+    : null;
+  const normalizedEndDays =
+    typeof daysUntilEnd === "number" ? Math.max(daysUntilEnd, 0) : null;
 
   // Derive unique, trimmed category identifiers from comma-separated string
   const categories = Array.from(
@@ -64,6 +61,12 @@ export function CampaignHero({
         .filter(Boolean),
     ),
   );
+  const categoryValues =
+    categories.length > 0
+      ? categories
+      : category.trim()
+        ? [category.trim()]
+        : [];
 
   return (
     <div className="flex flex-col gap-6 w-full">
@@ -91,18 +94,18 @@ export function CampaignHero({
               daysUntilStart > 0 && (
                 <StartsInBadge daysUntilStart={daysUntilStart} />
               )}
-            <StartsBadge formattedDate={formattedStart} />
+            {!isUpcoming &&
+              isActive &&
+              normalizedEndDays !== null && (
+                <EndsInBadge daysUntilEnd={normalizedEndDays} />
+              )}
+            {categoryValues.map((cat) => (
+              <CategoryBadge key={cat} category={cat} />
+            ))}
           </div>
 
           {/* Right badges */}
           <div className="flex items-center gap-4 flex-wrap">
-            {categories.length > 0 ? (
-              categories.map((cat) => (
-                <CategoryBadge key={cat} category={cat} />
-              ))
-            ) : (
-              <CategoryBadge category={category} />
-            )}
             <ContributorsBadge contributorsCount={contributorsCount} />
           </div>
         </div>

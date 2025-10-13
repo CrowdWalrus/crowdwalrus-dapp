@@ -5,15 +5,17 @@
 
 import { useState } from "react";
 import { Button } from "@/shared/components/ui/button";
+import { Badge } from "@/shared/components/ui/badge";
 import { Separator } from "@/shared/components/ui/separator";
-import { Share2, ChevronDown } from "lucide-react";
+import { Share2, ChevronDown, Clock } from "lucide-react";
 import { useCurrentAccount } from "@mysten/dapp-kit";
-import { StartsBadge, VerificationBadge } from "./CampaignBadges";
+import { VerificationBadge } from "./CampaignBadges";
 
 interface DonationCardProps {
   campaignId: string;
   isVerified: boolean;
   startDateMs: number;
+  endDateMs: number;
   amountRaised: number;
   contributorsCount: number;
   fundingGoal: number;
@@ -24,6 +26,7 @@ interface DonationCardProps {
 export function DonationCard({
   isVerified,
   startDateMs,
+  endDateMs,
   amountRaised,
   contributorsCount,
   fundingGoal,
@@ -33,32 +36,42 @@ export function DonationCard({
   const currentAccount = useCurrentAccount();
   const [contributionAmount, setContributionAmount] = useState("");
 
+  const formatDate = (timestampMs: number) => {
+    if (!Number.isFinite(timestampMs) || timestampMs <= 0) {
+      return null;
+    }
+    const formatter = new Intl.DateTimeFormat("en-US", {
+      day: "2-digit",
+      month: "short",
+      year: "numeric",
+    });
+    const parts = formatter.formatToParts(new Date(timestampMs));
+    const partValue = (type: Intl.DateTimeFormatPartTypes) =>
+      parts.find((part) => part.type === type)?.value ?? "";
+    const day = partValue("day");
+    const month = partValue("month");
+    const year = partValue("year");
+    if (!day || !month || !year) {
+      return formatter.format(new Date(timestampMs));
+    }
+    return `${day} ${month} ${year}`;
+  };
+
   // Calculate funding percentage
   const fundingPercentage =
     fundingGoal > 0 ? (amountRaised / fundingGoal) * 100 : 0;
 
-  // Format start date
-  const formatStartDate = (timestampMs: number) => {
-    if (!Number.isFinite(timestampMs) || timestampMs <= 0) {
-      return "Unknown";
-    }
-    return new Date(timestampMs).toLocaleString("en-US", {
-      day: "numeric",
-      month: "short",
-      year: "numeric",
-      hour: "numeric",
-      minute: "2-digit",
-      timeZoneName: "short",
-    });
-  };
+  const nowMs = Date.now();
+  const hasValidStart = Number.isFinite(startDateMs) && startDateMs > 0;
+  const hasValidEnd = Number.isFinite(endDateMs) && endDateMs > 0;
+  const hasStarted =
+    hasValidStart &&
+    (isActive || startDateMs <= nowMs);
+  const startDateLabel = hasValidStart ? formatDate(startDateMs) : null;
+  const endDateLabel = hasValidEnd ? formatDate(endDateMs) : null;
 
   // Mock balance - in real app, fetch from wallet
   const balance = "100.09";
-
-  const formattedStartDate = formatStartDate(startDateMs);
-  const formattedStartDateUtc = Number.isFinite(startDateMs)
-    ? new Date(startDateMs).toUTCString()
-    : "Unknown";
 
   return (
     <div className="bg-white rounded-3xl p-10 flex flex-col gap-6 w-full shadow-[0px_0px_16px_0px_rgba(0,0,0,0.16)]">
@@ -67,13 +80,35 @@ export function DonationCard({
         <VerificationBadge isVerified={isVerified} />
       </div>
 
-      {/* Start Date */}
-      <div className="flex flex-col gap-1">
-        <div className="flex items-center gap-6">
-          <StartsBadge formattedDate={formattedStartDate} />
+      {/* Timeline */}
+      {(startDateLabel || endDateLabel) && (
+        <div
+          className={`flex flex-wrap items-center gap-4 ${
+            hasStarted && endDateLabel ? "justify-between" : "justify-start"
+          }`}
+        >
+          {startDateLabel && (
+            <Badge
+              variant="outline"
+              className="flex items-center bg-black-50 border-transparent text-black-500 text-xs font-medium leading-[1.5] tracking-[0.18px] px-2 py-0.5 h-6 rounded-lg gap-1.5"
+            >
+              <Clock className="size-3" />
+              {hasStarted
+                ? `Started on ${startDateLabel}`
+                : `Starts on ${startDateLabel}`}
+            </Badge>
+          )}
+          {hasStarted && endDateLabel && (
+            <Badge
+              variant="outline"
+              className="flex items-center bg-black-50 border-transparent text-black-500 text-xs font-medium leading-[1.5] tracking-[0.18px] px-2 py-0.5 h-6 rounded-lg gap-1.5"
+            >
+              <Clock className="size-3" />
+              {`Ends on ${endDateLabel}`}
+            </Badge>
+          )}
         </div>
-        <p className="text-xs text-muted-foreground">({formattedStartDateUtc})</p>
-      </div>
+      )}
 
       {/* Amount Raised */}
       <div className="flex flex-col gap-2">
