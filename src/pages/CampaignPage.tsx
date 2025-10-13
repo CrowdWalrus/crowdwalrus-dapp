@@ -230,7 +230,9 @@ export function CampaignPage() {
                   </p>
                 </div>
               )}
-
+              <div className="pb-10">
+                <Separator />
+              </div>
               {/* Owner Action Buttons - Only visible to campaign owners in owner view */}
               {isOwnerView && isOwner && (
                 <>
