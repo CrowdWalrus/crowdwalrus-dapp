@@ -4,6 +4,14 @@
  */
 
 /**
+ * Basic social link structure stored in metadata.
+ */
+export interface CampaignSocialLink {
+  platform: string;
+  url: string;
+}
+
+/**
  * Form data collected from the user during campaign creation
  */
 export interface CampaignFormData {
@@ -24,9 +32,7 @@ export interface CampaignFormData {
   cover_image: File;
 
   // Social Links (optional)
-  social_twitter?: string;
-  social_discord?: string;
-  social_website?: string;
+  socials: CampaignSocialLink[];
 
   // Storage Settings
   storage_epochs?: number; // Default will be set in config
@@ -42,6 +48,7 @@ export interface CampaignMetadata {
   walrus_storage_epochs: string;
   category: string;
   cover_image_id: string; // Identifier within the Quilt
+  socials_json?: string;
   social_twitter?: string;
   social_discord?: string;
   social_website?: string;
@@ -58,6 +65,7 @@ export interface MetadataPatch {
   cover_image_id?: string;
   campaign_type?: string;
   category?: string;
+  socials_json?: string;
   social_twitter?: string;
   social_discord?: string;
   social_website?: string;
