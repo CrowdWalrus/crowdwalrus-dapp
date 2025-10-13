@@ -11,7 +11,7 @@
 
 import { useSuiClientQuery } from '@mysten/dapp-kit';
 import type { CampaignSocialLink } from '@/features/campaigns/types/campaign';
-import { getPrimarySocialUrl, parseSocialLinksFromMetadata } from '@/features/campaigns/utils/socials';
+import { parseSocialLinksFromMetadata } from '@/features/campaigns/utils/socials';
 import { getContractConfig } from '@/shared/config/contracts';
 import { DEFAULT_NETWORK } from '@/shared/config/networkConfig';
 import { getWalrusUrl } from '@/services/walrus';
@@ -47,9 +47,6 @@ export interface CampaignData {
   coverImageId: string;
   campaignType?: string;
   socialLinks: CampaignSocialLink[];
-  socialTwitter?: string;
-  socialDiscord?: string;
-  socialWebsite?: string;
 
   // Walrus URLs
   coverImageUrl: string;
@@ -135,10 +132,6 @@ export function useMyCampaigns(network: 'devnet' | 'testnet' | 'mainnet' = DEFAU
           console.log(`Walrus Quilt ID:`, walrusQuiltId);
 
           const socialLinks = parseSocialLinksFromMetadata(metadataMap);
-          const socialTwitter = getPrimarySocialUrl(socialLinks, 'twitter');
-          const socialDiscord = getPrimarySocialUrl(socialLinks, 'discord');
-          const socialWebsite = getPrimarySocialUrl(socialLinks, 'website');
-
           const campaignData: CampaignData = {
             id: fields.id?.id || obj.data?.objectId || '',
             adminId: fields.admin_id,
@@ -161,9 +154,6 @@ export function useMyCampaigns(network: 'devnet' | 'testnet' | 'mainnet' = DEFAU
             coverImageId: metadataMap['cover_image_id'] || 'cover.jpg',
             campaignType: metadataMap['campaign_type'] || '',
             socialLinks,
-            socialTwitter,
-            socialDiscord,
-            socialWebsite,
             coverImageUrl: walrusQuiltId
               ? getWalrusUrl(walrusQuiltId, network, metadataMap['cover_image_id'] || 'cover.jpg')
               : '',

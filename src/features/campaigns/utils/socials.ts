@@ -27,8 +27,7 @@ export function serializeSocialLinks(
 }
 
 /**
- * Parse social links from metadata map. Supports both the new socials_json key and
- * legacy per-platform keys (social_twitter, etc).
+ * Parse social links from metadata map.
  */
 export function parseSocialLinksFromMetadata(
   metadataMap: Record<string, string>,
@@ -54,33 +53,4 @@ export function parseSocialLinksFromMetadata(
   }
 
   return links;
-}
-
-/**
- * Fetch the first social link for a given platform.
- */
-export function getPrimarySocialUrl(
-  links: CampaignSocialLink[],
-  platform: string,
-): string | undefined {
-  const normalized = platform.trim().toLowerCase();
-  return links.find((link) => link.platform === normalized)?.url;
-}
-
-/**
- * Group social links by platform for quick lookup.
- */
-export function groupSocialLinksByPlatform(
-  links: CampaignSocialLink[],
-): Map<string, CampaignSocialLink[]> {
-  const grouped = new Map<string, CampaignSocialLink[]>();
-  sanitizeSocialLinks(links).forEach((link) => {
-    const bucket = grouped.get(link.platform);
-    if (bucket) {
-      bucket.push(link);
-    } else {
-      grouped.set(link.platform, [link]);
-    }
-  });
-  return grouped;
 }

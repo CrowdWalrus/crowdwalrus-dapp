@@ -1,4 +1,4 @@
-import { useFormContext, useFieldArray, Controller } from "react-hook-form";
+import { useFormContext, useFieldArray, Controller, type FieldError } from "react-hook-form";
 import type { ReactNode } from "react";
 import { Plus, X } from "lucide-react";
 import { SOCIAL_PLATFORM_CONFIG } from "@/features/campaigns/constants/socialPlatforms";
@@ -18,6 +18,15 @@ interface CampaignSocialsSectionProps {
   labelStatus?: ReactNode;
 }
 
+type SocialField = {
+  platform: string;
+  url?: string;
+};
+
+type SocialFormValues = {
+  socials: SocialField[];
+};
+
 export function CampaignSocialsSection({
   disabled = false,
   labelAction,
@@ -27,8 +36,8 @@ export function CampaignSocialsSection({
     control,
     watch,
     formState: { errors },
-  } = useFormContext();
-  const { fields, append, remove } = useFieldArray({
+  } = useFormContext<SocialFormValues>();
+  const { fields, append, remove } = useFieldArray<SocialFormValues>({
     control,
     name: "socials",
   });
@@ -59,7 +68,7 @@ export function CampaignSocialsSection({
           const config =
             SOCIAL_PLATFORM_CONFIG[platformValue as keyof typeof SOCIAL_PLATFORM_CONFIG];
 
-          const urlError = (errors?.socials as any)?.[index]?.url;
+          const urlError = errors.socials?.[index]?.url as FieldError | undefined;
 
           return (
             <div key={field.id} className="flex flex-col gap-2 w-full">

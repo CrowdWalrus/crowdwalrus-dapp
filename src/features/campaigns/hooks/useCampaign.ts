@@ -9,7 +9,7 @@
  */
 
 import { useSuiClientQuery } from '@mysten/dapp-kit';
-import { getPrimarySocialUrl, parseSocialLinksFromMetadata } from '@/features/campaigns/utils/socials';
+import { parseSocialLinksFromMetadata } from '@/features/campaigns/utils/socials';
 import { DEFAULT_NETWORK } from '@/shared/config/networkConfig';
 import { getWalrusUrl } from '@/services/walrus';
 import { useMemo } from 'react';
@@ -70,9 +70,6 @@ export function useCampaign(
       console.log(`Walrus Quilt ID:`, walrusQuiltId);
 
       const socialLinks = parseSocialLinksFromMetadata(metadataMap);
-      const socialTwitter = getPrimarySocialUrl(socialLinks, 'twitter');
-      const socialDiscord = getPrimarySocialUrl(socialLinks, 'discord');
-      const socialWebsite = getPrimarySocialUrl(socialLinks, 'website');
 
       const campaignData: CampaignData = {
         id: fields.id?.id || campaignObject.data.objectId || '',
@@ -96,9 +93,6 @@ export function useCampaign(
         coverImageId: metadataMap['cover_image_id'] || 'cover.jpg',
         campaignType: metadataMap['campaign_type'] || '',
         socialLinks,
-        socialTwitter,
-        socialDiscord,
-        socialWebsite,
         coverImageUrl: walrusQuiltId
           ? getWalrusUrl(walrusQuiltId, network, metadataMap['cover_image_id'] || 'cover.jpg')
           : '',

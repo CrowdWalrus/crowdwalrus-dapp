@@ -49,9 +49,6 @@ export interface CampaignMetadata {
   category: string;
   cover_image_id: string; // Identifier within the Quilt
   socials_json?: string;
-  social_twitter?: string;
-  social_discord?: string;
-  social_website?: string;
   [key: string]: string | undefined; // Allow additional custom metadata
 }
 
@@ -66,9 +63,6 @@ export interface MetadataPatch {
   campaign_type?: string;
   category?: string;
   socials_json?: string;
-  social_twitter?: string;
-  social_discord?: string;
-  social_website?: string;
   [key: string]: string | undefined;
 }
 
