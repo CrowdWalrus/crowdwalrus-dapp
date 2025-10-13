@@ -2,7 +2,8 @@ import type { FieldNamesMarkedBoolean } from "react-hook-form";
 
 import type { EditCampaignFormData } from "../schemas/editCampaignSchema";
 import type { CampaignData } from "../hooks/useMyCampaigns";
-import type { MetadataPatch } from "../types/campaign";
+import type { CampaignSocialLink, MetadataPatch } from "../types/campaign";
+import { sanitizeSocialLinks, serializeSocialLinks } from "./socials";
 
 export interface TransformEditCampaignParams {
   values: EditCampaignFormData;
@@ -32,12 +33,17 @@ const normalize = (value: string | undefined | null) =>
 const normalizeDescription = (value: string | undefined | null) =>
   value ?? "";
 
-const pickSocialValue = (
-  socials: EditCampaignFormData["socials"],
-  platform: string,
+const areSocialArraysEqual = (
+  a: CampaignSocialLink[],
+  b: CampaignSocialLink[],
 ) => {
-  const entry = socials.find((social) => social.platform === platform);
-  return entry?.url?.trim() ?? "";
+  if (a.length !== b.length) {
+    return false;
+  }
+  return a.every(
+    (link, index) =>
+      link.platform === b[index]?.platform && link.url === b[index]?.url,
+  );
 };
 
 const isFieldDirty = <Key extends keyof EditCampaignFormData>(
@@ -105,22 +111,14 @@ export function transformEditCampaignFormData({
     metadataPatch.category = nextCategory;
   }
 
-  const nextTwitter = pickSocialValue(values.socials, "twitter");
-  const previousTwitter = campaign.socialTwitter?.trim() ?? "";
-  if (nextTwitter !== previousTwitter) {
-    metadataPatch.social_twitter = nextTwitter;
-  }
-
-  const nextDiscord = pickSocialValue(values.socials, "discord");
-  const previousDiscord = campaign.socialDiscord?.trim() ?? "";
-  if (nextDiscord !== previousDiscord) {
-    metadataPatch.social_discord = nextDiscord;
-  }
-
-  const nextWebsite = pickSocialValue(values.socials, "website");
-  const previousWebsite = campaign.socialWebsite?.trim() ?? "";
-  if (nextWebsite !== previousWebsite) {
-    metadataPatch.social_website = nextWebsite;
+  const sanitizedNextSocials = sanitizeSocialLinks(values.socials);
+  const sanitizedPreviousSocials = campaign.socialLinks ?? [];
+  const socialsDirty = isFieldDirty(dirtyFields, "socials");
+  if (
+    socialsDirty ||
+    !areSocialArraysEqual(sanitizedPreviousSocials, sanitizedNextSocials)
+  ) {
+    metadataPatch.socials_json = serializeSocialLinks(sanitizedNextSocials);
   }
 
   const coverImageChanged = Boolean(values.coverImage);
