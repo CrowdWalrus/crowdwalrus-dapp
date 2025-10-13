@@ -20,6 +20,7 @@ import { CampaignAbout } from "@/features/campaigns/components/CampaignAbout";
 import { DonationCard } from "@/features/campaigns/components/DonationCard";
 import { useCampaignOwnership } from "@/features/campaigns/hooks/useCampaignOwnership";
 import { OwnerViewBanner } from "@/features/campaigns/components/OwnerViewBanner";
+import { DeactivateCampaignModal } from "@/features/campaigns/components/modals/DeactivateCampaignModal";
 import { CircleSlash, OctagonMinus, Trash2 } from "lucide-react";
 
 /**
@@ -91,6 +92,9 @@ export function CampaignPage() {
 
   // State to toggle between owner view and public view
   const [isOwnerView, setIsOwnerView] = useState(true);
+
+  // State for deactivate modal
+  const [isDeactivateModalOpen, setIsDeactivateModalOpen] = useState(false);
 
   useEffect(() => {
     if (!id || !accountAddress) {
@@ -237,7 +241,10 @@ export function CampaignPage() {
               {isOwnerView && isOwner && (
                 <>
                   <div className="flex gap-2 justify-end">
-                    <Button className="bg-orange-50 border border-orange-200 text-orange-700 hover:bg-orange-100">
+                    <Button
+                      onClick={() => setIsDeactivateModalOpen(true)}
+                      className="bg-orange-50 border border-orange-200 text-orange-700 hover:bg-orange-100"
+                    >
                       <OctagonMinus />
                       Deactivate Campaign
                     </Button>
@@ -267,6 +274,16 @@ export function CampaignPage() {
           </div>
         </div>
       </div>
+
+      {/* Deactivate Campaign Modal */}
+      <DeactivateCampaignModal
+        open={isDeactivateModalOpen}
+        onClose={() => setIsDeactivateModalOpen(false)}
+        onConfirm={() => {
+          // TODO: Implement deactivation logic
+          setIsDeactivateModalOpen(false);
+        }}
+      />
     </>
   );
 }
