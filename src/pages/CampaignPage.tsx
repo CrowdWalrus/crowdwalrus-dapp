@@ -13,15 +13,21 @@ import { DEFAULT_NETWORK } from "@/shared/config/networkConfig";
 import { Card, CardContent } from "@/shared/components/ui/card";
 import { Button } from "@/shared/components/ui/button";
 import { Separator } from "@/shared/components/ui/separator";
+import {
+  Dialog,
+  DialogContent,
+} from "@/shared/components/ui/dialog";
 import { CampaignBreadcrumb } from "@/features/campaigns/components/CampaignBreadcrumb";
 import { CampaignHero } from "@/features/campaigns/components/CampaignHero";
 
 import { CampaignAbout } from "@/features/campaigns/components/CampaignAbout";
 import { DonationCard } from "@/features/campaigns/components/DonationCard";
 import { useCampaignOwnership } from "@/features/campaigns/hooks/useCampaignOwnership";
+import { useDeactivateCampaign } from "@/features/campaigns/hooks/useDeactivateCampaign";
 import { OwnerViewBanner } from "@/features/campaigns/components/OwnerViewBanner";
 import { DeactivateCampaignModal } from "@/features/campaigns/components/modals/DeactivateCampaignModal";
-import { CircleSlash, OctagonMinus, Trash2 } from "lucide-react";
+import { ProcessingState } from "@/features/campaigns/components/campaign-creation-modal/states/ProcessingState";
+import { OctagonMinus, Trash2 } from "lucide-react";
 
 /**
  * Hook to fetch image from Walrus as blob and create object URL
@@ -85,9 +91,23 @@ export function CampaignPage() {
   const { data: description, isLoading: loadingDescription } =
     useWalrusDescription(campaign?.descriptionUrl || "");
 
-  const { isOwner, accountAddress } = useCampaignOwnership({
+  const { isOwner, accountAddress, ownerCapId } = useCampaignOwnership({
     campaignId: id ?? "",
     network,
+  });
+
+  const {
+    deactivateCampaign,
+    isProcessing: isDeactivationProcessing,
+  } = useDeactivateCampaign({
+    campaignId: campaign?.id,
+    ownerCapId,
+    isActive: campaign?.isActive,
+    accountAddress,
+    network,
+    onSuccess: async () => {
+      await refetch();
+    },
   });
 
   // State to toggle between owner view and public view
@@ -95,6 +115,22 @@ export function CampaignPage() {
 
   // State for deactivate modal
   const [isDeactivateModalOpen, setIsDeactivateModalOpen] = useState(false);
+
+  const handleConfirmDeactivate = async () => {
+    setIsDeactivateModalOpen(false);
+
+    const result = await deactivateCampaign();
+
+    if (
+      result === "user_rejected" ||
+      result === "missing_owner_cap" ||
+      result === "missing_wallet" ||
+      result === "missing_campaign" ||
+      result === "error"
+    ) {
+      setIsDeactivateModalOpen(true);
+    }
+  };
 
   useEffect(() => {
     if (!id || !accountAddress) {
@@ -279,11 +315,17 @@ export function CampaignPage() {
       <DeactivateCampaignModal
         open={isDeactivateModalOpen}
         onClose={() => setIsDeactivateModalOpen(false)}
-        onConfirm={() => {
-          // TODO: Implement deactivation logic
-          setIsDeactivateModalOpen(false);
-        }}
+        onConfirm={handleConfirmDeactivate}
       />
+
+      <Dialog open={isDeactivationProcessing} onOpenChange={() => {}}>
+        <DialogContent className="max-w-md px-10 py-12 rounded-2xl bg-white-50 [&>button]:hidden">
+          <ProcessingState
+            message="Deactivating campaign..."
+            description="Confirm the transaction in your wallet to continue."
+          />
+        </DialogContent>
+      </Dialog>
     </>
   );
 }
