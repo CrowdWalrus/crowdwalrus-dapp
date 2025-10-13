@@ -45,7 +45,7 @@ export function OpenSoonBadge() {
   return (
     <Badge
       variant="outline"
-      className="bg-orange-50 border-orange-500 text-orange-600 text-xs px-2 py-0.5 h-6 rounded-lg gap-1.5"
+      className="bg-orange-50 border-orange-500 text-orange-600 text-xs font-medium px-2 py-0.5 h-6 rounded-lg gap-1.5"
     >
       <Clock className="size-3" />
       Open Soon
@@ -61,7 +61,7 @@ export function StartsInBadge({ daysUntilStart }: StartsInBadgeProps) {
   return (
     <Badge
       variant="outline"
-      className="bg-black-50 text-xs px-2 py-0.5 h-6 rounded-lg gap-1.5"
+      className="bg-black-50 text-xs font-medium px-2 py-0.5 h-6 rounded-lg gap-1.5"
     >
       <Clock className="size-3" />
       Starts in {daysUntilStart} days
@@ -89,7 +89,7 @@ export function CategoryBadge({ category }: CategoryBadgeProps) {
   return (
     <Badge
       variant="outline"
-      className="bg-black-50 text-xs font-medium px-2 py-0.5 h-6 rounded-lg gap-1.5"
+      className="bg-black-50 text-xs px-2 py-0.5 h-6 rounded-lg gap-1.5 font-medium"
     >
       <IconComponent className="size-3" />
       {label || "Campaign"}
@@ -107,7 +107,7 @@ export function ContributorsBadge({
   return (
     <Badge
       variant="outline"
-      className="bg-black-50 text-xs px-2 py-0.5 h-6 rounded-lg gap-1.5"
+      className="bg-black-50 text-xs px-2 py-0.5 h-6 rounded-lg gap-1.5 font-medium"
     >
       <Users className="size-3" />
       {contributorsCount}
