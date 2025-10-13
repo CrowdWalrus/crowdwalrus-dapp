@@ -1,3 +1,5 @@
+import { LoadingSpinner } from "@/shared/components/ui/loading-spinner";
+
 /**
  * Processing State Component (Reusable)
  *
@@ -35,12 +37,10 @@ export const ProcessingState = ({
   message,
   description,
 }: ProcessingStateProps) => {
-  // TODO: Implement your UI here
-
   return (
     <div className="flex flex-col items-center justify-center gap-10 pt-10">
       <div className="flex justify-center">
-        <div className="size-12 border-4 border-primary border-t-transparent rounded-full animate-spin" />
+        <LoadingSpinner />
       </div>
 
       <div className="flex flex-col text-center gap-2">
