@@ -1,5 +1,7 @@
-import { useFormContext, useFieldArray, Controller } from "react-hook-form";
-import { Plus, Globe, X } from "lucide-react";
+import { useFormContext, useFieldArray, Controller, type FieldError } from "react-hook-form";
+import type { ReactNode } from "react";
+import { Plus, X } from "lucide-react";
+import { SOCIAL_PLATFORM_CONFIG } from "@/features/campaigns/constants/socialPlatforms";
 import { Button } from "@/shared/components/ui/button";
 import { Input } from "@/shared/components/ui/input";
 import {
@@ -10,75 +12,40 @@ import {
   SelectValue,
 } from "@/shared/components/ui/select";
 
-import XSocial from "@/shared/icons/socials/XSocial";
-import FacebookSocial from "@/shared/icons/socials/FacebookSocial";
-import GithubSocial from "@/shared/icons/socials/GithubSocial";
-import TelegramSocial from "@/shared/icons/socials/TelegramSocial";
-import DiscordSocial from "@/shared/icons/socials/DiscordSocial";
-import InstagramSocial from "@/shared/icons/socials/InstagramSocial";
-import LinkedInSocial from "@/shared/icons/socials/LinkedInSocial";
-import SlackSocial from "@/shared/icons/socials/SlackSocial";
+interface CampaignSocialsSectionProps {
+  disabled?: boolean;
+  labelAction?: ReactNode;
+  labelStatus?: ReactNode;
+}
 
-const PLATFORM_CONFIG = {
-  website: {
-    label: "Website",
-    icon: Globe,
-    placeholder: "https://www.yourwebsite.com",
-  },
-  twitter: {
-    label: "Twitter (X)",
-    icon: XSocial,
-    placeholder: "https://x.com/username",
-  },
-  instagram: {
-    label: "Instagram",
-    icon: InstagramSocial,
-    placeholder: "https://instagram.com/username",
-  },
-  facebook: {
-    label: "Facebook",
-    icon: FacebookSocial,
-    placeholder: "https://facebook.com/username",
-  },
-  linkedin: {
-    label: "LinkedIn",
-    icon: LinkedInSocial,
-    placeholder: "https://linkedin.com/username",
-  },
-  discord: {
-    label: "Discord",
-    icon: DiscordSocial,
-    placeholder: "https://discord.gg/username",
-  },
-  github: {
-    label: "GitHub",
-    icon: GithubSocial,
-    placeholder: "https://github.com/username",
-  },
-  telegram: {
-    label: "Telegram",
-    icon: TelegramSocial,
-    placeholder: "https://t.me/username",
-  },
-  slack: {
-    label: "Slack",
-    icon: SlackSocial,
-    placeholder: "https://slack.com/workspace",
-  },
-} as const;
+type SocialField = {
+  platform: string;
+  url?: string;
+};
 
-export function CampaignSocialsSection() {
+type SocialFormValues = {
+  socials: SocialField[];
+};
+
+export function CampaignSocialsSection({
+  disabled = false,
+  labelAction,
+  labelStatus,
+}: CampaignSocialsSectionProps) {
   const {
     control,
     watch,
     formState: { errors },
-  } = useFormContext();
-  const { fields, append, remove } = useFieldArray({
+  } = useFormContext<SocialFormValues>();
+  const { fields, append, remove } = useFieldArray<SocialFormValues>({
     control,
     name: "socials",
   });
 
   const handleAddMore = () => {
+    if (disabled) {
+      return;
+    }
     append({ platform: "website", url: "" });
   };
 
@@ -86,14 +53,22 @@ export function CampaignSocialsSection() {
 
   return (
     <div className="flex flex-col gap-4">
-      <p className="font-medium text-base leading-[1.6]">Add socials</p>
+      <div className="flex flex-wrap items-center justify-between gap-3">
+        <p className="font-medium text-base leading-[1.6]">Add socials</p>
+        {(labelAction || labelStatus) && (
+          <div className="flex items-center gap-3">
+            {labelStatus}
+            {labelAction}
+          </div>
+        )}
+      </div>
       <div className="flex flex-col gap-4 w-full">
         {fields.map((field, index) => {
           const platformValue = socials?.[index]?.platform || "website";
           const config =
-            PLATFORM_CONFIG[platformValue as keyof typeof PLATFORM_CONFIG];
+            SOCIAL_PLATFORM_CONFIG[platformValue as keyof typeof SOCIAL_PLATFORM_CONFIG];
 
-          const urlError = (errors?.socials as any)?.[index]?.url;
+          const urlError = errors.socials?.[index]?.url as FieldError | undefined;
 
           return (
             <div key={field.id} className="flex flex-col gap-2 w-full">
@@ -105,12 +80,13 @@ export function CampaignSocialsSection() {
                     <Select
                       value={controllerField.value}
                       onValueChange={controllerField.onChange}
+                      disabled={disabled}
                     >
-                      <SelectTrigger className="w-40">
+                      <SelectTrigger className="w-40" disabled={disabled}>
                         <SelectValue />
                       </SelectTrigger>
                       <SelectContent>
-                        {Object.entries(PLATFORM_CONFIG).map(
+                        {Object.entries(SOCIAL_PLATFORM_CONFIG).map(
                           ([value, config]) => {
                             const ItemIcon = config.icon;
                             return (
@@ -140,6 +116,7 @@ export function CampaignSocialsSection() {
                         placeholder={config?.placeholder || "https://"}
                         className="w-full"
                         {...controllerField}
+                        disabled={disabled}
                       />
                     )}
                   />
@@ -151,8 +128,9 @@ export function CampaignSocialsSection() {
                 </div>
                 <button
                   type="button"
-                  onClick={() => remove(index)}
-                  className="shrink-0 size-5 flex items-center justify-center text-red-300 hover:text-red-400 transition-colors mt-3"
+                  onClick={() => !disabled && remove(index)}
+                  className="shrink-0 size-5 flex items-center justify-center text-red-300 hover:text-red-400 transition-colors mt-3 disabled:opacity-50"
+                  disabled={disabled}
                 >
                   <X className="size-[15.417px]" />
                 </button>
@@ -166,6 +144,7 @@ export function CampaignSocialsSection() {
           size="sm"
           className="w-40"
           onClick={handleAddMore}
+          disabled={disabled}
           type="button"
         >
           <Plus className="size-[13.25px]" />

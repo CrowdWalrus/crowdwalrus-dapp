@@ -374,9 +374,6 @@ export default function NewCampaignPage() {
     isExecuting;
 
   // For all operations (includes everything)
-  const isPending =
-    isEstimating || walrus.prepare.isPending || isRegistrationPending;
-
   const hasCompletedStorageRegistration = certifyResult !== null;
   const isFormLocked =
     hasCompletedStorageRegistration ||
@@ -870,8 +867,8 @@ export default function NewCampaignPage() {
                           control={form.control}
                           name="campaignName"
                           render={({ field }) => (
-                            <FormItem>
-                              <FormLabel>
+                            <FormItem className="flex flex-col gap-4">
+                              <FormLabel className="font-medium text-base">
                                 Title <span className="text-red-300">*</span>
                               </FormLabel>
                               <FormControl>
@@ -890,8 +887,8 @@ export default function NewCampaignPage() {
                           control={form.control}
                           name="description"
                           render={({ field }) => (
-                            <FormItem>
-                              <FormLabel>
+                            <FormItem className="flex flex-col gap-4">
+                              <FormLabel className="font-medium text-base">
                                 Short description{" "}
                                 <span className="text-red-300">*</span>
                               </FormLabel>
@@ -912,8 +909,8 @@ export default function NewCampaignPage() {
                           control={form.control}
                           name="subdomain"
                           render={({ field }) => (
-                            <FormItem>
-                              <FormLabel>
+                            <FormItem className="flex flex-col gap-4">
+                              <FormLabel className="font-medium text-base">
                                 Sub-name <span className="text-red-300">*</span>
                               </FormLabel>
                               <FormControl>

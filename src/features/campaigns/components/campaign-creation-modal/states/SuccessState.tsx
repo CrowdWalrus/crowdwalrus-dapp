@@ -14,7 +14,7 @@ export interface SuccessStateProps {
 
 export const SuccessState = ({
   campaignResult,
-  onClose,
+  onClose: _onClose,
 }: SuccessStateProps) => {
   const [copied, setCopied] = useState(false);
   const campaignDomain = useNetworkVariable("campaignDomain") as

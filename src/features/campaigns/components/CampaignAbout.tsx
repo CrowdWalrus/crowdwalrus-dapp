@@ -23,13 +23,13 @@ export function CampaignAbout({ description }: CampaignAboutProps) {
   return (
     <div className="flex flex-col gap-6 w-full">
       {/* Section Title */}
-      <h2 className="font-['Inter_Tight'] text-[26px] font-bold leading-[1.2] tracking-[0.26px] text-[#0c0f1c]">
+      <h2 className="font-['Inter_Tight'] text-[26px] font-bold leading-[1.2] tracking-[0.26px] text-black-500">
         About this campaign
       </h2>
 
       <div className="flex flex-col gap-6 w-full">
         {/* Description */}
-        <div className="font-['Inter'] text-base font-normal leading-[1.6] text-[#3d3f49]">
+        <div className="font-['Inter'] text-base font-normal leading-[1.6] text-black-400">
           {editorState ? (
             <EditorViewer editorSerializedState={editorState} />
           ) : (

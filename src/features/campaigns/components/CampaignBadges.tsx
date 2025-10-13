@@ -89,7 +89,7 @@ export function StartsBadge({ formattedDate }: StartsBadgeProps) {
   return (
     <Badge
       variant="outline"
-      className="bg-[#e7e7e8] border-transparent text-[#0c0f1c] text-xs font-medium leading-[1.5] tracking-[0.18px] px-2 py-0.5 h-6 rounded-lg gap-1.5"
+      className="bg-black-50 border-transparent text-black-500 text-xs font-medium leading-[1.5] tracking-[0.18px] px-2 py-0.5 h-6 rounded-lg gap-1.5"
     >
       <Clock className="size-3" />
       Starts {formattedDate}

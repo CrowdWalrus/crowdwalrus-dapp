@@ -6,6 +6,7 @@
 
 import type { NewCampaignFormData } from "../schemas/newCampaignSchema";
 import type { CampaignFormData } from "../types/campaign";
+import { sanitizeSocialLinks } from "./socials";
 
 /**
  * Transform NewCampaignFormData to CampaignFormData
@@ -13,7 +14,7 @@ import type { CampaignFormData } from "../types/campaign";
  * Handles:
  * - Field name mapping
  * - Date string to Date object conversion
- * - Socials array to individual fields
+ * - Socials array normalization
  * - Categories array to comma-separated string
  * - File object for cover image (already in correct format)
  * - Lexical JSON string for campaign details (already in correct format)
@@ -21,15 +22,7 @@ import type { CampaignFormData } from "../types/campaign";
 export function transformNewCampaignFormData(
   formData: NewCampaignFormData
 ): CampaignFormData {
-  // Extract social links from socials array
-  const twitter = formData.socials.find((s) => s.platform === "twitter")?.url || undefined;
-  const discord = formData.socials.find((s) => s.platform === "discord")?.url || undefined;
-  const website = formData.socials.find((s) => s.platform === "website")?.url || undefined;
-
-  // Filter out empty strings for social links
-  const social_twitter = twitter && twitter.trim() !== "" ? twitter : undefined;
-  const social_discord = discord && discord.trim() !== "" ? discord : undefined;
-  const social_website = website && website.trim() !== "" ? website : undefined;
+  const socials = sanitizeSocialLinks(formData.socials);
 
   return {
     // Basic Information
@@ -49,8 +42,6 @@ export function transformNewCampaignFormData(
     cover_image: formData.coverImage, // File object
 
     // Social Links (optional)
-    social_twitter,
-    social_discord,
-    social_website,
+    socials,
   };
 }

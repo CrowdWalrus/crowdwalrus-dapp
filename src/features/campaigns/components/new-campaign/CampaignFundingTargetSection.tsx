@@ -1,4 +1,5 @@
 import { useFormContext } from "react-hook-form";
+import type { ReactNode } from "react";
 import { Input } from "@/shared/components/ui/input";
 import {
   FormControl,
@@ -9,22 +10,82 @@ import {
 } from "@/shared/components/ui/form";
 import { DollarSign } from "lucide-react";
 
-export function CampaignFundingTargetSection() {
+interface CampaignFundingTargetSectionProps {
+  readOnly?: boolean;
+  fundingGoal?: string;
+  recipientAddress?: string;
+  headerAction?: ReactNode;
+  headerStatus?: ReactNode;
+}
+
+export function CampaignFundingTargetSection({
+  readOnly = false,
+  fundingGoal,
+  recipientAddress,
+  headerAction,
+  headerStatus,
+}: CampaignFundingTargetSectionProps) {
   const { control } = useFormContext();
+
+  if (readOnly) {
+    return (
+      <section className="flex flex-col gap-4">
+        <div className="flex flex-wrap items-center justify-between gap-3">
+          <h2 className="font-bold text-2xl">Funding Target</h2>
+          {(headerAction || headerStatus) && (
+            <div className="flex items-center gap-3">
+              {headerStatus}
+              {headerAction}
+            </div>
+          )}
+        </div>
+        <p className="text-sm text-muted-foreground">
+          Funding goal and recipient address are immutable once the campaign is
+          live.
+        </p>
+        <div className="flex flex-col gap-4 rounded-lg border border-border bg-muted/20 p-4">
+          <div>
+            <p className="text-xs uppercase tracking-wide text-muted-foreground">
+              Funding goal
+            </p>
+            <p className="text-lg font-semibold text-foreground">
+              {fundingGoal ?? "—"}
+            </p>
+          </div>
+          <div>
+            <p className="text-xs uppercase tracking-wide text-muted-foreground">
+              Recipient address
+            </p>
+            <p className="break-all text-sm font-medium text-foreground">
+              {recipientAddress ?? "—"}
+            </p>
+          </div>
+        </div>
+      </section>
+    );
+  }
 
   return (
     <section className="flex flex-col gap-8">
-      <h2 className="font-bold text-2xl leading-[1.6]">
-        Funding Target <span className="font-normal text-red-300">*</span>
-      </h2>
+      <div className="flex flex-wrap items-center justify-between gap-3">
+        <h2 className="font-bold text-2xl">
+          Funding Target <span className="font-normal text-red-300">*</span>
+        </h2>
+        {(headerAction || headerStatus) && (
+          <div className="flex items-center gap-3">
+            {headerStatus}
+            {headerAction}
+          </div>
+        )}
+      </div>
 
       <div className="flex flex-col gap-8">
         <FormField
           control={control}
           name="targetAmount"
           render={({ field }) => (
-            <FormItem>
-              <FormLabel className="font-medium text-base leading-[1.6]">
+            <FormItem className="flex flex-col gap-4">
+              <FormLabel className="font-medium text-base">
                 Add a max funding amount for your campaign
               </FormLabel>
               <FormControl>
@@ -47,8 +108,8 @@ export function CampaignFundingTargetSection() {
           control={control}
           name="walletAddress"
           render={({ field }) => (
-            <FormItem>
-              <FormLabel className="font-medium text-base leading-[1.6]">
+            <FormItem className="flex flex-col gap-4">
+              <FormLabel className="font-medium text-base">
                 Add a funding Sui address
               </FormLabel>
               <FormControl>
@@ -57,7 +118,7 @@ export function CampaignFundingTargetSection() {
                   {...field}
                 />
               </FormControl>
-              <p className="font-normal text-xs leading-[1.6] text-[#8f9197]">
+              <p className="font-normal text-xs text-black-200">
                 This is the wallet that will receive all donation funds
               </p>
               <FormMessage />

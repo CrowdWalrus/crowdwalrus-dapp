@@ -119,10 +119,10 @@ export function DonationCard({
               value={contributionAmount}
               onChange={(e) => setContributionAmount(e.target.value)}
               placeholder="0.00"
-              className="flex-1 h-[54px] bg-white border border-[#e7e7e8] border-r-0 rounded-tl-lg rounded-bl-lg px-4 text-lg font-semibold  placeholder:text-[#b4b5b9] focus:outline-none focus:ring-2 focus:ring-[#613dff] opacity-50"
+              className="flex-1 h-[54px] bg-white border border-black-50 border-r-0 rounded-tl-lg rounded-bl-lg px-4 text-lg font-semibold  placeholder:text-black-100 focus:outline-none focus:ring-2 focus:ring-blue-500 opacity-50"
               disabled={!isActive || !currentAccount}
             />
-            <div className="h-[54px] bg-white border border-[#e7e7e8] rounded-tr-lg rounded-br-lg px-3 flex items-center gap-2 opacity-50">
+            <div className="h-[54px] bg-white border border-black-50 rounded-tr-lg rounded-br-lg px-3 flex items-center gap-2 opacity-50">
               <div className="size-5 rounded-full bg-[#006ce9] flex items-center justify-center">
                 <span className="text-white text-xs font-bold">S</span>
               </div>
@@ -149,7 +149,7 @@ export function DonationCard({
         </Button>
         <Button
           variant="secondary"
-          className="w-full h-10 bg-[#efecff] text-[#613dff]  text-sm font-medium tracking-[0.07px] rounded-lg hover:bg-[#e0d9ff] gap-2"
+          className="w-full h-10 bg-blue-50 text-blue-500  text-sm font-medium tracking-[0.07px] rounded-lg hover:bg-[#e0d9ff] gap-2"
         >
           Share
           <Share2 className="size-3.5" />

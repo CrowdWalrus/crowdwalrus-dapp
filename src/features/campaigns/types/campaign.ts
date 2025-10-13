@@ -4,6 +4,14 @@
  */
 
 /**
+ * Basic social link structure stored in metadata.
+ */
+export interface CampaignSocialLink {
+  platform: string;
+  url: string;
+}
+
+/**
  * Form data collected from the user during campaign creation
  */
 export interface CampaignFormData {
@@ -24,9 +32,7 @@ export interface CampaignFormData {
   cover_image: File;
 
   // Social Links (optional)
-  social_twitter?: string;
-  social_discord?: string;
-  social_website?: string;
+  socials: CampaignSocialLink[];
 
   // Storage Settings
   storage_epochs?: number; // Default will be set in config
@@ -42,10 +48,22 @@ export interface CampaignMetadata {
   walrus_storage_epochs: string;
   category: string;
   cover_image_id: string; // Identifier within the Quilt
-  social_twitter?: string;
-  social_discord?: string;
-  social_website?: string;
+  socials_json?: string;
   [key: string]: string | undefined; // Allow additional custom metadata
+}
+
+/**
+ * Partial metadata patch used when editing existing campaigns.
+ * Keys align with Move contract expectations (snake_case).
+ */
+export interface MetadataPatch {
+  walrus_quilt_id?: string;
+  walrus_storage_epochs?: string;
+  cover_image_id?: string;
+  campaign_type?: string;
+  category?: string;
+  socials_json?: string;
+  [key: string]: string | undefined;
 }
 
 /**

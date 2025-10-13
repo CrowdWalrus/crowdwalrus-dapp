@@ -41,10 +41,11 @@ interface CampaignStorageRegistrationCardProps {
   isLocked?: boolean;
   storageRegistered?: boolean;
   estimatedCost?: StorageCostEstimate | null;
+  hideRegisterButton?: boolean;
+  disabled?: boolean;
 }
 
 export function CampaignStorageRegistrationCard({
-  costs,
   totalCost,
   isCalculating = false,
   onRegister,
@@ -60,6 +61,8 @@ export function CampaignStorageRegistrationCard({
   isLocked = false,
   storageRegistered = false,
   estimatedCost,
+  hideRegisterButton = false,
+  disabled = false,
 }: CampaignStorageRegistrationCardProps) {
   // Get network-specific storage duration options
   const storageDurationOptions = useNetworkVariable(
@@ -94,28 +97,30 @@ export function CampaignStorageRegistrationCard({
     ? `${format(addDays(new Date(), totalDays), "MMM d, yyyy")} (${totalDays} day${totalDays !== 1 ? "s" : ""})`
     : "Select period";
 
+  const controlsDisabled = disabled || isLocked;
+
   return (
     <section className="flex flex-col gap-8 mb-12">
       <div className="flex flex-col gap-2">
         <h2 className="text-2xl font-bold">Storage registration</h2>
-        <p className="text-base font-medium text-[#0c0f1c]">
+        <p className="text-base font-medium text-black-500">
           Review your storage costs, which are based on the files and content
           occupying space.
         </p>
       </div>
 
-      <Card className="bg-[#fbfbfb] border-black-50">
+      <Card className="bg-white-200 border-black-50">
         <CardContent className="p-6 flex flex-col gap-8">
           {/* Registration Period */}
           <div className="flex flex-col gap-4">
-            <label className="text-base font-medium text-[#0c0f1c]">
+            <label className="text-base font-medium text-black-500">
               Registration period
             </label>
             <Select
               value={defaultValue}
-              disabled={isLocked}
+              disabled={controlsDisabled}
               onValueChange={(value) => {
-                if (isLocked) {
+                if (controlsDisabled) {
                   return;
                 }
                 const option = storageDurationOptions.find(
@@ -128,7 +133,7 @@ export function CampaignStorageRegistrationCard({
             >
               <SelectTrigger
                 className="bg-white border-black-50"
-                disabled={isLocked}
+                disabled={controlsDisabled}
               >
                 <SelectValue />
               </SelectTrigger>
@@ -152,22 +157,22 @@ export function CampaignStorageRegistrationCard({
           <Card className="bg-white border-black-50">
             <CardContent className="p-4 flex flex-col gap-4">
               <div className="flex flex-col gap-4">
-                <div className="flex items-center justify-between text-sm text-[#3d3f49]">
+                <div className="flex items-center justify-between text-sm text-black-400">
                   <span className="font-normal">Walrus storage fees</span>
                   <span className="font-medium">{walrusStorageFees}</span>
                 </div>
-                <div className="flex items-center justify-between text-sm text-[#3d3f49]">
+                <div className="flex items-center justify-between text-sm text-black-400">
                   <span className="font-normal">Registration expires</span>
                   <span className="font-medium">{registrationExpires}</span>
                 </div>
               </div>
-              <div className="h-px bg-[#e7e7e8]" />
+              <div className="h-px bg-black-50" />
               <div className="flex items-center justify-between pt-1 rounded-lg">
-                <span className="text-sm font-semibold text-[#0c0f1c]">
+                <span className="text-sm font-semibold text-black-500">
                   Total Due
                 </span>
                 <div className="flex items-center gap-1">
-                  <span className="text-sm font-semibold text-[#3d3f49]">
+                  <span className="text-sm font-semibold text-black-400">
                     {totalCost}
                   </span>
                 </div>
@@ -178,7 +183,7 @@ export function CampaignStorageRegistrationCard({
           {/* Payment Type */}
           <div className="flex flex-col gap-1">
             <div className="flex flex-col gap-4">
-              <label className="text-base font-medium text-[#0c0f1c]">
+              <label className="text-base font-medium text-black-500">
                 Payment type
               </label>
               <div className="bg-white border border-black-50 rounded-lg px-4 py-2.5 flex items-center justify-between min-h-[40px]">
@@ -199,7 +204,7 @@ export function CampaignStorageRegistrationCard({
                 </span>
               </div>
             </div>
-            <div className="flex items-center justify-end gap-1 text-xs text-[#3d3f49]">
+            <div className="flex items-center justify-end gap-1 text-xs text-black-400">
               <span className="font-normal">Balance:</span>
               <span className="font-semibold">{walBalance}</span>
             </div>
@@ -221,7 +226,7 @@ export function CampaignStorageRegistrationCard({
           )}
 
           {/* Register Button */}
-          {!storageRegistered && (
+          {!storageRegistered && !hideRegisterButton && (
             <div className="flex justify-end">
               <Button
                 type="button"
@@ -229,7 +234,7 @@ export function CampaignStorageRegistrationCard({
                 className="bg-white border-black-50 min-h-[40px] px-6"
                 onClick={onRegister}
                 disabled={
-                  isLocked ||
+                  controlsDisabled ||
                   hasInsufficientBalance ||
                   isCalculating ||
                   isPreparing ||
