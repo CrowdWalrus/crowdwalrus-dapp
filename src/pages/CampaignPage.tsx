@@ -7,8 +7,9 @@
 
 import { useEffect, useState } from "react";
 import { useParams } from "react-router-dom";
-import { useQuery } from "@tanstack/react-query";
 import { useCampaign } from "@/features/campaigns/hooks/useCampaign";
+import { useWalrusDescription } from "@/features/campaigns/hooks/useWalrusDescription";
+import { useWalrusImage } from "@/features/campaigns/hooks/useWalrusImage";
 import { DEFAULT_NETWORK } from "@/shared/config/networkConfig";
 import { Card, CardContent } from "@/shared/components/ui/card";
 import { Button } from "@/shared/components/ui/button";
@@ -24,53 +25,12 @@ import { CampaignAbout } from "@/features/campaigns/components/CampaignAbout";
 import { DonationCard } from "@/features/campaigns/components/DonationCard";
 import { useCampaignOwnership } from "@/features/campaigns/hooks/useCampaignOwnership";
 import { useDeactivateCampaign } from "@/features/campaigns/hooks/useDeactivateCampaign";
+import { useActivateCampaign } from "@/features/campaigns/hooks/useActivateCampaign";
 import { OwnerViewBanner } from "@/features/campaigns/components/OwnerViewBanner";
 import { DeactivateCampaignModal } from "@/features/campaigns/components/modals/DeactivateCampaignModal";
+import { ActivateCampaignModal } from "@/features/campaigns/components/modals/ActivateCampaignModal";
 import { ProcessingState } from "@/features/campaigns/components/campaign-creation-modal/states/ProcessingState";
-import { OctagonMinus, Trash2 } from "lucide-react";
-
-/**
- * Hook to fetch image from Walrus as blob and create object URL
- */
-function useWalrusImage(imageUrl: string) {
-  return useQuery({
-    queryKey: ["walrus-image", imageUrl],
-    queryFn: async () => {
-      if (!imageUrl) return null;
-
-      const response = await fetch(imageUrl);
-      if (!response.ok) {
-        throw new Error(`Failed to fetch image: ${response.statusText}`);
-      }
-      const blob = await response.blob();
-      return URL.createObjectURL(blob);
-    },
-    enabled: !!imageUrl,
-    staleTime: 5 * 60 * 1000,
-    gcTime: 10 * 60 * 1000,
-  });
-}
-
-/**
- * Hook to fetch campaign description from Walrus
- */
-function useWalrusDescription(descriptionUrl: string) {
-  return useQuery({
-    queryKey: ["walrus-description", descriptionUrl],
-    queryFn: async () => {
-      if (!descriptionUrl) return "";
-
-      const response = await fetch(descriptionUrl);
-      if (!response.ok) {
-        throw new Error(`Failed to fetch description: ${response.statusText}`);
-      }
-      return await response.text();
-    },
-    enabled: !!descriptionUrl,
-    staleTime: 5 * 60 * 1000,
-    gcTime: 10 * 60 * 1000,
-  });
-}
+import { CircleCheck, OctagonMinus, Trash2 } from "lucide-react";
 
 export function CampaignPage() {
   const { id } = useParams<{ id: string }>();
@@ -84,12 +44,12 @@ export function CampaignPage() {
 
   // Fetch cover image
   const { data: imageObjectUrl, isLoading: loadingImage } = useWalrusImage(
-    campaign?.coverImageUrl || "",
+    campaign?.coverImageUrl,
   );
 
   // Fetch description
   const { data: description, isLoading: loadingDescription } =
-    useWalrusDescription(campaign?.descriptionUrl || "");
+    useWalrusDescription(campaign?.descriptionUrl);
 
   const { isOwner, accountAddress, ownerCapId } = useCampaignOwnership({
     campaignId: id ?? "",
@@ -109,15 +69,33 @@ export function CampaignPage() {
       await refetch();
     },
   });
+  const {
+    activateCampaign,
+    isProcessing: isActivationProcessing,
+  } = useActivateCampaign({
+    campaignId: campaign?.id,
+    ownerCapId,
+    isActive: campaign?.isActive,
+    accountAddress,
+    network,
+    onSuccess: async () => {
+      await refetch();
+    },
+  });
 
   // State to toggle between owner view and public view
   const [isOwnerView, setIsOwnerView] = useState(true);
 
   // State for deactivate modal
   const [isDeactivateModalOpen, setIsDeactivateModalOpen] = useState(false);
+  const [isActivateModalOpen, setIsActivateModalOpen] = useState(false);
+  const [processingType, setProcessingType] = useState<
+    "deactivate" | "activate" | null
+  >(null);
 
   const handleConfirmDeactivate = async () => {
     setIsDeactivateModalOpen(false);
+    setProcessingType("deactivate");
 
     const result = await deactivateCampaign();
 
@@ -130,6 +108,27 @@ export function CampaignPage() {
     ) {
       setIsDeactivateModalOpen(true);
     }
+
+    setProcessingType(null);
+  };
+
+  const handleConfirmActivate = async () => {
+    setIsActivateModalOpen(false);
+    setProcessingType("activate");
+
+    const result = await activateCampaign();
+
+    if (
+      result === "user_rejected" ||
+      result === "missing_owner_cap" ||
+      result === "missing_wallet" ||
+      result === "missing_campaign" ||
+      result === "error"
+    ) {
+      setIsActivateModalOpen(true);
+    }
+
+    setProcessingType(null);
   };
 
   useEffect(() => {
@@ -209,6 +208,21 @@ export function CampaignPage() {
   // Mock contributors count and amount raised (replace with real data)
   const contributorsCount = 0;
   const amountRaised = 0;
+  const showProcessingDialog =
+    (processingType === "deactivate" && isDeactivationProcessing) ||
+    (processingType === "activate" && isActivationProcessing);
+  const processingMessage =
+    processingType === "activate"
+      ? "Activating campaign..."
+      : processingType === "deactivate"
+        ? "Deactivating campaign..."
+        : "Processing campaign transaction...";
+  const processingDescription =
+    processingType === "activate"
+      ? "Confirm the activation transaction in your wallet to continue."
+      : processingType === "deactivate"
+        ? "Confirm the deactivation transaction in your wallet to continue."
+        : "Confirm the transaction in your wallet to continue.";
 
   return (
     <>
@@ -277,13 +291,23 @@ export function CampaignPage() {
               {isOwnerView && isOwner && (
                 <>
                   <div className="flex gap-2 justify-end">
-                    <Button
-                      onClick={() => setIsDeactivateModalOpen(true)}
-                      className="bg-orange-50 border border-orange-200 text-orange-700 hover:bg-orange-100"
-                    >
-                      <OctagonMinus />
-                      Deactivate Campaign
-                    </Button>
+                    {campaign.isActive ? (
+                      <Button
+                        onClick={() => setIsDeactivateModalOpen(true)}
+                        className="bg-orange-50 border border-orange-200 text-orange-700 hover:bg-orange-100"
+                      >
+                        <OctagonMinus />
+                        Deactivate Campaign
+                      </Button>
+                    ) : (
+                      <Button
+                        onClick={() => setIsActivateModalOpen(true)}
+                        className="bg-green-50 border border-green-200 text-green-700 hover:bg-green-100"
+                      >
+                        <CircleCheck />
+                        Activate Campaign
+                      </Button>
+                    )}
                     <Button className="bg-red-50 border border-red-200 text-red-500 hover:bg-red-100">
                       <Trash2 />
                       Delete Campaign
@@ -311,21 +335,33 @@ export function CampaignPage() {
         </div>
       </div>
 
-      {/* Deactivate Campaign Modal */}
-      <DeactivateCampaignModal
-        open={isDeactivateModalOpen}
-        onClose={() => setIsDeactivateModalOpen(false)}
-        onConfirm={handleConfirmDeactivate}
-      />
+      {/* Campaign Status Modals */}
+      {campaign.isActive && (
+        <DeactivateCampaignModal
+          open={isDeactivateModalOpen}
+          onClose={() => setIsDeactivateModalOpen(false)}
+          onConfirm={handleConfirmDeactivate}
+        />
+      )}
 
-      <Dialog open={isDeactivationProcessing} onOpenChange={() => {}}>
-        <DialogContent className="max-w-md px-10 py-12 rounded-2xl bg-white-50 [&>button]:hidden">
-          <ProcessingState
-            message="Deactivating campaign..."
-            description="Confirm the transaction in your wallet to continue."
-          />
-        </DialogContent>
-      </Dialog>
+      {!campaign.isActive && (
+        <ActivateCampaignModal
+          open={isActivateModalOpen}
+          onClose={() => setIsActivateModalOpen(false)}
+          onConfirm={handleConfirmActivate}
+        />
+      )}
+
+      {showProcessingDialog && (
+        <Dialog open onOpenChange={() => {}}>
+          <DialogContent className="max-w-md px-10 py-12 rounded-2xl bg-white-50 [&>button]:hidden">
+            <ProcessingState
+              message={processingMessage}
+              description={processingDescription}
+            />
+          </DialogContent>
+        </Dialog>
+      )}
     </>
   );
 }
