@@ -32,8 +32,6 @@ export function CampaignHero({
   coverImageUrl,
   campaignName,
   shortDescription,
-  isActive,
-  isVerified,
   startDateMs,
   category,
   contributorsCount,

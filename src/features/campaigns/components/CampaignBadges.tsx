@@ -1,4 +1,5 @@
 import { Badge } from "@/shared/components/ui/badge";
+import { cn } from "@/shared/lib/utils";
 import type { LucideIcon } from "lucide-react";
 import {
   AlertCircle,
@@ -8,6 +9,7 @@ import {
   GraduationCap,
   Handshake,
   HeartPulse,
+  HourglassIcon,
   Leaf,
   Palette,
   Sparkles,
@@ -40,12 +42,17 @@ const CATEGORY_BADGE_CONFIG: Record<
 };
 
 const DEFAULT_CATEGORY_ICON: LucideIcon = Tag;
+const BADGE_TEXT_CLASS =
+  "text-xs font-medium leading-[1.5] tracking-[0.18px] px-2 py-0.5 h-6 rounded-lg gap-1.5";
 
 export function OpenSoonBadge() {
   return (
     <Badge
       variant="outline"
-      className="bg-orange-50 border-orange-500 text-orange-600 text-xs font-medium px-2 py-0.5 h-6 rounded-lg gap-1.5"
+      className={cn(
+        BADGE_TEXT_CLASS,
+        "bg-orange-50 border-orange-500 text-orange-600",
+      )}
     >
       <Clock className="size-3" />
       Open Soon
@@ -59,11 +66,8 @@ interface StartsInBadgeProps {
 
 export function StartsInBadge({ daysUntilStart }: StartsInBadgeProps) {
   return (
-    <Badge
-      variant="outline"
-      className="bg-black-50 text-xs font-medium px-2 py-0.5 h-6 rounded-lg gap-1.5"
-    >
-      <Clock className="size-3" />
+    <Badge variant="outline" className={cn(BADGE_TEXT_CLASS, "bg-black-50")}>
+      <HourglassIcon className="size-3" />
       Starts in {daysUntilStart} days
     </Badge>
   );
@@ -87,10 +91,7 @@ export function CategoryBadge({ category }: CategoryBadgeProps) {
       .join(" ");
 
   return (
-    <Badge
-      variant="outline"
-      className="bg-black-50 text-xs px-2 py-0.5 h-6 rounded-lg gap-1.5 font-medium"
-    >
+    <Badge variant="outline" className={cn(BADGE_TEXT_CLASS, "bg-black-50")}>
       <IconComponent className="size-3" />
       {label || "Campaign"}
     </Badge>
@@ -105,10 +106,7 @@ export function ContributorsBadge({
   contributorsCount,
 }: ContributorsBadgeProps) {
   return (
-    <Badge
-      variant="outline"
-      className="bg-black-50 text-xs px-2 py-0.5 h-6 rounded-lg gap-1.5 font-medium"
-    >
+    <Badge variant="outline" className={cn(BADGE_TEXT_CLASS, "bg-black-50")}>
       <Users className="size-3" />
       {contributorsCount}
     </Badge>
@@ -123,9 +121,11 @@ export function VerificationBadge({ isVerified }: VerificationBadgeProps) {
   return (
     <Badge
       variant="outline"
-      className={`text-xs px-2 py-0.5 h-6 rounded-lg gap-1.5 border-transparent ${
-        isVerified ? "bg-green-600 text-white" : "bg-orange-600 text-white"
-      }`}
+      className={cn(
+        BADGE_TEXT_CLASS,
+        "border-transparent",
+        isVerified ? "bg-green-600 text-white" : "bg-orange-600 text-white",
+      )}
     >
       <AlertCircle className="size-3" />
       {isVerified ? "Verified" : "Not Verified"}
@@ -141,7 +141,10 @@ export function StartsBadge({ formattedDate }: StartsBadgeProps) {
   return (
     <Badge
       variant="outline"
-      className="bg-black-50 border-transparent text-black-500 text-xs font-medium leading-[1.5] tracking-[0.18px] px-2 py-0.5 h-6 rounded-lg gap-1.5"
+      className={cn(
+        BADGE_TEXT_CLASS,
+        "bg-black-50 border-transparent text-black-500",
+      )}
     >
       <Clock className="size-3" />
       Starts {formattedDate}
