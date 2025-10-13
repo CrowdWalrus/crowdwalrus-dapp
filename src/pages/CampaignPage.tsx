@@ -12,6 +12,7 @@ import { useCampaign } from "@/features/campaigns/hooks/useCampaign";
 import { DEFAULT_NETWORK } from "@/shared/config/networkConfig";
 import { Card, CardContent } from "@/shared/components/ui/card";
 import { Button } from "@/shared/components/ui/button";
+import { Separator } from "@/shared/components/ui/separator";
 import { CampaignBreadcrumb } from "@/features/campaigns/components/CampaignBreadcrumb";
 import { CampaignHero } from "@/features/campaigns/components/CampaignHero";
 
@@ -19,6 +20,7 @@ import { CampaignAbout } from "@/features/campaigns/components/CampaignAbout";
 import { DonationCard } from "@/features/campaigns/components/DonationCard";
 import { useCampaignOwnership } from "@/features/campaigns/hooks/useCampaignOwnership";
 import { OwnerViewBanner } from "@/features/campaigns/components/OwnerViewBanner";
+import { CircleSlash, OctagonMinus, Trash2 } from "lucide-react";
 
 /**
  * Hook to fetch image from Walrus as blob and create object URL
@@ -180,68 +182,88 @@ export function CampaignPage() {
 
       <div className="py-8">
         <div className="container px-4">
-        {/* Breadcrumb */}
-        <div className="pb-10">
-          <CampaignBreadcrumb campaignName={campaign.name} />
+          {/* Breadcrumb */}
+          <div className="pb-10">
+            <CampaignBreadcrumb campaignName={campaign.name} />
+          </div>
         </div>
-      </div>
 
-      {/* Main content container */}
-      <div className="container px-4 mx-auto max-w-[1728px]">
-        {/* Page Title */}
-        <h1 className="text-5xl font-bold mb-[60px] pb-10">{campaign.name}</h1>
+        {/* Main content container */}
+        <div className="container px-4 mx-auto max-w-[1728px]">
+          {/* Page Title */}
+          <h1 className="text-5xl font-bold mb-[60px] pb-10">
+            {campaign.name}
+          </h1>
 
-        {/* Two-column layout */}
-        <div className="flex gap-[62px] items-start">
-          {/* Left Column - Main Content */}
-          <div className="flex-1 max-w-[946px]">
-            {/* Hero Section */}
-            {imageObjectUrl && !loadingImage && (
-              <CampaignHero
-                coverImageUrl={imageObjectUrl}
-                campaignName={campaign.name}
-                shortDescription={campaign.shortDescription}
-                isActive={campaign.isActive}
+          {/* Two-column layout */}
+          <div className="flex gap-[62px] items-start">
+            {/* Left Column - Main Content */}
+            <div className="flex-1 max-w-[946px]">
+              {/* Hero Section */}
+              {imageObjectUrl && !loadingImage && (
+                <CampaignHero
+                  coverImageUrl={imageObjectUrl}
+                  campaignName={campaign.name}
+                  shortDescription={campaign.shortDescription}
+                  isActive={campaign.isActive}
+                  startDateMs={campaign.startDateMs}
+                  endDateMs={campaign.endDateMs}
+                  category={campaign.category}
+                  contributorsCount={contributorsCount}
+                  publisherAddress={campaign.adminId}
+                  socialLinks={campaign.socialLinks}
+                />
+              )}
+
+              {/* About Section */}
+              {description && !loadingDescription && (
+                <div className="pt-10">
+                  <CampaignAbout description={description} />
+                </div>
+              )}
+
+              {/* Loading state for description */}
+              {loadingDescription && (
+                <div className="py-8">
+                  <p className="text-muted-foreground">
+                    Loading description...
+                  </p>
+                </div>
+              )}
+
+              {/* Owner Action Buttons - Only visible to campaign owners in owner view */}
+              {isOwnerView && isOwner && (
+                <>
+                  <div className="flex gap-2 justify-end">
+                    <Button className="bg-orange-50 border border-orange-200 text-orange-700 hover:bg-orange-100">
+                      <OctagonMinus />
+                      Deactivate Campaign
+                    </Button>
+                    <Button className="bg-red-50 border border-red-200 text-red-500 hover:bg-red-100">
+                      <Trash2 />
+                      Delete Campaign
+                    </Button>
+                  </div>
+                </>
+              )}
+            </div>
+
+            {/* Right Column - Donation Card */}
+            <div className="w-[480px] shrink-0 sticky top-[38px]">
+              <DonationCard
+                campaignId={campaign.id}
+                isVerified={campaign.isVerified}
                 startDateMs={campaign.startDateMs}
                 endDateMs={campaign.endDateMs}
-                category={campaign.category}
+                amountRaised={amountRaised}
                 contributorsCount={contributorsCount}
-                publisherAddress={campaign.adminId}
-                socialLinks={campaign.socialLinks}
+                fundingGoal={Number(campaign.fundingGoal)}
+                recipientAddress={campaign.recipientAddress}
+                isActive={campaign.isActive}
               />
-            )}
-
-            {/* About Section */}
-            {description && !loadingDescription && (
-              <div className="pt-10">
-                <CampaignAbout description={description} />
-              </div>
-            )}
-
-            {/* Loading state for description */}
-            {loadingDescription && (
-              <div className="py-8">
-                <p className="text-muted-foreground">Loading description...</p>
-              </div>
-            )}
-          </div>
-
-          {/* Right Column - Donation Card */}
-          <div className="w-[480px] shrink-0 sticky top-[38px]">
-            <DonationCard
-              campaignId={campaign.id}
-              isVerified={campaign.isVerified}
-              startDateMs={campaign.startDateMs}
-              endDateMs={campaign.endDateMs}
-              amountRaised={amountRaised}
-              contributorsCount={contributorsCount}
-              fundingGoal={Number(campaign.fundingGoal)}
-              recipientAddress={campaign.recipientAddress}
-              isActive={campaign.isActive}
-            />
+            </div>
           </div>
         </div>
-      </div>
       </div>
     </>
   );
