@@ -5,6 +5,7 @@
  * Fetches campaign data from Sui blockchain and Walrus storage
  */
 
+import { useEffect } from "react";
 import { useParams } from "react-router-dom";
 import { useQuery } from "@tanstack/react-query";
 import { useCampaign } from "@/features/campaigns/hooks/useCampaign";
@@ -16,6 +17,7 @@ import { CampaignHero } from "@/features/campaigns/components/CampaignHero";
 
 import { CampaignAbout } from "@/features/campaigns/components/CampaignAbout";
 import { DonationCard } from "@/features/campaigns/components/DonationCard";
+import { useCampaignOwnership } from "@/features/campaigns/hooks/useCampaignOwnership";
 
 /**
  * Hook to fetch image from Walrus as blob and create object URL
@@ -78,6 +80,23 @@ export function CampaignPage() {
   // Fetch description
   const { data: description, isLoading: loadingDescription } =
     useWalrusDescription(campaign?.descriptionUrl || "");
+
+  const { isOwner, accountAddress } = useCampaignOwnership({
+    campaignId: id ?? "",
+    network,
+  });
+
+  useEffect(() => {
+    if (!id || !accountAddress) {
+      return;
+    }
+
+    console.debug(
+      `[CampaignPage] Wallet ${accountAddress} is ${
+        isOwner ? "" : "not "
+      }the owner of campaign ${id}`,
+    );
+  }, [id, accountAddress, isOwner]);
 
   // Loading state
   if (isPending) {
