@@ -59,7 +59,7 @@ export function ActivateCampaignModal({
             onClick={() => {
               onConfirm();
             }}
-            className="flex-1 h-10 px-6 py-2.5 bg-green-600 text-white-50 text-sm font-medium tracking-[0.07px] rounded-lg hover:bg-green-500"
+            className="flex-1 h-10 px-6 py-2.5 bg-sgreen-700 text-white-50 text-sm font-medium tracking-[0.07px] rounded-lg hover:bg-sgreen-600"
           >
             Yes, Activate
           </Button>

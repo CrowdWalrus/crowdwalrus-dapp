@@ -14,10 +14,7 @@ import { DEFAULT_NETWORK } from "@/shared/config/networkConfig";
 import { Card, CardContent } from "@/shared/components/ui/card";
 import { Button } from "@/shared/components/ui/button";
 import { Separator } from "@/shared/components/ui/separator";
-import {
-  Dialog,
-  DialogContent,
-} from "@/shared/components/ui/dialog";
+import { Dialog, DialogContent } from "@/shared/components/ui/dialog";
 import { CampaignBreadcrumb } from "@/features/campaigns/components/CampaignBreadcrumb";
 import { CampaignHero } from "@/features/campaigns/components/CampaignHero";
 
@@ -56,32 +53,28 @@ export function CampaignPage() {
     network,
   });
 
-  const {
-    deactivateCampaign,
-    isProcessing: isDeactivationProcessing,
-  } = useDeactivateCampaign({
-    campaignId: campaign?.id,
-    ownerCapId,
-    isActive: campaign?.isActive,
-    accountAddress,
-    network,
-    onSuccess: async () => {
-      await refetch();
-    },
-  });
-  const {
-    activateCampaign,
-    isProcessing: isActivationProcessing,
-  } = useActivateCampaign({
-    campaignId: campaign?.id,
-    ownerCapId,
-    isActive: campaign?.isActive,
-    accountAddress,
-    network,
-    onSuccess: async () => {
-      await refetch();
-    },
-  });
+  const { deactivateCampaign, isProcessing: isDeactivationProcessing } =
+    useDeactivateCampaign({
+      campaignId: campaign?.id,
+      ownerCapId,
+      isActive: campaign?.isActive,
+      accountAddress,
+      network,
+      onSuccess: async () => {
+        await refetch();
+      },
+    });
+  const { activateCampaign, isProcessing: isActivationProcessing } =
+    useActivateCampaign({
+      campaignId: campaign?.id,
+      ownerCapId,
+      isActive: campaign?.isActive,
+      accountAddress,
+      network,
+      onSuccess: async () => {
+        await refetch();
+      },
+    });
 
   // State to toggle between owner view and public view
   const [isOwnerView, setIsOwnerView] = useState(true);
@@ -294,7 +287,7 @@ export function CampaignPage() {
                     {campaign.isActive ? (
                       <Button
                         onClick={() => setIsDeactivateModalOpen(true)}
-                        className="bg-orange-50 border border-orange-200 text-orange-700 hover:bg-orange-100"
+                        className="bg-orange-50 border border-orange-200 text-orange-700 hover:bg-orange-100 py-[9.5px]"
                       >
                         <OctagonMinus />
                         Deactivate Campaign
@@ -302,7 +295,7 @@ export function CampaignPage() {
                     ) : (
                       <Button
                         onClick={() => setIsActivateModalOpen(true)}
-                        className="bg-green-50 border border-green-200 text-green-700 hover:bg-green-100"
+                        className="bg-sgreen-700 text-white-50 hover:bg-sgreen-600 py-[9.5px]"
                       >
                         <CircleCheck />
                         Activate Campaign
