@@ -517,7 +517,7 @@ const loading =
   if (!campaignId) {
     return (
       <div className="py-8">
-        <div className="container max-w-4xl">
+        <div className="container px-4 max-w-4xl">
           <Card className="border-red-500">
             <CardContent className="pt-6">
               <p className="text-red-600 font-semibold mb-2">
@@ -536,7 +536,7 @@ const loading =
   if (loading) {
     return (
       <div className="py-8">
-        <div className="container max-w-4xl">
+        <div className="container px-4 max-w-4xl">
           <Card>
             <CardContent className="pt-6">
               <p className="text-muted-foreground">Loading campaign...</p>
@@ -550,7 +550,7 @@ const loading =
   if (campaignError) {
     return (
       <div className="py-8">
-        <div className="container max-w-4xl">
+        <div className="container px-4 max-w-4xl">
           <Card className="border-red-500">
             <CardContent className="pt-6 flex flex-col gap-4">
               <div>
@@ -574,7 +574,7 @@ const loading =
   if (!hasCampaign || isDeleted) {
     return (
       <div className="py-8">
-        <div className="container max-w-4xl">
+        <div className="container px-4 max-w-4xl">
           <Card className="border-yellow-500">
             <CardContent className="pt-6 flex flex-col gap-2">
               <p className="text-yellow-600 font-semibold">
@@ -596,7 +596,7 @@ const loading =
   if (showConnectWalletMessage) {
     return (
       <div className="py-8">
-        <div className="container max-w-4xl">
+        <div className="container px-4 max-w-4xl">
           <Card className="border-yellow-500">
             <CardContent className="pt-6 flex flex-col gap-2">
               <p className="text-yellow-600 font-semibold">
@@ -616,7 +616,7 @@ const loading =
   if (capError) {
     return (
       <div className="py-8">
-        <div className="container max-w-4xl">
+        <div className="container px-4 max-w-4xl">
           <Card className="border-red-500">
             <CardContent className="pt-6 flex flex-col gap-4">
               <div>
@@ -640,7 +640,7 @@ const loading =
   if (notAuthorized) {
     return (
       <div className="py-8">
-        <div className="container max-w-4xl">
+        <div className="container px-4 max-w-4xl">
           <Card className="border-red-500">
             <CardContent className="pt-6 flex flex-col gap-2">
               <p className="text-red-600 font-semibold">Not authorized</p>
@@ -1320,7 +1320,7 @@ const handleModalClose = () => {
       />
 
       <div className="py-8">
-        <div className="container">
+        <div className="container px-4">
           <Breadcrumb className="mb-8">
             <BreadcrumbList>
               <BreadcrumbItem>
@@ -1344,7 +1344,7 @@ const handleModalClose = () => {
         </Breadcrumb>
       </div>
 
-      <div className="container flex justify-center">
+      <div className="container px-4 flex justify-center">
         <div className="w-full max-w-3xl px-4">
           <Form {...form}>
             <form className="flex flex-col gap-16" onSubmit={handleSubmit}>

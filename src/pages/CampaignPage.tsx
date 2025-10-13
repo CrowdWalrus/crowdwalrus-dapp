@@ -5,7 +5,7 @@
  * Fetches campaign data from Sui blockchain and Walrus storage
  */
 
-import { useEffect } from "react";
+import { useEffect, useState } from "react";
 import { useParams } from "react-router-dom";
 import { useQuery } from "@tanstack/react-query";
 import { useCampaign } from "@/features/campaigns/hooks/useCampaign";
@@ -18,6 +18,7 @@ import { CampaignHero } from "@/features/campaigns/components/CampaignHero";
 import { CampaignAbout } from "@/features/campaigns/components/CampaignAbout";
 import { DonationCard } from "@/features/campaigns/components/DonationCard";
 import { useCampaignOwnership } from "@/features/campaigns/hooks/useCampaignOwnership";
+import { OwnerViewBanner } from "@/features/campaigns/components/OwnerViewBanner";
 
 /**
  * Hook to fetch image from Walrus as blob and create object URL
@@ -86,6 +87,9 @@ export function CampaignPage() {
     network,
   });
 
+  // State to toggle between owner view and public view
+  const [isOwnerView, setIsOwnerView] = useState(true);
+
   useEffect(() => {
     if (!id || !accountAddress) {
       return;
@@ -98,11 +102,15 @@ export function CampaignPage() {
     );
   }, [id, accountAddress, isOwner]);
 
+  const handleToggleView = () => {
+    setIsOwnerView((prev) => !prev);
+  };
+
   // Loading state
   if (isPending) {
     return (
       <div className="py-8">
-        <div className="container max-w-4xl">
+        <div className="container px-4 max-w-4xl">
           <Card>
             <CardContent className="pt-6">
               <p className="text-muted-foreground">Loading campaign...</p>
@@ -117,7 +125,7 @@ export function CampaignPage() {
   if (error) {
     return (
       <div className="py-8">
-        <div className="container max-w-4xl">
+        <div className="container px-4 max-w-4xl">
           <Card className="border-red-500">
             <CardContent className="pt-6">
               <p className="text-red-600 font-semibold mb-2">
@@ -140,7 +148,7 @@ export function CampaignPage() {
   if (!campaign) {
     return (
       <div className="py-8">
-        <div className="container max-w-4xl">
+        <div className="container px-4 max-w-4xl">
           <Card className="border-yellow-500">
             <CardContent className="pt-6">
               <p className="text-yellow-600 font-semibold">
@@ -161,8 +169,17 @@ export function CampaignPage() {
   const amountRaised = 0;
 
   return (
-    <div className="py-8">
-      <div className="container">
+    <>
+      {/* Owner View Banner - Only visible to campaign owners */}
+      {isOwner && (
+        <OwnerViewBanner
+          isOwnerView={isOwnerView}
+          onToggleView={handleToggleView}
+        />
+      )}
+
+      <div className="py-8">
+        <div className="container px-4">
         {/* Breadcrumb */}
         <div className="pb-10">
           <CampaignBreadcrumb campaignName={campaign.name} />
@@ -170,7 +187,7 @@ export function CampaignPage() {
       </div>
 
       {/* Main content container */}
-      <div className="container mx-auto max-w-[1728px]">
+      <div className="container px-4 mx-auto max-w-[1728px]">
         {/* Page Title */}
         <h1 className="text-5xl font-bold mb-[60px] pb-10">{campaign.name}</h1>
 
@@ -225,6 +242,7 @@ export function CampaignPage() {
           </div>
         </div>
       </div>
-    </div>
+      </div>
+    </>
   );
 }
