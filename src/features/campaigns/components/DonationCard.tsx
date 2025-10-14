@@ -64,9 +64,7 @@ export function DonationCard({
   const nowMs = Date.now();
   const hasValidStart = Number.isFinite(startDateMs) && startDateMs > 0;
   const hasValidEnd = Number.isFinite(endDateMs) && endDateMs > 0;
-  const hasStarted =
-    hasValidStart &&
-    (isActive || startDateMs <= nowMs);
+  const hasStarted = hasValidStart && startDateMs <= nowMs;
   const startDateLabel = hasValidStart ? formatDate(startDateMs) : null;
   const endDateLabel = hasValidEnd ? formatDate(endDateMs) : null;
 
@@ -95,7 +93,7 @@ export function DonationCard({
               <Clock className="size-3" />
               {hasStarted
                 ? `Started on ${startDateLabel}`
-                : `Starts on ${startDateLabel}`}
+                : `Starts ${startDateLabel}`}
             </Badge>
           )}
           {hasStarted && endDateLabel && (
