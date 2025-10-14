@@ -1,6 +1,7 @@
-import { useMemo } from "react";
-import { useSuiClientQuery } from "@mysten/dapp-kit";
-import type { SuiEvent } from "@mysten/sui/client";
+import { useEffect, useMemo } from "react";
+import { useInfiniteQuery } from "@tanstack/react-query";
+import { useSuiClient } from "@mysten/dapp-kit";
+import type { EventId, PaginatedEvents, SuiEvent } from "@mysten/sui/client";
 
 import { DEFAULT_NETWORK } from "@/shared/config/networkConfig";
 import { getContractConfig } from "@/shared/config/contracts";
@@ -91,15 +92,9 @@ function parseMetadata(payload: unknown): Record<string, string> {
       const entryFields = entry.fields as Record<string, unknown> | undefined;
 
       const keySource =
-        entryFields?.key ??
-        entryFields?.name ??
-        entry.key ??
-        entry.name;
+        entryFields?.key ?? entryFields?.name ?? entry.key ?? entry.name;
       const valueSource =
-        entryFields?.value ??
-        entryFields?.data ??
-        entry.value ??
-        entry.data;
+        entryFields?.value ?? entryFields?.data ?? entry.value ?? entry.data;
 
       const normalizedKey = normalizeToString(keySource);
       const normalizedValue = normalizeToString(valueSource);
@@ -113,6 +108,9 @@ function parseMetadata(payload: unknown): Record<string, string> {
   return metadata;
 }
 
+const PAGE_SIZE = 50;
+const MAX_AUTO_PAGES = 10;
+
 export function useCampaignUpdates(
   campaignId: string | null | undefined,
   network: "devnet" | "testnet" | "mainnet" = DEFAULT_NETWORK,
@@ -122,44 +120,77 @@ export function useCampaignUpdates(
   const config = getContractConfig(network);
   const eventType = `${config.contracts.packageId}::campaign::CampaignUpdateAdded`;
 
-  const {
-    data: eventsData,
-    isPending,
-    error,
-    refetch,
-  } = useSuiClientQuery(
-    "queryEvents",
-    {
-      query: {
-        MoveEventType: eventType,
-      },
-      order: "descending",
-      limit,
-    },
-    {
-      enabled,
-    },
+  const suiClient = useSuiClient();
+  const normalizedCampaignId = useMemo(
+    () => (campaignId ? campaignId.toLowerCase() : null),
+    [campaignId],
   );
 
-  const updates = useMemo((): CampaignUpdate[] => {
-    if (!enabled || !eventsData?.data || !campaignId) {
-      return [];
+  const {
+    data,
+    isLoading,
+    error,
+    refetch,
+    fetchNextPage,
+    hasNextPage,
+    isFetchingNextPage,
+  } = useInfiniteQuery<PaginatedEvents, Error>({
+    queryKey: ["campaign-updates", network, normalizedCampaignId, limit],
+    queryFn: ({ pageParam }) => {
+      if (!campaignId) {
+        return Promise.resolve({
+          data: [],
+          hasNextPage: false,
+          nextCursor: null,
+        } satisfies PaginatedEvents);
+      }
+
+      const pageLimit = Math.max(1, Math.min(limit, PAGE_SIZE));
+      const cursor = (pageParam as EventId | null | undefined) ?? null;
+
+      return suiClient.queryEvents({
+        query: {
+          MoveEventType: eventType,
+        },
+        order: "descending",
+        cursor,
+        limit: pageLimit,
+      });
+    },
+    getNextPageParam: (lastPage) =>
+      lastPage.hasNextPage ? lastPage.nextCursor : undefined,
+    initialPageParam: null,
+    enabled,
+  });
+
+  const { updates, totalMatching } = useMemo(() => {
+    if (!enabled || !data?.pages?.length || !campaignId) {
+      return { updates: [], totalMatching: 0 };
     }
 
-    const events = eventsData.data as SuiEvent[];
+    const events = data.pages.flatMap((page) => page.data as SuiEvent[]);
+    const normalizedTargetId = normalizedCampaignId;
 
     const parsedUpdates: CampaignUpdate[] = [];
 
     events.forEach((event) => {
-      const parsedJson = event.parsedJson as Record<string, unknown> | undefined;
+      const parsedJson = event.parsedJson as
+        | Record<string, unknown>
+        | undefined;
       if (!parsedJson) {
         return;
       }
 
       const eventCampaignId = normalizeToString(parsedJson.campaign_id);
+      if (!eventCampaignId) {
+        return;
+      }
+
+      const normalizedEventCampaignId = eventCampaignId.toLowerCase();
+
       if (
-        !eventCampaignId ||
-        eventCampaignId.toLowerCase() !== campaignId.toLowerCase()
+        !normalizedTargetId ||
+        normalizedEventCampaignId !== normalizedTargetId
       ) {
         return;
       }
@@ -207,13 +238,44 @@ export function useCampaignUpdates(
     });
 
     parsedUpdates.sort((first, second) => second.sequence - first.sequence);
-    return parsedUpdates;
-  }, [campaignId, enabled, eventsData?.data, network]);
+    return {
+      updates: parsedUpdates.slice(0, limit),
+      totalMatching: parsedUpdates.length,
+    };
+  }, [campaignId, data?.pages, enabled, limit, network, normalizedCampaignId]);
+
+  useEffect(() => {
+    if (!enabled || !hasNextPage || isFetchingNextPage || isLoading) {
+      return;
+    }
+
+    const pagesFetched = data?.pages?.length ?? 0;
+    if (pagesFetched >= MAX_AUTO_PAGES) {
+      return;
+    }
+
+    if (totalMatching < limit) {
+      fetchNextPage();
+    }
+  }, [
+    data?.pages,
+    enabled,
+    fetchNextPage,
+    hasNextPage,
+    isFetchingNextPage,
+    isLoading,
+    limit,
+    totalMatching,
+  ]);
+
+  const handleRefetch = () => {
+    void refetch();
+  };
 
   return {
     updates,
-    isLoading: isPending,
+    isLoading,
     error: (error as Error) ?? null,
-    refetch,
+    refetch: handleRefetch,
   };
 }
