@@ -1,6 +1,7 @@
 import { useState } from "react";
 import { Copy, Check } from "lucide-react";
 import type { CreateCampaignResult } from "@/features/campaigns/types/campaign";
+import type { CampaignUpdateResult } from "@/features/campaigns/types/campaignUpdate";
 import { Button } from "@/shared/components/ui/button";
 import { useNetworkVariable } from "@/shared/config/networkConfig";
 
@@ -10,16 +11,29 @@ export interface SuccessStateProps {
 
   /** Called when user clicks "Close" */
   onClose?: () => void;
+
+  /** Campaign update result data */
+  updateResult?: CampaignUpdateResult | null;
+
+  /** Controls copy for campaign creation vs update flow */
+  mode?: "campaign" | "campaign-update";
 }
 
 export const SuccessState = ({
   campaignResult,
   onClose: _onClose,
+  updateResult,
+  mode = "campaign",
 }: SuccessStateProps) => {
   const [copied, setCopied] = useState(false);
   const campaignDomain = useNetworkVariable("campaignDomain") as
     | string
     | undefined;
+
+  const isUpdate = mode === "campaign-update";
+  const effectiveCampaignId = isUpdate
+    ? updateResult?.campaignId
+    : campaignResult?.campaignId;
 
   // Generate full campaign SuiNS address (subdomain + campaignDomain)
   const fullCampaignSuiAddress =
@@ -29,8 +43,8 @@ export const SuccessState = ({
 
   // Generate local campaign page URL
   const getCampaignUrl = () => {
-    if (!campaignResult) return "";
-    return `/campaigns/${campaignResult.campaignId}`;
+    if (!effectiveCampaignId) return "/";
+    return `/campaigns/${effectiveCampaignId}`;
   };
 
   // Handle copy to clipboard
@@ -59,9 +73,13 @@ export const SuccessState = ({
 
       {/* Success message */}
       <div className="flex flex-col gap-2 text-center pb-6">
-        <h2 className="text-2xl font-bold">Congratulations 🥳</h2>
+        <h2 className="text-2xl font-bold">
+          {isUpdate ? "Update Published 🎉" : "Congratulations 🥳"}
+        </h2>
         <p className="text-sm text-muted-foreground">
-          Your campaign has been published successfully.
+          {isUpdate
+            ? "Your campaign update is live and visible to your supporters."
+            : "Your campaign has been published successfully."}
         </p>
       </div>
 
@@ -101,7 +119,7 @@ export const SuccessState = ({
           }}
           className="w-full"
         >
-          View Campaign
+          {isUpdate ? "View Campaign" : "View Campaign"}
         </Button>
       </div>
     </div>
