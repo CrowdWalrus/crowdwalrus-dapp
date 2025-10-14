@@ -19,3 +19,15 @@ export interface CampaignUpdateResult {
   walrusBlobId: string;
   walrusContentUrl: string;
 }
+
+export interface CampaignUpdate {
+  updateId: string;
+  sequence: number;
+  createdAtMs: number;
+  author?: string;
+  metadata: Record<string, string>;
+  walrusBlobId?: string;
+  walrusContentPath?: string;
+  walrusContentUrl?: string;
+  summary?: string;
+}
