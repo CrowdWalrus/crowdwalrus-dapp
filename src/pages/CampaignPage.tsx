@@ -35,6 +35,7 @@ import {
   Trash2,
   Megaphone,
   Pencil,
+  SendIcon,
 } from "lucide-react";
 import { ROUTES } from "@/shared/config/routes";
 
@@ -317,17 +318,40 @@ export function CampaignPage() {
               {/* Owner Action Buttons - Top section */}
               {isOwnerView && isOwner && (
                 <div className="flex justify-end items-center gap-6 pb-10">
-                  <Button asChild variant="outline" className="py-[9.5px]">
-                    <Link to={`/campaigns/${campaign.id}/updates/new`}>
-                      <Megaphone />
-                      Post an Update
-                    </Link>
+                  <Button
+                    asChild={campaign.isActive}
+                    variant="outline"
+                    className="py-[9.5px]"
+                    disabled={!campaign.isActive}
+                  >
+                    {campaign.isActive ? (
+                      <Link to={`/campaigns/${campaign.id}/edit`}>
+                        <Pencil />
+                        Edit Campaign
+                      </Link>
+                    ) : (
+                      <>
+                        <Pencil />
+                        Edit Campaign
+                      </>
+                    )}
                   </Button>
-                  <Button asChild variant="outline" className="py-[9.5px]">
-                    <Link to={`/campaigns/${campaign.id}/edit`}>
-                      <Pencil />
-                      Edit Campaign
-                    </Link>
+                  <Button
+                    asChild={campaign.isActive}
+                    className="py-[9.5px]"
+                    disabled={!campaign.isActive}
+                  >
+                    {campaign.isActive ? (
+                      <Link to={`/campaigns/${campaign.id}/updates/new`}>
+                        <SendIcon />
+                        Post an Update
+                      </Link>
+                    ) : (
+                      <>
+                        <SendIcon />
+                        Post an Update
+                      </>
+                    )}
                   </Button>
                   {!campaign.isActive && (
                     <Button
