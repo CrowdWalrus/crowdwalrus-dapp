@@ -1,5 +1,5 @@
 import { format } from "date-fns";
-import { ArrowBigRight, ArrowRight } from "lucide-react";
+import { ArrowBigRight } from "lucide-react";
 import { SerializedEditorState } from "lexical";
 
 import { useWalrusDescription } from "@/features/campaigns/hooks/useWalrusDescription";
