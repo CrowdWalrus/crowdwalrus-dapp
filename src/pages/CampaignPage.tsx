@@ -40,6 +40,9 @@ import {
 } from "lucide-react";
 import { ROUTES } from "@/shared/config/routes";
 
+const CAMPAIGN_PLACEHOLDER_IMAGE =
+  "/assets/images/placeholders/campaign.png";
+
 export function CampaignPage() {
   const { id } = useParams<{ id: string }>();
   const network = DEFAULT_NETWORK;
@@ -51,9 +54,7 @@ export function CampaignPage() {
   );
 
   // Fetch cover image
-  const { data: imageObjectUrl, isLoading: loadingImage } = useWalrusImage(
-    campaign?.coverImageUrl,
-  );
+  const { data: imageObjectUrl } = useWalrusImage(campaign?.coverImageUrl);
 
   // Fetch description
   const { data: description, isLoading: loadingDescription } =
@@ -295,6 +296,10 @@ export function CampaignPage() {
         : processingType === "delete"
           ? "Confirm the deletion transaction in your wallet to continue."
           : "Confirm the transaction in your wallet to continue.";
+  const campaignHeroImageUrl =
+    typeof imageObjectUrl === "string" && imageObjectUrl.trim().length > 0
+      ? imageObjectUrl
+      : CAMPAIGN_PLACEHOLDER_IMAGE;
 
   return (
     <>
@@ -381,20 +386,18 @@ export function CampaignPage() {
               )}
 
               {/* Hero Section */}
-              {imageObjectUrl && !loadingImage && (
-                <CampaignHero
-                  coverImageUrl={imageObjectUrl}
-                  campaignName={campaign.name}
-                  shortDescription={campaign.shortDescription}
-                  isActive={campaign.isActive}
-                  startDateMs={campaign.startDateMs}
-                  endDateMs={campaign.endDateMs}
-                  category={campaign.category}
-                  contributorsCount={contributorsCount}
-                  publisherAddress={campaign.adminId}
-                  socialLinks={campaign.socialLinks}
-                />
-              )}
+              <CampaignHero
+                coverImageUrl={campaignHeroImageUrl}
+                campaignName={campaign.name}
+                shortDescription={campaign.shortDescription}
+                isActive={campaign.isActive}
+                startDateMs={campaign.startDateMs}
+                endDateMs={campaign.endDateMs}
+                category={campaign.category}
+                contributorsCount={contributorsCount}
+                publisherAddress={campaign.adminId}
+                socialLinks={campaign.socialLinks}
+              />
 
               <div className="pt-10">
                 <div className="flex items-center gap-6 border-b border-black-50">
