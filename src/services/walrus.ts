@@ -13,6 +13,7 @@ import {
   type StorageCostEstimate,
   type CampaignFormData,
 } from "@/features/campaigns/types/campaign";
+import type { CampaignUpdateStorageData } from "@/features/campaigns/types/campaignUpdate";
 import { getContractConfig } from "@/shared/config/contracts";
 import { WALRUS_EPOCH_CONFIG } from "@/shared/config/networkConfig";
 import {
@@ -80,6 +81,37 @@ export async function prepareCampaignFiles(
   console.log("Total files:", files.length);
   console.log("Total size:", descriptionBytes.length + coverImageBuffer.byteLength, "bytes");
   console.log("==============================\n");
+
+  return files;
+}
+
+/**
+ * Prepare campaign update files for Walrus upload.
+ * Stores Lexical editor state (JSON) for an update entry.
+ */
+export async function prepareCampaignUpdateFiles(
+  data: CampaignUpdateStorageData,
+): Promise<WalrusFile[]> {
+  const identifier = data.identifier?.trim() || "update.json";
+  const serializedContent = data.serializedContent ?? "";
+
+  if (!serializedContent || serializedContent.trim().length === 0) {
+    throw new WalrusUploadError("Update content is empty. Please add content before uploading.");
+  }
+
+  const files: WalrusFile[] = [];
+  const updateBytes = new TextEncoder().encode(serializedContent);
+  const updateFile = WalrusFile.from({
+    contents: updateBytes,
+    identifier,
+    tags: {
+      "content-type": "application/json",
+      "file-type": "campaign-update",
+      ...(data.title ? { title: data.title } : {}),
+    },
+  });
+
+  files.push(updateFile);
 
   return files;
 }
@@ -292,6 +324,60 @@ export async function calculateStorageCost(
     breakdown: {
       jsonSize: descriptionSize,
       imagesSize,
+    },
+    pricingTimestamp: cost.pricing.timestamp,
+    network: cost.pricing.network,
+  };
+}
+
+/**
+ * Calculate estimated storage cost for campaign update content.
+ */
+export async function calculateUpdateStorageCost(
+  suiClient: SuiClient,
+  network: "devnet" | "testnet" | "mainnet",
+  data: CampaignUpdateStorageData,
+  epochs?: number,
+): Promise<StorageCostEstimate> {
+  const files = await prepareCampaignUpdateFiles(data);
+
+  const fileSizesPromises = files.map(async (file) => ({
+    identifier: (await file.getIdentifier()) || "update.json",
+    bytes: await file.bytes(),
+  }));
+
+  const fileSizes = await Promise.all(fileSizesPromises);
+
+  const updateSize = fileSizes.reduce((total, current) => {
+    return total + current.bytes.length;
+  }, 0);
+
+  const storageEpochs =
+    epochs || WALRUS_EPOCH_CONFIG[network === "devnet" ? "devnet" : network].defaultEpochs;
+
+  const cost: CampaignStorageCost = await calculateCampaignStorageCost(
+    suiClient,
+    network === "devnet" ? "testnet" : network,
+    updateSize,
+    storageEpochs,
+  );
+
+  return {
+    rawSize: updateSize,
+    encodedSize: cost.encodedSize,
+    metadataSize: cost.metadataSize,
+    epochs: storageEpochs,
+    storageCostWal: cost.storageCostWal,
+    uploadCostWal: cost.uploadCostWal,
+    totalCostWal: cost.totalCostWal,
+    subsidizedStorageCost: cost.subsidizedStorageCost,
+    subsidizedUploadCost: cost.subsidizedUploadCost,
+    subsidizedTotalCost: cost.subsidizedTotalCost,
+    subsidyRate: cost.pricing.subsidyRate,
+    estimatedCost: cost.subsidizedTotalCost.toFixed(6),
+    breakdown: {
+      jsonSize: updateSize,
+      imagesSize: 0,
     },
     pricingTimestamp: cost.pricing.timestamp,
     network: cost.pricing.network,
