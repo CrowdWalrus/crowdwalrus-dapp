@@ -308,6 +308,19 @@ export function CampaignPage() {
           <div className="flex gap-[62px] items-start">
             {/* Left Column - Main Content */}
             <div className="flex-1 max-w-[946px]">
+              {/* Activate Button - Only visible to campaign owners in owner view when inactive */}
+              {isOwnerView && isOwner && !campaign.isActive && (
+                <div className="flex justify-end pb-10">
+                  <Button
+                    onClick={() => setIsActivateModalOpen(true)}
+                    className="bg-sgreen-700 text-white-50 hover:bg-sgreen-600 py-[9.5px]"
+                  >
+                    <CircleCheck />
+                    Activate Campaign
+                  </Button>
+                </div>
+              )}
+
               {/* Hero Section */}
               {imageObjectUrl && !loadingImage && (
                 <CampaignHero
@@ -342,25 +355,17 @@ export function CampaignPage() {
               <div className="pb-10">
                 <Separator />
               </div>
-              {/* Owner Action Buttons - Only visible to campaign owners in owner view */}
+              {/* Deactivate and Delete Buttons - Only visible to campaign owners in owner view */}
               {isOwnerView && isOwner && (
                 <>
                   <div className="flex gap-2 justify-end">
-                    {campaign.isActive ? (
+                    {campaign.isActive && (
                       <Button
                         onClick={() => setIsDeactivateModalOpen(true)}
                         className="bg-orange-50 border border-orange-200 text-orange-700 hover:bg-orange-100 py-[9.5px]"
                       >
                         <OctagonMinus />
                         Deactivate Campaign
-                      </Button>
-                    ) : (
-                      <Button
-                        onClick={() => setIsActivateModalOpen(true)}
-                        className="bg-sgreen-700 text-white-50 hover:bg-sgreen-600 py-[9.5px]"
-                      >
-                        <CircleCheck />
-                        Activate Campaign
                       </Button>
                     )}
                     <Button
