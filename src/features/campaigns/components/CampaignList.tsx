@@ -5,8 +5,7 @@
  * Fetches campaign data from Sui blockchain and Walrus storage
  */
 
-import { useState, useEffect } from "react";
-import { useQuery } from "@tanstack/react-query";
+import { useState } from "react";
 import {
   Card,
   CardContent,
@@ -25,53 +24,12 @@ import { DEFAULT_NETWORK } from "@/shared/config/networkConfig";
 import { EditorViewer } from "@/shared/components/editor/blocks/editor-00/viewer";
 import { SerializedEditorState } from "lexical";
 import { formatSubdomain } from "@/shared/utils/subdomain";
+import { useWalrusDescription } from "@/features/campaigns/hooks/useWalrusDescription";
+import { useWalrusImage } from "@/features/campaigns/hooks/useWalrusImage";
 
 interface CampaignCardProps {
   campaign: CampaignData;
   network: "devnet" | "testnet" | "mainnet";
-}
-
-/**
- * Hook to fetch image from Walrus as blob and create object URL
- */
-function useWalrusImage(imageUrl: string) {
-  return useQuery({
-    queryKey: ["walrus-image", imageUrl],
-    queryFn: async () => {
-      if (!imageUrl) return null;
-
-      const response = await fetch(imageUrl);
-      if (!response.ok) {
-        throw new Error(`Failed to fetch image: ${response.statusText}`);
-      }
-      const blob = await response.blob();
-      return URL.createObjectURL(blob);
-    },
-    enabled: !!imageUrl,
-    staleTime: 5 * 60 * 1000, // Consider data fresh for 5 minutes
-    gcTime: 10 * 60 * 1000, // Keep in cache for 10 minutes
-  });
-}
-
-/**
- * Hook to fetch campaign description from Walrus
- */
-function useWalrusDescription(descriptionUrl: string) {
-  return useQuery({
-    queryKey: ["walrus-description", descriptionUrl],
-    queryFn: async () => {
-      if (!descriptionUrl) return "";
-
-      const response = await fetch(descriptionUrl);
-      if (!response.ok) {
-        throw new Error(`Failed to fetch description: ${response.statusText}`);
-      }
-      return await response.text();
-    },
-    enabled: !!descriptionUrl,
-    staleTime: 5 * 60 * 1000, // Consider data fresh for 5 minutes
-    gcTime: 10 * 60 * 1000, // Keep in cache for 10 minutes
-  });
 }
 
 /**
@@ -152,14 +110,6 @@ function CampaignCard({ campaign, network }: CampaignCardProps) {
   }
 
   // Cleanup object URL on unmount or URL change
-  useEffect(() => {
-    return () => {
-      if (imageObjectUrl) {
-        URL.revokeObjectURL(imageObjectUrl);
-      }
-    };
-  }, [imageObjectUrl]);
-
   // Format dates
   const formatDate = (timestampMs: number) => {
     if (!Number.isFinite(timestampMs) || timestampMs <= 0) {

@@ -5,60 +5,38 @@
  * Fetches campaign data from Sui blockchain and Walrus storage
  */
 
-import { useParams } from "react-router-dom";
-import { useQuery } from "@tanstack/react-query";
+import { useEffect, useState } from "react";
+import { Link, useParams } from "react-router-dom";
 import { useCampaign } from "@/features/campaigns/hooks/useCampaign";
+import { useWalrusDescription } from "@/features/campaigns/hooks/useWalrusDescription";
+import { useWalrusImage } from "@/features/campaigns/hooks/useWalrusImage";
 import { DEFAULT_NETWORK } from "@/shared/config/networkConfig";
 import { Card, CardContent } from "@/shared/components/ui/card";
 import { Button } from "@/shared/components/ui/button";
+import { Separator } from "@/shared/components/ui/separator";
+import { Dialog, DialogContent } from "@/shared/components/ui/dialog";
 import { CampaignBreadcrumb } from "@/features/campaigns/components/CampaignBreadcrumb";
 import { CampaignHero } from "@/features/campaigns/components/CampaignHero";
 
 import { CampaignAbout } from "@/features/campaigns/components/CampaignAbout";
 import { DonationCard } from "@/features/campaigns/components/DonationCard";
-
-/**
- * Hook to fetch image from Walrus as blob and create object URL
- */
-function useWalrusImage(imageUrl: string) {
-  return useQuery({
-    queryKey: ["walrus-image", imageUrl],
-    queryFn: async () => {
-      if (!imageUrl) return null;
-
-      const response = await fetch(imageUrl);
-      if (!response.ok) {
-        throw new Error(`Failed to fetch image: ${response.statusText}`);
-      }
-      const blob = await response.blob();
-      return URL.createObjectURL(blob);
-    },
-    enabled: !!imageUrl,
-    staleTime: 5 * 60 * 1000,
-    gcTime: 10 * 60 * 1000,
-  });
-}
-
-/**
- * Hook to fetch campaign description from Walrus
- */
-function useWalrusDescription(descriptionUrl: string) {
-  return useQuery({
-    queryKey: ["walrus-description", descriptionUrl],
-    queryFn: async () => {
-      if (!descriptionUrl) return "";
-
-      const response = await fetch(descriptionUrl);
-      if (!response.ok) {
-        throw new Error(`Failed to fetch description: ${response.statusText}`);
-      }
-      return await response.text();
-    },
-    enabled: !!descriptionUrl,
-    staleTime: 5 * 60 * 1000,
-    gcTime: 10 * 60 * 1000,
-  });
-}
+import { useCampaignOwnership } from "@/features/campaigns/hooks/useCampaignOwnership";
+import { useDeactivateCampaign } from "@/features/campaigns/hooks/useDeactivateCampaign";
+import { useActivateCampaign } from "@/features/campaigns/hooks/useActivateCampaign";
+import { useDeleteCampaign } from "@/features/campaigns/hooks/useDeleteCampaign";
+import { OwnerViewBanner } from "@/features/campaigns/components/OwnerViewBanner";
+import { DeactivateCampaignModal } from "@/features/campaigns/components/modals/DeactivateCampaignModal";
+import { ActivateCampaignModal } from "@/features/campaigns/components/modals/ActivateCampaignModal";
+import { DeleteCampaignModal } from "@/features/campaigns/components/modals/DeleteCampaignModal";
+import { ProcessingState } from "@/features/campaigns/components/campaign-creation-modal/states/ProcessingState";
+import {
+  CircleCheck,
+  OctagonMinus,
+  Trash2,
+  Pencil,
+  SendIcon,
+} from "lucide-react";
+import { ROUTES } from "@/shared/config/routes";
 
 export function CampaignPage() {
   const { id } = useParams<{ id: string }>();
@@ -72,18 +50,143 @@ export function CampaignPage() {
 
   // Fetch cover image
   const { data: imageObjectUrl, isLoading: loadingImage } = useWalrusImage(
-    campaign?.coverImageUrl || "",
+    campaign?.coverImageUrl,
   );
 
   // Fetch description
   const { data: description, isLoading: loadingDescription } =
-    useWalrusDescription(campaign?.descriptionUrl || "");
+    useWalrusDescription(campaign?.descriptionUrl);
+
+  const { isOwner, accountAddress, ownerCapId, refetchOwnership } =
+    useCampaignOwnership({
+      campaignId: id ?? "",
+      network,
+    });
+
+  const { deactivateCampaign, isProcessing: isDeactivationProcessing } =
+    useDeactivateCampaign({
+      campaignId: campaign?.id,
+      ownerCapId,
+      isActive: campaign?.isActive,
+      accountAddress,
+      network,
+      onSuccess: async () => {
+        await refetch();
+      },
+    });
+  const { activateCampaign, isProcessing: isActivationProcessing } =
+    useActivateCampaign({
+      campaignId: campaign?.id,
+      ownerCapId,
+      isActive: campaign?.isActive,
+      accountAddress,
+      network,
+      onSuccess: async () => {
+        await refetch();
+      },
+    });
+  const { deleteCampaign, isProcessing: isDeleteProcessing } =
+    useDeleteCampaign({
+      campaignId: campaign?.id,
+      ownerCapId,
+      isDeleted: campaign?.isDeleted,
+      accountAddress,
+      network,
+      onSuccess: async () => {
+        await refetch();
+        refetchOwnership();
+      },
+    });
+
+  // State to toggle between owner view and public view
+  const [isOwnerView, setIsOwnerView] = useState(true);
+
+  // State for deactivate modal
+  const [isDeactivateModalOpen, setIsDeactivateModalOpen] = useState(false);
+  const [isActivateModalOpen, setIsActivateModalOpen] = useState(false);
+  const [isDeleteModalOpen, setIsDeleteModalOpen] = useState(false);
+  const [processingType, setProcessingType] = useState<
+    "deactivate" | "activate" | "delete" | null
+  >(null);
+
+  const handleConfirmDeactivate = async () => {
+    setIsDeactivateModalOpen(false);
+    setProcessingType("deactivate");
+
+    const result = await deactivateCampaign();
+
+    if (
+      result === "user_rejected" ||
+      result === "missing_owner_cap" ||
+      result === "missing_wallet" ||
+      result === "missing_campaign" ||
+      result === "error"
+    ) {
+      setIsDeactivateModalOpen(true);
+    }
+
+    setProcessingType(null);
+  };
+
+  const handleConfirmActivate = async () => {
+    setIsActivateModalOpen(false);
+    setProcessingType("activate");
+
+    const result = await activateCampaign();
+
+    if (
+      result === "user_rejected" ||
+      result === "missing_owner_cap" ||
+      result === "missing_wallet" ||
+      result === "missing_campaign" ||
+      result === "error"
+    ) {
+      setIsActivateModalOpen(true);
+    }
+
+    setProcessingType(null);
+  };
+
+  const handleConfirmDelete = async () => {
+    setIsDeleteModalOpen(false);
+    setProcessingType("delete");
+
+    const result = await deleteCampaign();
+
+    if (
+      result === "user_rejected" ||
+      result === "missing_owner_cap" ||
+      result === "missing_wallet" ||
+      result === "missing_campaign" ||
+      result === "error"
+    ) {
+      setIsDeleteModalOpen(true);
+    }
+
+    setProcessingType(null);
+  };
+
+  useEffect(() => {
+    if (!id || !accountAddress) {
+      return;
+    }
+
+    console.debug(
+      `[CampaignPage] Wallet ${accountAddress} is ${
+        isOwner ? "" : "not "
+      }the owner of campaign ${id}`,
+    );
+  }, [id, accountAddress, isOwner]);
+
+  const handleToggleView = () => {
+    setIsOwnerView((prev) => !prev);
+  };
 
   // Loading state
   if (isPending) {
     return (
       <div className="py-8">
-        <div className="container max-w-4xl">
+        <div className="container px-4 max-w-4xl">
           <Card>
             <CardContent className="pt-6">
               <p className="text-muted-foreground">Loading campaign...</p>
@@ -98,7 +201,7 @@ export function CampaignPage() {
   if (error) {
     return (
       <div className="py-8">
-        <div className="container max-w-4xl">
+        <div className="container px-4 max-w-4xl">
           <Card className="border-red-500">
             <CardContent className="pt-6">
               <p className="text-red-600 font-semibold mb-2">
@@ -121,7 +224,7 @@ export function CampaignPage() {
   if (!campaign) {
     return (
       <div className="py-8">
-        <div className="container max-w-4xl">
+        <div className="container px-4 max-w-4xl">
           <Card className="border-yellow-500">
             <CardContent className="pt-6">
               <p className="text-yellow-600 font-semibold">
@@ -137,75 +240,240 @@ export function CampaignPage() {
     );
   }
 
+  if (campaign.isDeleted) {
+    return (
+      <div className="py-8">
+        <div className="container px-4 max-w-4xl">
+          <Card className="border-red-500">
+            <CardContent className="pt-6 flex flex-col gap-2">
+              <p className="text-red-600 font-semibold">Campaign deleted</p>
+              <p className="text-sm text-muted-foreground">
+                This campaign has been permanently removed and is no longer
+                available.
+              </p>
+              <Button variant="link" asChild>
+                <Link to={ROUTES.HOME}>Back to home</Link>
+              </Button>
+            </CardContent>
+          </Card>
+        </div>
+      </div>
+    );
+  }
+
   // Mock contributors count and amount raised (replace with real data)
   const contributorsCount = 0;
   const amountRaised = 0;
+  const showProcessingDialog =
+    (processingType === "deactivate" && isDeactivationProcessing) ||
+    (processingType === "activate" && isActivationProcessing) ||
+    (processingType === "delete" && isDeleteProcessing);
+  const processingMessage =
+    processingType === "activate"
+      ? "Activating campaign..."
+      : processingType === "deactivate"
+        ? "Deactivating campaign..."
+        : processingType === "delete"
+          ? "Deleting campaign..."
+          : "Processing campaign transaction...";
+  const processingDescription =
+    processingType === "activate"
+      ? "Confirm the activation transaction in your wallet to continue."
+      : processingType === "deactivate"
+        ? "Confirm the deactivation transaction in your wallet to continue."
+        : processingType === "delete"
+          ? "Confirm the deletion transaction in your wallet to continue."
+          : "Confirm the transaction in your wallet to continue.";
 
   return (
-    <div className="py-8">
-      <div className="container">
-        {/* Breadcrumb */}
-        <div className="pb-10">
-          <CampaignBreadcrumb campaignName={campaign.name} />
+    <>
+      {/* Owner View Banner - Only visible to campaign owners */}
+      {isOwner && (
+        <OwnerViewBanner
+          isOwnerView={isOwnerView}
+          onToggleView={handleToggleView}
+        />
+      )}
+
+      <div className="py-8">
+        <div className="container px-4">
+          {/* Breadcrumb */}
+          <div className="pb-10">
+            <CampaignBreadcrumb campaignName={campaign.name} />
+          </div>
         </div>
-      </div>
 
-      {/* Main content container */}
-      <div className="container mx-auto max-w-[1728px]">
-        {/* Page Title */}
-        <h1 className="text-5xl font-bold mb-[60px] pb-10">{campaign.name}</h1>
+        {/* Main content container */}
+        <div className="container px-4 mx-auto max-w-[1728px]">
+          {/* Page Title */}
+          <h1 className="text-5xl font-bold mb-[60px] pb-10">
+            {campaign.name}
+          </h1>
 
-        {/* Two-column layout */}
-        <div className="flex gap-[62px] items-start">
-          {/* Left Column - Main Content */}
-          <div className="flex-1 max-w-[946px]">
-            {/* Hero Section */}
-            {imageObjectUrl && !loadingImage && (
-              <CampaignHero
-                coverImageUrl={imageObjectUrl}
-                campaignName={campaign.name}
-                shortDescription={campaign.shortDescription}
-                isActive={campaign.isActive}
+          {/* Two-column layout */}
+          <div className="flex gap-[62px] items-start">
+            {/* Left Column - Main Content */}
+            <div className="flex-1 max-w-[946px]">
+              {/* Owner Action Buttons - Top section */}
+              {isOwnerView && isOwner && (
+                <div className="flex justify-end items-center gap-6 pb-10">
+                  <Button
+                    asChild={campaign.isActive}
+                    variant="outline"
+                    className="py-[9.5px]"
+                    disabled={!campaign.isActive}
+                  >
+                    {campaign.isActive ? (
+                      <Link to={`/campaigns/${campaign.id}/edit`}>
+                        <Pencil />
+                        Edit Campaign
+                      </Link>
+                    ) : (
+                      <>
+                        <Pencil />
+                        Edit Campaign
+                      </>
+                    )}
+                  </Button>
+                  <Button
+                    asChild={campaign.isActive}
+                    className="py-[9.5px]"
+                    disabled={!campaign.isActive}
+                  >
+                    {campaign.isActive ? (
+                      <Link to={`/campaigns/${campaign.id}/updates/new`}>
+                        <SendIcon />
+                        Post an Update
+                      </Link>
+                    ) : (
+                      <>
+                        <SendIcon />
+                        Post an Update
+                      </>
+                    )}
+                  </Button>
+                  {!campaign.isActive && (
+                    <Button
+                      onClick={() => setIsActivateModalOpen(true)}
+                      className="bg-sgreen-700 text-white-50 hover:bg-sgreen-600 py-[9.5px]"
+                    >
+                      <CircleCheck />
+                      Activate Campaign
+                    </Button>
+                  )}
+                </div>
+              )}
+
+              {/* Hero Section */}
+              {imageObjectUrl && !loadingImage && (
+                <CampaignHero
+                  coverImageUrl={imageObjectUrl}
+                  campaignName={campaign.name}
+                  shortDescription={campaign.shortDescription}
+                  isActive={campaign.isActive}
+                  startDateMs={campaign.startDateMs}
+                  endDateMs={campaign.endDateMs}
+                  category={campaign.category}
+                  contributorsCount={contributorsCount}
+                  publisherAddress={campaign.adminId}
+                  socialLinks={campaign.socialLinks}
+                />
+              )}
+
+              {/* About Section */}
+              {description && !loadingDescription && (
+                <div className="pt-10">
+                  <CampaignAbout description={description} />
+                </div>
+              )}
+
+              {/* Loading state for description */}
+              {loadingDescription && (
+                <div className="py-8">
+                  <p className="text-muted-foreground">
+                    Loading description...
+                  </p>
+                </div>
+              )}
+              <div className="pb-10">
+                <Separator />
+              </div>
+              {/* Deactivate and Delete Buttons - Only visible to campaign owners in owner view */}
+              {isOwnerView && isOwner && (
+                <>
+                  <div className="flex gap-2 justify-end">
+                    {campaign.isActive && (
+                      <Button
+                        onClick={() => setIsDeactivateModalOpen(true)}
+                        className="bg-orange-50 border border-orange-200 text-orange-700 hover:bg-orange-100 py-[9.5px]"
+                      >
+                        <OctagonMinus />
+                        Deactivate Campaign
+                      </Button>
+                    )}
+                    <Button
+                      onClick={() => setIsDeleteModalOpen(true)}
+                      className="bg-red-50 border border-red-200 text-red-500 hover:bg-red-100"
+                    >
+                      <Trash2 />
+                      Delete Campaign
+                    </Button>
+                  </div>
+                </>
+              )}
+            </div>
+
+            {/* Right Column - Donation Card */}
+            <div className="w-[480px] shrink-0 sticky top-[38px]">
+              <DonationCard
+                campaignId={campaign.id}
+                isVerified={campaign.isVerified}
                 startDateMs={campaign.startDateMs}
                 endDateMs={campaign.endDateMs}
-                category={campaign.category}
+                amountRaised={amountRaised}
                 contributorsCount={contributorsCount}
-                publisherAddress={campaign.adminId}
-                socialLinks={campaign.socialLinks}
+                fundingGoal={Number(campaign.fundingGoal)}
+                recipientAddress={campaign.recipientAddress}
+                isActive={campaign.isActive}
               />
-            )}
-
-            {/* About Section */}
-            {description && !loadingDescription && (
-              <div className="pt-10">
-                <CampaignAbout description={description} />
-              </div>
-            )}
-
-            {/* Loading state for description */}
-            {loadingDescription && (
-              <div className="py-8">
-                <p className="text-muted-foreground">Loading description...</p>
-              </div>
-            )}
-          </div>
-
-          {/* Right Column - Donation Card */}
-          <div className="w-[480px] shrink-0 sticky top-[38px]">
-            <DonationCard
-              campaignId={campaign.id}
-              isVerified={campaign.isVerified}
-              startDateMs={campaign.startDateMs}
-              endDateMs={campaign.endDateMs}
-              amountRaised={amountRaised}
-              contributorsCount={contributorsCount}
-              fundingGoal={Number(campaign.fundingGoal)}
-              recipientAddress={campaign.recipientAddress}
-              isActive={campaign.isActive}
-            />
+            </div>
           </div>
         </div>
       </div>
-    </div>
+
+      {/* Campaign Status Modals */}
+      {campaign.isActive && (
+        <DeactivateCampaignModal
+          open={isDeactivateModalOpen}
+          onClose={() => setIsDeactivateModalOpen(false)}
+          onConfirm={handleConfirmDeactivate}
+        />
+      )}
+
+      {!campaign.isActive && (
+        <ActivateCampaignModal
+          open={isActivateModalOpen}
+          onClose={() => setIsActivateModalOpen(false)}
+          onConfirm={handleConfirmActivate}
+        />
+      )}
+
+      <DeleteCampaignModal
+        open={isDeleteModalOpen}
+        onClose={() => setIsDeleteModalOpen(false)}
+        onConfirm={handleConfirmDelete}
+      />
+
+      {showProcessingDialog && (
+        <Dialog open onOpenChange={() => {}}>
+          <DialogContent className="max-w-md px-10 py-12 rounded-2xl bg-white-50 [&>button]:hidden">
+            <ProcessingState
+              message={processingMessage}
+              description={processingDescription}
+            />
+          </DialogContent>
+        </Dialog>
+      )}
+    </>
   );
 }

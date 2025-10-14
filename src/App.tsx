@@ -5,9 +5,7 @@ function App() {
   return (
     <>
       <Header />
-      <div className="container px-4">
-        <AppRoutes />
-      </div>
+      <AppRoutes />
     </>
   );
 }

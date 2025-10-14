@@ -23,21 +23,18 @@
 
 export interface CertifyConfirmStateProps {
   /** Called when user clicks "Proceed" */
-  onConfirm?: () => void
+  onConfirm?: () => void;
 
   /** Called when user clicks "Cancel" */
-  onCancel?: () => void
+  onCancel?: () => void;
 }
 
 export const CertifyConfirmState = ({
   onConfirm,
   onCancel,
 }: CertifyConfirmStateProps) => {
-  // TODO: Implement your UI here
-
   return (
     <div className="space-y-4">
-      {/* TODO: Add your modal header */}
       <div>
         <h2 className="text-lg font-semibold">Certify Storage</h2>
         <p className="text-sm text-muted-foreground">
@@ -45,31 +42,21 @@ export const CertifyConfirmState = ({
         </p>
       </div>
 
-      {/* TODO: Success indicator for upload */}
       <div className="rounded-lg border border-green-200 bg-green-50 p-4">
-        <p className="text-sm text-green-800">
-          ✓ Upload successful
-        </p>
-        {/* TODO: Add more details about what was uploaded */}
+        <p className="text-sm text-green-800">✓ Upload successful</p>
       </div>
 
-      {/* TODO: Explain certification */}
       <div className="space-y-2">
         <p className="text-sm">
           The next step is to certify your stored data on the Walrus network.
         </p>
         <p className="text-sm text-muted-foreground">
-          {/* TODO: Add more detailed explanation of certification */}
           This ensures your data is permanently available and verifiable.
         </p>
       </div>
 
-      {/* TODO: Action buttons */}
       <div className="flex gap-2 justify-end">
-        <button
-          onClick={onCancel}
-          className="px-4 py-2 rounded-md border"
-        >
+        <button onClick={onCancel} className="px-4 py-2 rounded-md border">
           Cancel
         </button>
         <button
@@ -80,5 +67,5 @@ export const CertifyConfirmState = ({
         </button>
       </div>
     </div>
-  )
-}
+  );
+};

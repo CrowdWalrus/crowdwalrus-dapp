@@ -1,3 +1,5 @@
+import { LoadingSpinner } from "@/shared/components/ui/loading-spinner";
+
 /**
  * Processing State Component (Reusable)
  *
@@ -35,17 +37,12 @@ export const ProcessingState = ({
   message,
   description,
 }: ProcessingStateProps) => {
-  // TODO: Implement your UI here
-
   return (
     <div className="flex flex-col items-center justify-center gap-10 pt-10">
-      {/* TODO: Add loading spinner/animation */}
       <div className="flex justify-center">
-        <div className="size-12 border-4 border-primary border-t-transparent rounded-full animate-spin" />
-        {/* Replace with your preferred spinner/loading animation */}
+        <LoadingSpinner />
       </div>
 
-      {/* TODO: Display messages */}
       <div className="flex flex-col text-center gap-2">
         <h2 className="text-lg font-semibold">{message}</h2>
         {description && (
@@ -53,7 +50,6 @@ export const ProcessingState = ({
         )}
       </div>
 
-      {/* TODO: Optional wallet reminder */}
       <div className="text-center text-sm text-muted-foreground">
         {/* You can add a wallet icon and reminder here */}
       </div>

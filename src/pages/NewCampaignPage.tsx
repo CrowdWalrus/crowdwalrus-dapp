@@ -807,7 +807,7 @@ export default function NewCampaignPage() {
       />
 
       <div className="py-8">
-        <div className="container">
+        <div className="container px-4">
           {/* Breadcrumb */}
           <Breadcrumb className="mb-8">
             <BreadcrumbList>
@@ -824,7 +824,7 @@ export default function NewCampaignPage() {
           </Breadcrumb>
         </div>
 
-        <div className="container flex justify-center">
+        <div className="container px-4 flex justify-center">
           <div className="w-full max-w-3xl px-4">
             <Form {...form}>
               <form onSubmit={form.handleSubmit(onSubmit)}>

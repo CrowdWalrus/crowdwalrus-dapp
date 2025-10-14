@@ -319,6 +319,43 @@ export function buildToggleActiveTransaction(
 }
 
 /**
+ * Build a transaction to permanently delete a campaign
+ */
+export function buildDeleteCampaignTransaction(
+  campaignId: string,
+  campaignOwnerCapId: string,
+  network: "devnet" | "testnet" | "mainnet",
+): Transaction {
+  const config = getContractConfig(network);
+  const tx = new Transaction();
+
+  tx.moveCall({
+    target: `${config.contracts.packageId}::crowd_walrus::delete_campaign`,
+    arguments: [
+      // CrowdWalrus shared object
+      tx.object(config.contracts.crowdWalrusObjectId),
+
+      // SuiNS manager shared object
+      tx.object(config.contracts.suinsManagerObjectId),
+
+      // SuiNS shared object
+      tx.object(config.contracts.suinsObjectId),
+
+      // Campaign object
+      tx.object(campaignId),
+
+      // Campaign owner capability (authorization)
+      tx.object(campaignOwnerCapId),
+
+      // Clock object for timestamping
+      tx.object(CLOCK_OBJECT_ID),
+    ],
+  });
+
+  return tx;
+}
+
+/**
  * Extract campaign ID from transaction result
  * Looks for the created Campaign object in the transaction results
  * Note: Expects the full transaction result with objectChanges at top level
