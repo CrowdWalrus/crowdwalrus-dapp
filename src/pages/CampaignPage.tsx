@@ -29,7 +29,13 @@ import { DeactivateCampaignModal } from "@/features/campaigns/components/modals/
 import { ActivateCampaignModal } from "@/features/campaigns/components/modals/ActivateCampaignModal";
 import { DeleteCampaignModal } from "@/features/campaigns/components/modals/DeleteCampaignModal";
 import { ProcessingState } from "@/features/campaigns/components/campaign-creation-modal/states/ProcessingState";
-import { CircleCheck, OctagonMinus, Trash2 } from "lucide-react";
+import {
+  CircleCheck,
+  OctagonMinus,
+  Trash2,
+  Megaphone,
+  Pencil,
+} from "lucide-react";
 import { ROUTES } from "@/shared/config/routes";
 
 export function CampaignPage() {
@@ -308,16 +314,30 @@ export function CampaignPage() {
           <div className="flex gap-[62px] items-start">
             {/* Left Column - Main Content */}
             <div className="flex-1 max-w-[946px]">
-              {/* Activate Button - Only visible to campaign owners in owner view when inactive */}
-              {isOwnerView && isOwner && !campaign.isActive && (
-                <div className="flex justify-end pb-10">
-                  <Button
-                    onClick={() => setIsActivateModalOpen(true)}
-                    className="bg-sgreen-700 text-white-50 hover:bg-sgreen-600 py-[9.5px]"
-                  >
-                    <CircleCheck />
-                    Activate Campaign
+              {/* Owner Action Buttons - Top section */}
+              {isOwnerView && isOwner && (
+                <div className="flex justify-end items-center gap-6 pb-10">
+                  <Button asChild variant="outline" className="py-[9.5px]">
+                    <Link to={`/campaigns/${campaign.id}/updates/new`}>
+                      <Megaphone />
+                      Post an Update
+                    </Link>
                   </Button>
+                  <Button asChild variant="outline" className="py-[9.5px]">
+                    <Link to={`/campaigns/${campaign.id}/edit`}>
+                      <Pencil />
+                      Edit Campaign
+                    </Link>
+                  </Button>
+                  {!campaign.isActive && (
+                    <Button
+                      onClick={() => setIsActivateModalOpen(true)}
+                      className="bg-sgreen-700 text-white-50 hover:bg-sgreen-600 py-[9.5px]"
+                    >
+                      <CircleCheck />
+                      Activate Campaign
+                    </Button>
+                  )}
                 </div>
               )}
 
