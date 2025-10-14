@@ -341,7 +341,12 @@ export function CampaignPage() {
                     disabled={!campaign.isActive}
                   >
                     {campaign.isActive ? (
-                      <Link to={`/campaigns/${campaign.id}/updates/new`}>
+                      <Link
+                        to={ROUTES.CAMPAIGNS_ADD_UPDATE.replace(
+                          ":id",
+                          campaign.id,
+                        )}
+                      >
                         <SendIcon />
                         Post an Update
                       </Link>
