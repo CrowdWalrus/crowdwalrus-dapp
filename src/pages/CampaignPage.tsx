@@ -10,6 +10,7 @@ import { Link, useParams } from "react-router-dom";
 import { useCampaign } from "@/features/campaigns/hooks/useCampaign";
 import { useWalrusDescription } from "@/features/campaigns/hooks/useWalrusDescription";
 import { useWalrusImage } from "@/features/campaigns/hooks/useWalrusImage";
+import { useCampaignUpdates } from "@/features/campaigns/hooks/useCampaignUpdates";
 import { DEFAULT_NETWORK } from "@/shared/config/networkConfig";
 import { Card, CardContent } from "@/shared/components/ui/card";
 import { Button } from "@/shared/components/ui/button";
@@ -19,6 +20,7 @@ import { CampaignBreadcrumb } from "@/features/campaigns/components/CampaignBrea
 import { CampaignHero } from "@/features/campaigns/components/CampaignHero";
 
 import { CampaignAbout } from "@/features/campaigns/components/CampaignAbout";
+import { CampaignUpdatesList } from "@/features/campaigns/components/campaign-updates";
 import { DonationCard } from "@/features/campaigns/components/DonationCard";
 import { useCampaignOwnership } from "@/features/campaigns/hooks/useCampaignOwnership";
 import { useDeactivateCampaign } from "@/features/campaigns/hooks/useDeactivateCampaign";
@@ -56,6 +58,12 @@ export function CampaignPage() {
   // Fetch description
   const { data: description, isLoading: loadingDescription } =
     useWalrusDescription(campaign?.descriptionUrl);
+
+  const {
+    updates,
+    isLoading: isUpdatesLoading,
+    error: updatesError,
+  } = useCampaignUpdates(id, network);
 
   const { isOwner, accountAddress, ownerCapId, refetchOwnership } =
     useCampaignOwnership({
@@ -100,6 +108,9 @@ export function CampaignPage() {
 
   // State to toggle between owner view and public view
   const [isOwnerView, setIsOwnerView] = useState(true);
+  const [activeContentTab, setActiveContentTab] = useState<"about" | "updates">(
+    "about",
+  );
 
   // State for deactivate modal
   const [isDeactivateModalOpen, setIsDeactivateModalOpen] = useState(false);
@@ -385,21 +396,64 @@ export function CampaignPage() {
                 />
               )}
 
-              {/* About Section */}
-              {description && !loadingDescription && (
-                <div className="pt-10">
-                  <CampaignAbout description={description} />
+              <div className="pt-10">
+                <div className="flex items-center gap-6 border-b border-black-50">
+                  <button
+                    type="button"
+                    onClick={() => setActiveContentTab("about")}
+                    className={`pb-3 text-sm font-semibold transition-colors ${
+                      activeContentTab === "about"
+                        ? "border-b-2 border-black-500 text-black-500"
+                        : "text-muted-foreground hover:text-black-500"
+                    }`}
+                  >
+                    About
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => setActiveContentTab("updates")}
+                    className={`pb-3 text-sm font-semibold transition-colors ${
+                      activeContentTab === "updates"
+                        ? "border-b-2 border-black-500 text-black-500"
+                        : "text-muted-foreground hover:text-black-500"
+                    }`}
+                  >
+                    Updates ({updates.length})
+                  </button>
                 </div>
-              )}
 
-              {/* Loading state for description */}
-              {loadingDescription && (
-                <div className="py-8">
-                  <p className="text-muted-foreground">
-                    Loading description...
-                  </p>
+                <div className="pt-8">
+                  {activeContentTab === "about" ? (
+                    <>
+                      {loadingDescription ? (
+                        <p className="text-muted-foreground">
+                          Loading description...
+                        </p>
+                      ) : description ? (
+                        <CampaignAbout description={description} />
+                      ) : (
+                        <p className="text-sm text-muted-foreground">
+                          No description available for this campaign.
+                        </p>
+                      )}
+                    </>
+                  ) : isUpdatesLoading ? (
+                    <p className="text-muted-foreground">Loading updates...</p>
+                  ) : updatesError ? (
+                    <div className="flex flex-col gap-2">
+                      <p className="text-sm font-semibold text-red-600">
+                        Failed to load updates
+                      </p>
+                      <p className="text-sm text-muted-foreground">
+                        {updatesError.message}
+                      </p>
+                    </div>
+                  ) : (
+                    <CampaignUpdatesList updates={updates} />
+                  )}
                 </div>
-              )}
+              </div>
+
               <div className="pb-10">
                 <Separator />
               </div>
