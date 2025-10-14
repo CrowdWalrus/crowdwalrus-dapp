@@ -29,7 +29,7 @@ export const WALRUS_EPOCH_CONFIG = {
   testnet: {
     epochDurationDays: 1, // 1 day per epoch on testnet
     defaultEpochs: 3, // Default: 3 days for testing
-    maxEpochs: 365, // Max: 1 year on testnet
+    maxEpochs: 30, // Walrus testnet currently caps reservations at ~30 days
   },
   mainnet: {
     epochDurationDays: 14, // 14 days (2 weeks) per epoch on mainnet
