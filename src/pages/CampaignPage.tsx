@@ -33,7 +33,6 @@ import {
   CircleCheck,
   OctagonMinus,
   Trash2,
-  Megaphone,
   Pencil,
   SendIcon,
 } from "lucide-react";
