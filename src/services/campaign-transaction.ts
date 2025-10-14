@@ -248,8 +248,6 @@ export function prepareMetadataVectors(
 export function buildAddUpdateTransaction(
   campaignId: string,
   campaignOwnerCapId: string,
-  updateTitle: string,
-  updateDescription: string,
   metadata: Record<string, string>,
   network: "devnet" | "testnet" | "mainnet",
 ): Transaction {
@@ -269,17 +267,14 @@ export function buildAddUpdateTransaction(
       // Campaign owner capability (authorization)
       tx.object(campaignOwnerCapId),
 
-      // Update title
-      tx.pure.string(updateTitle),
-
-      // Update short description
-      tx.pure.string(updateDescription),
-
       // Metadata keys
       tx.pure.vector("string", keys),
 
       // Metadata values
       tx.pure.vector("string", values),
+
+      // Clock object for timestamping
+      tx.object(CLOCK_OBJECT_ID),
     ],
   });
 
@@ -399,6 +394,35 @@ export function extractCampaignIdFromEffects(
     return null;
   } catch (error) {
     console.error("Error extracting campaign ID from result:", error);
+    return null;
+  }
+}
+
+export function extractCampaignUpdateIdFromEffects(
+  result: any,
+  packageId: string,
+): string | null {
+  try {
+    const objectChanges: any[] = Array.isArray(result?.objectChanges)
+      ? result.objectChanges
+      : [];
+
+    const updateType = `${packageId}::campaign::CampaignUpdate`;
+
+    const updateChange = objectChanges.find(
+      (change) =>
+        change?.type === "created" &&
+        (change.objectType === updateType ||
+          change.objectType?.endsWith("::campaign::CampaignUpdate")),
+    );
+
+    if (updateChange?.objectId) {
+      return updateChange.objectId;
+    }
+
+    return null;
+  } catch (error) {
+    console.error("Failed to extract campaign update ID:", error);
     return null;
   }
 }
