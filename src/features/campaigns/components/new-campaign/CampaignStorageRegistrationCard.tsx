@@ -43,6 +43,10 @@ interface CampaignStorageRegistrationCardProps {
   estimatedCost?: StorageCostEstimate | null;
   hideRegisterButton?: boolean;
   disabled?: boolean;
+  disableEpochSelection?: boolean;
+  registrationPeriodSummary?: string;
+  registrationPeriodHint?: string;
+  registrationExpiresOverride?: string;
 }
 
 export function CampaignStorageRegistrationCard({
@@ -63,6 +67,10 @@ export function CampaignStorageRegistrationCard({
   estimatedCost,
   hideRegisterButton = false,
   disabled = false,
+  disableEpochSelection = false,
+  registrationPeriodSummary,
+  registrationPeriodHint,
+  registrationExpiresOverride,
 }: CampaignStorageRegistrationCardProps) {
   // Get network-specific storage duration options
   const storageDurationOptions = useNetworkVariable(
@@ -93,9 +101,10 @@ export function CampaignStorageRegistrationCard({
     : totalCost;
 
   const totalDays = currentEpochs * epochConfig.epochDurationDays;
-  const registrationExpires = totalDays > 0
+  const registrationExpiresCalculated = totalDays > 0
     ? `${format(addDays(new Date(), totalDays), "MMM d, yyyy")} (${totalDays} day${totalDays !== 1 ? "s" : ""})`
     : "Select period";
+  const registrationExpires = registrationExpiresOverride ?? registrationExpiresCalculated;
 
   const controlsDisabled = disabled || isLocked;
 
@@ -116,41 +125,58 @@ export function CampaignStorageRegistrationCard({
             <label className="text-base font-medium text-black-500">
               Registration period
             </label>
-            <Select
-              value={defaultValue}
-              disabled={controlsDisabled}
-              onValueChange={(value) => {
-                if (controlsDisabled) {
-                  return;
-                }
-                const option = storageDurationOptions.find(
-                  (opt: StorageDurationOption) => opt.label === value,
-                );
-                if (option && onEpochsChange) {
-                  onEpochsChange(option.epochs);
-                }
-              }}
-            >
-              <SelectTrigger
-                className="bg-white border-black-50"
-                disabled={controlsDisabled}
-              >
-                <SelectValue />
-              </SelectTrigger>
-              <SelectContent>
-                {storageDurationOptions.map((option: StorageDurationOption) => (
-                  <SelectItem key={option.label} value={option.label}>
-                    {option.label} ({option.epochs} epochs)
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
-            <p className="text-xs text-muted-foreground">
-              {currentEpochs} epoch{currentEpochs !== 1 ? "s" : ""} ×{" "}
-              {epochConfig.epochDurationDays} day
-              {epochConfig.epochDurationDays !== 1 ? "s" : ""} ={" "}
-              {currentEpochs * epochConfig.epochDurationDays} days total
-            </p>
+            {disableEpochSelection ? (
+              <div className="flex flex-col gap-2 rounded-lg border border-black-50 bg-white px-4 py-3">
+                <p className="text-sm text-neutral-950 font-medium">
+                  {registrationPeriodSummary ??
+                    "Storage duration is managed automatically for this flow."}
+                </p>
+                <p className="text-xs text-muted-foreground">
+                  {registrationPeriodHint ??
+                    `${currentEpochs} epoch${currentEpochs !== 1 ? "s" : ""} × ${epochConfig.epochDurationDays} day${epochConfig.epochDurationDays !== 1 ? "s" : ""} = ${currentEpochs * epochConfig.epochDurationDays} days total`}
+                </p>
+              </div>
+            ) : (
+              <>
+                <Select
+                  value={defaultValue}
+                  disabled={controlsDisabled}
+                  onValueChange={(value) => {
+                    if (controlsDisabled) {
+                      return;
+                    }
+                    const option = storageDurationOptions.find(
+                      (opt: StorageDurationOption) => opt.label === value,
+                    );
+                    if (option && onEpochsChange) {
+                      onEpochsChange(option.epochs);
+                    }
+                  }}
+                >
+                  <SelectTrigger
+                    className="bg-white border-black-50"
+                    disabled={controlsDisabled}
+                  >
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {storageDurationOptions.map(
+                      (option: StorageDurationOption) => (
+                        <SelectItem key={option.label} value={option.label}>
+                          {option.label} ({option.epochs} epochs)
+                        </SelectItem>
+                      ),
+                    )}
+                  </SelectContent>
+                </Select>
+                <p className="text-xs text-muted-foreground">
+                  {currentEpochs} epoch{currentEpochs !== 1 ? "s" : ""} ×{" "}
+                  {epochConfig.epochDurationDays} day
+                  {epochConfig.epochDurationDays !== 1 ? "s" : ""} ={" "}
+                  {currentEpochs * epochConfig.epochDurationDays} days total
+                </p>
+              </>
+            )}
           </div>
 
           {/* Storage Fees Card */}
