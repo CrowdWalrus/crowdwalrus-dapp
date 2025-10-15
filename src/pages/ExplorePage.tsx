@@ -15,6 +15,7 @@ import {
 } from "@/shared/components/ui/breadcrumb";
 import { ROUTES } from "@/shared/config/routes";
 import { ExploreHeroSection } from "@/features/explore/components/ExploreHeroSection";
+import { ExploreCampaignsSection } from "@/features/explore/components/ExploreCampaignsSection";
 
 export function ExplorePage() {
   return (
@@ -44,10 +45,8 @@ export function ExplorePage() {
         <ExploreHeroSection />
       </div>
 
-      {/* Rest of the page content */}
-      <div className="container mx-auto px-4">
-        {/* Future content will go here */}
-      </div>
+      {/* Explore Campaigns Section */}
+      <ExploreCampaignsSection />
     </div>
   );
 }
