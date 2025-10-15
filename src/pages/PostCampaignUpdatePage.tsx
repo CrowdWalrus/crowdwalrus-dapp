@@ -8,6 +8,7 @@ import {
   useSignAndExecuteTransaction,
   useSuiClient,
 } from "@mysten/dapp-kit";
+import { AlertCircleIcon } from "lucide-react";
 
 import {
   Breadcrumb,
@@ -61,7 +62,7 @@ import {
   extractCampaignUpdateIdFromEffects,
 } from "@/services/campaign-transaction";
 import { getWalrusUrl } from "@/services/walrus";
-import { AlertCircleIcon } from "lucide-react";
+import { lexicalToPlainText } from "@/shared/utils/lexical";
 
 const DEFAULT_FORM_VALUES: CampaignUpdateFormData = {
   updateContent: "",
@@ -430,7 +431,8 @@ export default function PostCampaignUpdatePage() {
     }
 
     const updateContent = form.getValues("updateContent");
-    if (!updateContent || !updateContent.trim()) {
+    const updatePlainText = lexicalToPlainText(updateContent);
+    if (!updatePlainText) {
       form.setError("updateContent", {
         type: "manual",
         message: "Update content is required.",
