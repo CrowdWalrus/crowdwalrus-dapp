@@ -10,7 +10,7 @@ import { Separator } from "@/shared/components/ui/separator";
 import { useMyCampaigns } from "@/features/campaigns/hooks/useMyCampaigns";
 import { CampaignCard } from "./CampaignCard";
 import { getCampaignStatus } from "../utils/campaignStatus";
-import { SlidersHorizontal, ChevronDown } from "lucide-react";
+import { ChevronDown } from "lucide-react";
 
 type TabFilter = "all" | "open_soon" | "funding" | "active" | "ended";
 
@@ -28,12 +28,17 @@ const TABS: TabConfig[] = [
 ];
 
 // Mock data for raised amounts and supporters (will be replaced with real data later)
-const MOCK_CAMPAIGN_DATA: Record<string, { raised: number; supporters: number }> = {};
+const MOCK_CAMPAIGN_DATA: Record<
+  string,
+  { raised: number; supporters: number }
+> = {};
 
 function generateMockData(campaignId: string) {
   if (!MOCK_CAMPAIGN_DATA[campaignId]) {
     // Generate consistent mock data based on campaign ID
-    const hash = campaignId.split("").reduce((acc, char) => acc + char.charCodeAt(0), 0);
+    const hash = campaignId
+      .split("")
+      .reduce((acc, char) => acc + char.charCodeAt(0), 0);
     MOCK_CAMPAIGN_DATA[campaignId] = {
       raised: Math.floor((hash % 100) * 1000) + 10000,
       supporters: Math.floor((hash % 50) * 10) + 100,
@@ -56,7 +61,7 @@ export function ExploreCampaignsSection() {
       campaign.startDateMs,
       campaign.endDateMs,
       campaign.isActive,
-      campaign.isDeleted
+      campaign.isDeleted,
     );
 
     return status === activeTab;
@@ -103,13 +108,13 @@ export function ExploreCampaignsSection() {
               </div>
 
               {/* Filters Button */}
-              <Button
+              {/* <Button
                 variant="outline"
                 className="flex items-center gap-2 border-black-50"
               >
                 <SlidersHorizontal className="w-3.5 h-3.5" />
                 <span>Filters</span>
-              </Button>
+              </Button> */}
             </div>
 
             {/* Campaign Cards Grid */}
@@ -119,7 +124,9 @@ export function ExploreCampaignsSection() {
               </div>
             ) : error ? (
               <div className="flex items-center justify-center py-20">
-                <p className="text-red-500">Error loading campaigns: {error.message}</p>
+                <p className="text-red-500">
+                  Error loading campaigns: {error.message}
+                </p>
               </div>
             ) : displayedCampaigns.length === 0 ? (
               <div className="flex items-center justify-center py-20">
