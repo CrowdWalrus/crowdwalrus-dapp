@@ -143,7 +143,7 @@ export function CampaignCard({
       </div>
 
       {/* Card Content */}
-      <div className="flex flex-col gap-4 bg-white-500 px-4 pt-4 pb-6">
+      <div className="flex flex-col flex-1 gap-4 bg-white-500 px-4 pt-4 pb-6">
         {/* Title and Description */}
         <div className="flex flex-col gap-2">
           <h3 className="font-semibold text-xl leading-snug line-clamp-2">
