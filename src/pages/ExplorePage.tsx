@@ -16,6 +16,7 @@ import {
 import { ROUTES } from "@/shared/config/routes";
 import { ExploreHeroSection } from "@/features/explore/components/ExploreHeroSection";
 import { ExploreCampaignsSection } from "@/features/explore/components/ExploreCampaignsSection";
+import { ExploreManifestoSection } from "@/features/explore/components/ExploreManifestoSection";
 
 export function ExplorePage() {
   return (
@@ -47,6 +48,9 @@ export function ExplorePage() {
 
       {/* Explore Campaigns Section */}
       <ExploreCampaignsSection />
+
+      {/* Manifesto Section */}
+      <ExploreManifestoSection />
     </div>
   );
 }
