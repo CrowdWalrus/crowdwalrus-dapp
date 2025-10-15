@@ -14,13 +14,15 @@ import {
   BreadcrumbPage,
 } from "@/shared/components/ui/breadcrumb";
 import { ROUTES } from "@/shared/config/routes";
+import { ExploreHeroSection } from "@/features/explore/components/ExploreHeroSection";
 
 export function ExplorePage() {
   return (
-    <div className="py-8">
-      <div className="container px-4">
-        {/* Breadcrumb */}
-        <div className="pb-10">
+    <div>
+      {/* Hero Section with Background */}
+      <div className="relative">
+        {/* Breadcrumb - Positioned absolutely over hero */}
+        <div className="absolute top-8 left-[120px] z-20">
           <Breadcrumb>
             <BreadcrumbList>
               <BreadcrumbItem>
@@ -36,11 +38,11 @@ export function ExplorePage() {
           </Breadcrumb>
         </div>
 
-        {/* Main content container */}
-        <div className="container px-4 mx-auto max-w-4xl">
-          <h1 className="text-5xl font-bold mb-10">Explore</h1>
-        </div>
+        {/* Hero Section */}
+        <ExploreHeroSection />
       </div>
+
+      {/* Rest of the page content will go here */}
     </div>
   );
 }
