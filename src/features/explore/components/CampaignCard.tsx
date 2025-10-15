@@ -134,7 +134,7 @@ export function CampaignCard({
         </div>
 
         {/* Date Badge - Top Right */}
-        <div className="absolute right-4 top-5 flex items-center gap-1.5 px-2 py-0.5 rounded-lg border border-black-50">
+        <div className="absolute right-4 top-5 flex items-center gap-1.5 px-2 py-0.5 rounded-lg border bg-white-500 border-black-50">
           <Clock className="w-3 h-3" />
           <span className="text-xs font-medium leading-tight">
             {statusInfo.dateLabel} {statusInfo.dateValue}
