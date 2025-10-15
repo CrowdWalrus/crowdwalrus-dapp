@@ -80,12 +80,12 @@ import { AlertCircleIcon } from "lucide-react";
 // ============================================================================
 // TEST DEFAULT VALUES - Remove this block after testing
 // ============================================================================
-const TEST_DEFAULTS = {
+const TEST_DEFAULTS: Partial<NewCampaignFormData> = {
   campaignName: "Test Campaign for Ocean Cleanup",
   description:
     "A revolutionary project to clean our oceans using AI-powered drones and sustainable practices.",
   subdomain: "ocean-cleanup-2025",
-  coverImage: null as any,
+  coverImage: undefined,
   campaignType: "donation",
   categories: ["environment", "tech"],
   startDate: "2025-11-01",
@@ -116,6 +116,7 @@ export default function NewCampaignPage() {
 
   // Modal state management
   const modal = useCampaignCreationModal();
+  const { openModal, closeModal } = modal;
 
   // Wizard state management
   // TODO: TEMP - Change back to WizardStep.FORM after UI work
@@ -363,7 +364,13 @@ export default function NewCampaignPage() {
     } catch (error) {
       console.error("Error auto-estimating cost:", error);
     }
-  }, [debouncedCoverImage, debouncedCampaignDetails, selectedEpochs]);
+  }, [
+    debouncedCoverImage,
+    debouncedCampaignDetails,
+    estimateCost,
+    form,
+    selectedEpochs,
+  ]);
 
   // Derive loading states
   // For registration flow (actual registration operations)
@@ -438,11 +445,11 @@ export default function NewCampaignPage() {
       wizardStep !== WizardStep.FORM &&
       wizardStep !== WizardStep.CONFIRM_TX
     ) {
-      modal.openModal(wizardStep);
+      openModal(wizardStep);
     } else {
-      modal.closeModal();
+      closeModal();
     }
-  }, [wizardStep]);
+  }, [wizardStep, closeModal, openModal]);
 
   // Step 1: Form submission - validate and prepare data
   const onSubmit = (data: NewCampaignFormData) => {
@@ -594,7 +601,7 @@ export default function NewCampaignPage() {
       onSuccess: (result) => {
         setCertifyResult(result);
         setWizardStep(WizardStep.CONFIRM_TX);
-        modal.closeModal();
+        closeModal();
       },
       onError: (err) => {
         if (isUserRejectedError(err)) {
@@ -769,12 +776,12 @@ export default function NewCampaignPage() {
   const handleCloseModal = () => {
     // Only close if we're in SUCCESS or ERROR state
     if (wizardStep === WizardStep.SUCCESS) {
-      modal.closeModal();
+      closeModal();
       // Optionally reset to form
       setWizardStep(WizardStep.FORM);
       setCertifyRejectionMessage(null);
     } else if (wizardStep === WizardStep.ERROR) {
-      modal.closeModal();
+      closeModal();
       setWizardStep(WizardStep.FORM);
       // Reset all state
       setFormData(null);
