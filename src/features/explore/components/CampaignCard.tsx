@@ -143,62 +143,76 @@ export function CampaignCard({
       </div>
 
       {/* Card Content */}
-      <div className="flex flex-col flex-1 gap-4 bg-white-500 px-4 pt-4 pb-6">
-        {/* Title and Description */}
-        <div className="flex flex-col gap-2">
-          <h3 className="font-semibold text-xl leading-snug line-clamp-2">
-            {campaign.name}
-          </h3>
-          <p className="text-base leading-relaxed line-clamp-3">
-            {campaign.shortDescription}
-          </p>
-        </div>
-
-        {/* Separator */}
-        <div className="h-px bg-white-600" />
-
-        {/* Publisher and Badges */}
-        <div className="flex items-start justify-between gap-2">
-          <div className="flex flex-col">
-            <span className="text-xs text-black-200 leading-relaxed">
-              Published by
-            </span>
-            <span className="text-sm font-medium leading-relaxed">
-              {formatAddress(campaign.adminId)}
-            </span>
+      <div className="flex flex-col flex-1 justify-between bg-white-500 px-4 pt-4 pb-6">
+        {/* Content Section (Title, Data) */}
+        <div className="flex flex-col gap-4">
+          {/* Title and Description */}
+          <div className="flex flex-col gap-2">
+            <h3 className="font-semibold text-xl leading-snug line-clamp-2">
+              {campaign.name}
+            </h3>
+            <p className="text-base leading-relaxed line-clamp-3">
+              {campaign.shortDescription}
+            </p>
           </div>
 
-          <div className="flex items-center gap-2">
-            {/* Category Badge */}
-            <div className="flex items-center gap-1.5 px-2 py-0.5 rounded-lg bg-white-600 min-h-6">
-              <span className="text-xs font-medium leading-tight">
-                {campaign.category}
+          {/* Separator */}
+          <div className="h-px bg-white-600" />
+
+          {/* Publisher and Badges */}
+          <div className="flex items-start justify-between gap-2">
+            <div className="flex flex-col">
+              <span className="text-xs text-black-200 leading-relaxed">
+                Published by
+              </span>
+              <span className="text-sm font-medium leading-relaxed">
+                {formatAddress(campaign.adminId)}
               </span>
             </div>
 
-            {/* Supporters Badge */}
-            {supporters > 0 && (
+            <div className="flex items-center gap-2">
+              {/* Category Badge */}
               <div className="flex items-center gap-1.5 px-2 py-0.5 rounded-lg bg-white-600 min-h-6">
                 <span className="text-xs font-medium leading-tight">
-                  {supporters}
+                  {campaign.category}
                 </span>
               </div>
-            )}
-          </div>
-        </div>
 
-        {/* Progress Bar (only for funding status) */}
-        {statusInfo.showProgress && (
-          <div className="flex flex-col gap-2">
-            {/* Progress Bar */}
-            <div className="w-full h-2 bg-black-50 rounded-[10px] overflow-hidden">
-              <div
-                className="h-full bg-gradient-to-r from-sgreen-500 to-sgreen-400 rounded-[10px] transition-all"
-                style={{ width: `${fundingPercentage}%` }}
-              />
+              {/* Supporters Badge */}
+              {supporters > 0 && (
+                <div className="flex items-center gap-1.5 px-2 py-0.5 rounded-lg bg-white-600 min-h-6">
+                  <span className="text-xs font-medium leading-tight">
+                    {supporters}
+                  </span>
+                </div>
+              )}
             </div>
+          </div>
 
-            {/* Funding Stats */}
+          {/* Progress Bar (only for funding status) */}
+          {statusInfo.showProgress && (
+            <div className="flex flex-col gap-2">
+              {/* Progress Bar */}
+              <div className="w-full h-2 bg-black-50 rounded-[10px] overflow-hidden">
+                <div
+                  className="h-full bg-gradient-to-r from-sgreen-500 to-sgreen-400 rounded-[10px] transition-all"
+                  style={{ width: `${fundingPercentage}%` }}
+                />
+              </div>
+
+              {/* Funding Stats */}
+              <div className="flex items-center gap-1 text-base leading-relaxed">
+                <span className="font-semibold">
+                  ${raised.toLocaleString()} raised
+                </span>
+                <span>Goal ${fundingGoal.toLocaleString()}</span>
+                <span className="ml-auto">{fundingPercentage}% funded</span>
+              </div>
+            </div>
+          )}
+
+          {/* No progress - just show raised amount */}
+          {!statusInfo.showProgress && raised > 0 && (
             <div className="flex items-center gap-1 text-base leading-relaxed">
               <span className="font-semibold">
                 ${raised.toLocaleString()} raised
@@ -206,22 +220,11 @@ export function CampaignCard({
               <span>Goal ${fundingGoal.toLocaleString()}</span>
               <span className="ml-auto">{fundingPercentage}% funded</span>
             </div>
-          </div>
-        )}
+          )}
+        </div>
 
-        {/* No progress - just show raised amount */}
-        {!statusInfo.showProgress && raised > 0 && (
-          <div className="flex items-center gap-1 text-base leading-relaxed">
-            <span className="font-semibold">
-              ${raised.toLocaleString()} raised
-            </span>
-            <span>Goal ${fundingGoal.toLocaleString()}</span>
-            <span className="ml-auto">{fundingPercentage}% funded</span>
-          </div>
-        )}
-
-        {/* Action Button */}
-        <Link to={`/campaign/${campaign.id}`} className="w-full">
+        {/* Action Button Section - Always at Bottom */}
+        <Link to={`/campaign/${campaign.id}`} className="w-full pt-4">
           <Button
             className={`w-full min-h-10 ${
               statusInfo.buttonVariant === "primary"
