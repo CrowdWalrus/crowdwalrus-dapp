@@ -19,6 +19,26 @@ import { getContractConfig, CLOCK_OBJECT_ID } from "@/shared/config/contracts";
 import { WALRUS_EPOCH_CONFIG } from "@/shared/config/networkConfig";
 import { formatSubdomain } from "@/shared/utils/subdomain";
 
+interface ObjectChange {
+  type?: string;
+  objectType?: string;
+  objectId?: string;
+}
+
+const getObjectChanges = (value: unknown): ObjectChange[] => {
+  if (
+    typeof value === "object" &&
+    value !== null &&
+    Array.isArray((value as { objectChanges?: unknown }).objectChanges)
+  ) {
+    return (value as { objectChanges: unknown[] }).objectChanges.filter(
+      (change): change is ObjectChange =>
+        typeof change === "object" && change !== null,
+    );
+  }
+  return [];
+};
+
 /**
  * Build a transaction to create a new campaign on Sui
  */
@@ -248,8 +268,6 @@ export function prepareMetadataVectors(
 export function buildAddUpdateTransaction(
   campaignId: string,
   campaignOwnerCapId: string,
-  updateTitle: string,
-  updateDescription: string,
   metadata: Record<string, string>,
   network: "devnet" | "testnet" | "mainnet",
 ): Transaction {
@@ -269,17 +287,14 @@ export function buildAddUpdateTransaction(
       // Campaign owner capability (authorization)
       tx.object(campaignOwnerCapId),
 
-      // Update title
-      tx.pure.string(updateTitle),
-
-      // Update short description
-      tx.pure.string(updateDescription),
-
       // Metadata keys
       tx.pure.vector("string", keys),
 
       // Metadata values
       tx.pure.vector("string", values),
+
+      // Clock object for timestamping
+      tx.object(CLOCK_OBJECT_ID),
     ],
   });
 
@@ -361,7 +376,7 @@ export function buildDeleteCampaignTransaction(
  * Note: Expects the full transaction result with objectChanges at top level
  */
 export function extractCampaignIdFromEffects(
-  result: any,
+  result: unknown,
   packageId: string,
 ): string | null {
   try {
@@ -370,24 +385,23 @@ export function extractCampaignIdFromEffects(
     console.log("Transaction result:", JSON.stringify(result, null, 2));
 
     // objectChanges is at the top level of the result object
-    const objectChanges: any[] = Array.isArray(result?.objectChanges)
-      ? result.objectChanges
-      : [];
+    const objectChanges = getObjectChanges(result);
 
     const campaignType = `${packageId}::campaign::Campaign`;
 
     const campaignChange = objectChanges.find(
       (change) =>
         change?.type === "created" &&
+        typeof change.objectType === "string" &&
         (change.objectType === campaignType ||
           // Some Sui responses flatten type names, so defensively match suffix
-          change.objectType?.endsWith("::campaign::Campaign")),
+          change.objectType.endsWith("::campaign::Campaign")),
     );
 
     console.log("Created objects found:", objectChanges);
     console.log("Campaign change:", campaignChange);
 
-    if (campaignChange?.objectId) {
+    if (typeof campaignChange?.objectId === "string") {
       const campaignId = campaignChange.objectId;
       console.log("Extracted Campaign ID:", campaignId);
       console.log("==============================\n");
@@ -399,6 +413,34 @@ export function extractCampaignIdFromEffects(
     return null;
   } catch (error) {
     console.error("Error extracting campaign ID from result:", error);
+    return null;
+  }
+}
+
+export function extractCampaignUpdateIdFromEffects(
+  result: unknown,
+  packageId: string,
+): string | null {
+  try {
+    const objectChanges = getObjectChanges(result);
+
+    const updateType = `${packageId}::campaign::CampaignUpdate`;
+
+    const updateChange = objectChanges.find(
+      (change) =>
+        change?.type === "created" &&
+        typeof change.objectType === "string" &&
+        (change.objectType === updateType ||
+          change.objectType.endsWith("::campaign::CampaignUpdate")),
+    );
+
+    if (typeof updateChange?.objectId === "string") {
+      return updateChange.objectId;
+    }
+
+    return null;
+  } catch (error) {
+    console.error("Failed to extract campaign update ID:", error);
     return null;
   }
 }

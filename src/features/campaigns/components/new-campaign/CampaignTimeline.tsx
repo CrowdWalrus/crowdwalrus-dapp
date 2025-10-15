@@ -18,60 +18,60 @@ interface CampaignTimelineProps {
   headerStatus?: ReactNode;
 }
 
-export function CampaignTimeline({
-  readOnly = false,
+function ReadOnlyCampaignTimeline({
   startDateMs,
   endDateMs,
   headerAction,
   headerStatus,
 }: CampaignTimelineProps) {
-  if (readOnly) {
-    const startDateLabel = startDateMs
-      ? new Date(startDateMs).toLocaleDateString()
-      : "—";
-    const endDateLabel = endDateMs
-      ? new Date(endDateMs).toLocaleDateString()
-      : "—";
+  const startDateLabel = startDateMs
+    ? new Date(startDateMs).toLocaleDateString()
+    : "—";
+  const endDateLabel = endDateMs
+    ? new Date(endDateMs).toLocaleDateString()
+    : "—";
 
-    return (
-      <section className="flex flex-col gap-4">
-        <div className="flex flex-wrap items-center justify-between gap-3">
-          <h2 className="text-2xl font-bold leading-[1.6]">
-            Campaign Timeline
-          </h2>
-          {(headerAction || headerStatus) && (
-            <div className="flex items-center gap-3">
-              {headerStatus}
-              {headerAction}
-            </div>
-          )}
-        </div>
-        <p className="text-sm text-muted-foreground">
-          Timeline cannot be edited after launch. These dates were set when the
-          campaign was created.
-        </p>
-        <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
-          <div className="rounded-lg border border-border bg-muted/20 p-4">
-            <p className="text-xs uppercase tracking-wide text-muted-foreground">
-              Start date
-            </p>
-            <p className="text-lg font-semibold text-foreground">
-              {startDateLabel}
-            </p>
+  return (
+    <section className="flex flex-col gap-4">
+      <div className="flex flex-wrap items-center justify-between gap-3">
+        <h2 className="text-2xl font-bold leading-[1.6]">Campaign Timeline</h2>
+        {(headerAction || headerStatus) && (
+          <div className="flex items-center gap-3">
+            {headerStatus}
+            {headerAction}
           </div>
-          <div className="rounded-lg border border-border bg-muted/20 p-4">
-            <p className="text-xs uppercase tracking-wide text-muted-foreground">
-              End date
-            </p>
-            <p className="text-lg font-semibold text-foreground">
-              {endDateLabel}
-            </p>
-          </div>
+        )}
+      </div>
+      <p className="text-sm text-muted-foreground">
+        Timeline cannot be edited after launch. These dates were set when the
+        campaign was created.
+      </p>
+      <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
+        <div className="rounded-lg border border-border bg-muted/20 p-4">
+          <p className="text-xs uppercase tracking-wide text-muted-foreground">
+            Start date
+          </p>
+          <p className="text-lg font-semibold text-foreground">
+            {startDateLabel}
+          </p>
         </div>
-      </section>
-    );
-  }
+        <div className="rounded-lg border border-border bg-muted/20 p-4">
+          <p className="text-xs uppercase tracking-wide text-muted-foreground">
+            End date
+          </p>
+          <p className="text-lg font-semibold text-foreground">
+            {endDateLabel}
+          </p>
+        </div>
+      </div>
+    </section>
+  );
+}
 
+function EditableCampaignTimeline({
+  headerAction,
+  headerStatus,
+}: CampaignTimelineProps) {
   const {
     watch,
     setValue,
@@ -212,4 +212,12 @@ export function CampaignTimeline({
       </div>
     </section>
   );
+}
+
+export function CampaignTimeline(props: CampaignTimelineProps) {
+  if (props.readOnly) {
+    return <ReadOnlyCampaignTimeline {...props} />;
+  }
+
+  return <EditableCampaignTimeline {...props} />;
 }

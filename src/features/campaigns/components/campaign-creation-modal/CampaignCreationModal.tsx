@@ -41,6 +41,7 @@ import type {
   StorageCostEstimate,
   CreateCampaignResult,
 } from "@/features/campaigns/types/campaign";
+import type { CampaignUpdateResult } from "@/features/campaigns/types/campaignUpdate";
 
 // Import state components
 import { ReviewWalrusTransaction } from "./states/ReviewWalrusTransaction";
@@ -88,6 +89,9 @@ export interface CampaignCreationModalProps {
   /** Campaign creation result for success state */
   campaignResult?: CreateCampaignResult | null;
 
+  /** Campaign update result for success state */
+  updateResult?: CampaignUpdateResult | null;
+
   /** Error message for error state */
   error?: string | null;
 
@@ -96,6 +100,9 @@ export interface CampaignCreationModalProps {
 
   /** Current processing message (optional override) */
   processingMessage?: string;
+
+  /** Controls copy for campaign creation vs campaign update flows */
+  mode?: "campaign" | "campaign-update";
 }
 
 export const CampaignCreationModal = ({
@@ -110,9 +117,11 @@ export const CampaignCreationModal = ({
   estimatedCost,
   uploadProgress = 0,
   campaignResult,
+  updateResult,
   error,
   errorTitle,
   processingMessage,
+  mode = "campaign",
 }: CampaignCreationModalProps) => {
   const [fakeUploadProgress, setFakeUploadProgress] = useState(0);
 
@@ -205,13 +214,19 @@ export const CampaignCreationModal = ({
           <TransactionConfirmState
             onConfirm={onConfirmTransaction}
             onCancel={onCancelTransaction}
+            mode={mode}
           />
         );
 
       case WizardStep.EXECUTING:
         return (
           <ProcessingState
-            message={processingMessage || "Creating your campaign..."}
+            message={
+              processingMessage ||
+              (mode === "campaign-update"
+                ? "Posting your update..."
+                : "Creating your campaign...")
+            }
             description="Please confirm the transaction in your wallet"
           />
         );
@@ -219,7 +234,12 @@ export const CampaignCreationModal = ({
       // === Result States ===
       case WizardStep.SUCCESS:
         return (
-          <SuccessState campaignResult={campaignResult} onClose={onClose} />
+          <SuccessState
+            campaignResult={campaignResult}
+            updateResult={updateResult}
+            mode={mode}
+            onClose={onClose}
+          />
         );
 
       case WizardStep.ERROR:

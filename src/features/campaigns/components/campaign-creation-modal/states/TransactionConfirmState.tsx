@@ -28,22 +28,34 @@ export interface TransactionConfirmStateProps {
 
   /** Called when user clicks "Cancel" */
   onCancel?: () => void
+
+  /** Controls copy for campaign vs update flow */
+  mode?: "campaign" | "campaign-update"
 }
 
 export const TransactionConfirmState = ({
   onConfirm,
   onCancel,
+  mode = "campaign",
 }: TransactionConfirmStateProps) => {
   // TODO: Implement your UI here
+
+  const isUpdate = mode === "campaign-update";
+  const title = isUpdate ? "Post Campaign Update" : "Create Campaign";
+  const subtitle = isUpdate
+    ? "You're ready to share this update with your supporters."
+    : "You're ready to launch your campaign!";
+  const bodyCopy = isUpdate
+    ? "Your update content is encoded on Walrus storage. Posting will submit a transaction that links this blob to your campaign."
+    : "Your campaign is ready to be published on the blockchain.";
+  const ctaLabel = isUpdate ? "Post Update" : "Create Campaign";
 
   return (
     <div className="space-y-4">
       {/* TODO: Add your modal header */}
       <div>
-        <h2 className="text-lg font-semibold">Create Campaign</h2>
-        <p className="text-sm text-muted-foreground">
-          You're ready to launch your campaign!
-        </p>
+        <h2 className="text-lg font-semibold">{title}</h2>
+        <p className="text-sm text-muted-foreground">{subtitle}</p>
       </div>
 
       {/* TODO: Show campaign preparation status */}
@@ -64,15 +76,14 @@ export const TransactionConfirmState = ({
 
       {/* TODO: Campaign summary (optional) */}
       <div className="rounded-lg border p-4">
-        <p className="text-sm text-muted-foreground">
-          {/* TODO: Show campaign name, goal, duration, etc. */}
-          Your campaign is ready to be published on the blockchain.
-        </p>
+        <p className="text-sm text-muted-foreground">{bodyCopy}</p>
       </div>
 
       {/* TODO: Explanation */}
       <div className="text-sm text-muted-foreground">
-        Clicking "Create Campaign" will submit a transaction to create your campaign on the Sui blockchain.
+        {isUpdate
+          ? "Clicking \"Post Update\" will submit a transaction that records this update on-chain."
+          : "Clicking \"Create Campaign\" will submit a transaction to create your campaign on the Sui blockchain."}
       </div>
 
       {/* TODO: Action buttons */}
@@ -87,7 +98,7 @@ export const TransactionConfirmState = ({
           onClick={onConfirm}
           className="px-4 py-2 rounded-md bg-primary text-primary-foreground"
         >
-          Create Campaign
+          {ctaLabel}
         </button>
       </div>
     </div>

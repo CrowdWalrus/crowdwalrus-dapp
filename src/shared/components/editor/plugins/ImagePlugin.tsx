@@ -1,9 +1,12 @@
 import { useLexicalComposerContext } from "@lexical/react/LexicalComposerContext";
-import { $createParagraphNode, $insertNodes, COMMAND_PRIORITY_EDITOR, createCommand } from "lexical";
+import {
+  $createParagraphNode,
+  $insertNodes,
+  COMMAND_PRIORITY_EDITOR,
+} from "lexical";
 import { useEffect } from "react";
 import { $createImageNode, ImageNode } from "../nodes/ImageNode";
-
-export const INSERT_IMAGE_COMMAND = createCommand<{ src: string; altText: string }>("INSERT_IMAGE_COMMAND");
+import { INSERT_IMAGE_COMMAND } from "./insertImageCommand";
 
 export function ImagePlugin() {
   const [editor] = useLexicalComposerContext();

@@ -16,6 +16,7 @@ import { WalrusFile, type WriteFilesFlow } from "@mysten/walrus";
 import {
   createWalrusClient,
   prepareCampaignFiles,
+  prepareCampaignUpdateFiles,
   createWalrusUploadFlow,
   buildRegisterTransaction,
   uploadToWalrusNodes,
@@ -23,6 +24,7 @@ import {
   getUploadedFilesInfo,
 } from "@/services/walrus";
 import type { CampaignFormData } from "@/features/campaigns/types/campaign";
+import type { CampaignUpdateStorageData } from "@/features/campaigns/types/campaignUpdate";
 import { DEFAULT_NETWORK, WALRUS_EPOCH_CONFIG } from "@/shared/config/networkConfig";
 
 /**
@@ -36,6 +38,7 @@ export interface WalrusFlowState {
   files: WalrusFile[];
   storageEpochs: number;
   network: "devnet" | "testnet" | "mainnet";
+  purpose: "campaign" | "campaign-update";
 }
 
 /**
@@ -66,20 +69,58 @@ export function useWalrusUpload() {
   /**
    * Step 1: Prepare and encode files for Walrus upload
    */
-  const prepare = useMutation<WalrusFlowState, Error, { formData: CampaignFormData; network?: string; storageEpochs?: number }>({
-    mutationFn: async ({ formData, network = DEFAULT_NETWORK, storageEpochs }) => {
-      const networkKey = (network === "devnet" ? "devnet" : network) as keyof typeof WALRUS_EPOCH_CONFIG;
-      const epochs = storageEpochs || WALRUS_EPOCH_CONFIG[networkKey].defaultEpochs;
+  type PrepareArgs =
+    | {
+        purpose?: "campaign";
+        formData: CampaignFormData;
+        update?: undefined;
+        network?: "devnet" | "testnet" | "mainnet";
+        storageEpochs?: number;
+      }
+    | {
+        purpose: "campaign-update";
+        update: CampaignUpdateStorageData;
+        formData?: undefined;
+        network?: "devnet" | "testnet" | "mainnet";
+        storageEpochs?: number;
+      };
 
-      const files = await prepareCampaignFiles(formData);
-      const walrusClient = createWalrusClient(suiClient, network as any);
+  const prepare = useMutation<WalrusFlowState, Error, PrepareArgs>({
+    mutationFn: async ({
+      purpose = "campaign",
+      formData,
+      update,
+      network = DEFAULT_NETWORK,
+      storageEpochs,
+    }) => {
+      const resolvedNetwork = network ?? DEFAULT_NETWORK;
+      const networkKey: keyof typeof WALRUS_EPOCH_CONFIG = resolvedNetwork;
+      const epochs =
+        storageEpochs ?? WALRUS_EPOCH_CONFIG[networkKey].defaultEpochs;
+
+      let files: WalrusFile[];
+
+      if (purpose === "campaign") {
+        if (!formData) {
+          throw new Error("Campaign form data is required for campaign uploads");
+        }
+        files = await prepareCampaignFiles(formData);
+      } else {
+        if (!update) {
+          throw new Error("Update payload is required for campaign update uploads");
+        }
+        files = await prepareCampaignUpdateFiles(update);
+      }
+
+      const walrusClient = createWalrusClient(suiClient, resolvedNetwork);
       const flow = await createWalrusUploadFlow(walrusClient, files);
 
       return {
         flow,
         files,
         storageEpochs: epochs,
-        network: network as any,
+        network: resolvedNetwork,
+        purpose,
       };
     },
   });

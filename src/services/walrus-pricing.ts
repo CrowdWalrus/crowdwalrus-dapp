@@ -8,6 +8,49 @@
 import type { SuiClient } from "@mysten/sui/client";
 import { getContractConfig } from "@/shared/config/contracts";
 
+const isRecord = (value: unknown): value is Record<string, unknown> =>
+  typeof value === "object" && value !== null;
+
+const getMoveObjectFields = (
+  content: unknown,
+): Record<string, unknown> | null => {
+  if (
+    isRecord(content) &&
+    content.dataType === "moveObject" &&
+    isRecord(content.fields)
+  ) {
+    return content.fields;
+  }
+  return null;
+};
+
+const getRecordField = (
+  record: Record<string, unknown>,
+  key: string,
+): Record<string, unknown> | null => {
+  const value = record[key];
+  return isRecord(value) ? value : null;
+};
+
+const getNumericField = (
+  record: Record<string, unknown>,
+  key: string,
+): number | undefined => {
+  const value = record[key];
+  if (typeof value === "number") {
+    return value;
+  }
+  if (typeof value === "bigint") {
+    const parsed = Number(value);
+    return Number.isFinite(parsed) ? parsed : undefined;
+  }
+  if (typeof value === "string") {
+    const parsed = Number(value);
+    return Number.isFinite(parsed) ? parsed : undefined;
+  }
+  return undefined;
+};
+
 /**
  * Pricing information from Walrus system
  * All prices in FROST (1 WAL = 1,000,000,000 FROST)
@@ -78,14 +121,15 @@ async function querySubsidyRate(
       },
     });
 
-    if (!subsidyObject.data?.content || subsidyObject.data.content.dataType !== 'moveObject') {
+    const fieldsRecord = getMoveObjectFields(subsidyObject.data?.content);
+    if (!fieldsRecord) {
       throw new Error('Invalid subsidy object structure');
     }
 
-    const fields = subsidyObject.data.content.fields as any;
-
     // Try buyer_subsidy_rate first, fall back to system_subsidy_rate
-    const subsidyRateBasisPoints = fields.buyer_subsidy_rate ?? fields.system_subsidy_rate ?? 0;
+    const buyerRate = getNumericField(fieldsRecord, 'buyer_subsidy_rate');
+    const systemRate = getNumericField(fieldsRecord, 'system_subsidy_rate');
+    const subsidyRateBasisPoints = buyerRate ?? systemRate ?? 0;
 
     // Convert from basis points (if > 1) or use directly (if 0-1)
     // Basis points: 8000 = 80%, but if already decimal: 0.8 = 80%
@@ -138,25 +182,31 @@ async function querySystemPricing(
       name: systemStateField.name,
     });
 
-    if (!fieldObject.data?.content || fieldObject.data.content.dataType !== 'moveObject') {
+    const contentFields = getMoveObjectFields(fieldObject.data?.content);
+    if (!contentFields) {
       throw new Error('Invalid system state inner structure');
     }
 
-    const fields = (fieldObject.data.content.fields as any)?.value?.fields;
+    const valueRecord = getRecordField(contentFields, 'value');
+    if (!valueRecord) {
+      throw new Error('System state inner value not found');
+    }
 
-    if (!fields) {
+    const innerFields = getRecordField(valueRecord, 'fields');
+
+    if (!innerFields) {
       throw new Error('System state inner fields not found');
     }
 
     // Extract pricing from system state inner fields
     // Pricing is per KiB (unit size), we convert to per MB
-    const storagePerUnitSize = fields.storage_price_per_unit_size
-      ? Number(fields.storage_price_per_unit_size)
-      : fallback.storagePerMbPerEpoch / 1024;
+    const storagePerUnitSize =
+      getNumericField(innerFields, 'storage_price_per_unit_size') ??
+      fallback.storagePerMbPerEpoch / 1024;
 
-    const writePerUnitSize = fields.write_price_per_unit_size
-      ? Number(fields.write_price_per_unit_size)
-      : fallback.uploadPerMb / 1024;
+    const writePerUnitSize =
+      getNumericField(innerFields, 'write_price_per_unit_size') ??
+      fallback.uploadPerMb / 1024;
 
     // Convert from per-KiB to per-MB (multiply by 1024)
     const storagePerMbPerEpoch = Math.round(storagePerUnitSize * 1024);

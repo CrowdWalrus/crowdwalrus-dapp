@@ -1,7 +1,11 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { Link, useNavigate, useParams } from "react-router-dom";
 import { useQuery } from "@tanstack/react-query";
-import { useForm, type FieldNamesMarkedBoolean } from "react-hook-form";
+import {
+  useForm,
+  useWatch,
+  type FieldNamesMarkedBoolean,
+} from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import {
   useCurrentAccount,
@@ -83,6 +87,7 @@ import { Label } from "@/shared/components/ui/label";
 import { useWalBalance } from "@/shared/hooks/useWalBalance";
 import { useEstimateStorageCost } from "@/features/campaigns/hooks/useCreateCampaign";
 import { WizardStep } from "@/features/campaigns/types/campaign";
+import { normalizeSerializedEditorStateString } from "@/shared/components/editor/utils/normalizeSerializedState";
 
 const DEFAULT_FORM_VALUES: EditCampaignFormData = {
   campaignName: "",
@@ -220,6 +225,7 @@ export default function EditCampaignPage() {
   });
   const [isSubmitting, setIsSubmitting] = useState(false);
   const modal = useCampaignCreationModal();
+  const { openModal, closeModal } = modal;
   const [wizardStep, setWizardStep] = useState<WizardStep>(WizardStep.FORM);
   const [walrusFlowState, setWalrusFlowState] =
     useState<WalrusFlowState | null>(null);
@@ -258,6 +264,19 @@ export default function EditCampaignPage() {
     mode: "onChange",
     defaultValues: DEFAULT_FORM_VALUES,
   });
+
+  const watchedValues = useWatch<EditCampaignFormData>({
+    control: form.control,
+  });
+  const { dirtyFields } = form.formState as {
+    dirtyFields: FieldNamesMarkedBoolean<EditCampaignFormData>;
+  };
+  const currentFormValues: EditCampaignFormData = watchedValues
+    ? ({
+        ...DEFAULT_FORM_VALUES,
+        ...watchedValues,
+      } as EditCampaignFormData)
+    : form.getValues();
 
   const {
     campaign,
@@ -331,11 +350,11 @@ export default function EditCampaignPage() {
 
   useEffect(() => {
     if (wizardStep !== WizardStep.FORM) {
-      modal.openModal(wizardStep);
+      openModal(wizardStep);
     } else {
-      modal.closeModal();
+      closeModal();
     }
-  }, [wizardStep]);
+  }, [closeModal, openModal, wizardStep]);
 
   useEffect(() => {
     if (!hasCampaign) {
@@ -346,9 +365,12 @@ export default function EditCampaignPage() {
       return;
     }
 
-    const descriptionValue = isWalrusError ? "" : walrusDescription;
+    const descriptionValueRaw = isWalrusError ? "" : walrusDescription;
+    const normalizedDescription =
+      normalizeSerializedEditorStateString(descriptionValueRaw);
     const shouldReset =
-      !initialized || (initialDescription === "" && Boolean(descriptionValue));
+      !initialized ||
+      (initialDescription === "" && Boolean(normalizedDescription));
 
     if (!shouldReset) {
       return;
@@ -360,7 +382,7 @@ export default function EditCampaignPage() {
       campaignType: campaign?.campaignType ?? "",
       categories: parseCategories(campaign?.category),
       socials: buildSocialsFromMetadata(campaign),
-      campaignDetails: descriptionValue,
+      campaignDetails: normalizedDescription,
       coverImage: undefined,
       storageEpochs: campaign?.walrusStorageEpochs
         ? Number(campaign.walrusStorageEpochs)
@@ -369,7 +391,7 @@ export default function EditCampaignPage() {
 
     form.reset(resetValues);
     initialValuesRef.current = resetValues;
-    setInitialDescription(descriptionValue);
+    setInitialDescription(normalizedDescription);
     setDescriptionInstanceKey((prev) => prev + 1);
     setInitialized(true);
   }, [
@@ -461,11 +483,6 @@ export default function EditCampaignPage() {
     walrusStatus,
   ]);
 
-  const walrusChangesPending = Boolean(
-    walrusBaselineRef.current &&
-      currentWalrusSnapshot &&
-      !areSnapshotsEqual(walrusBaselineRef.current, currentWalrusSnapshot),
-  );
   const storageRegistrationComplete =
     walrusStatus === "completed" && Boolean(walrusCertifyResult);
 
@@ -618,6 +635,31 @@ export default function EditCampaignPage() {
     );
   }
 
+  const transformPreviewResult = campaign
+    ? transformEditCampaignFormData({
+        values: currentFormValues,
+        dirtyFields,
+        campaign,
+        initialDescription,
+      })
+    : null;
+
+  const walrusChangesDetected = Boolean(
+    transformPreviewResult?.shouldUploadWalrus,
+  );
+
+  const requireWalrusRegistration =
+    walrusChangesDetected && !storageRegistrationComplete;
+
+  const hasAnyChanges =
+    initialized &&
+    Boolean(
+      transformPreviewResult &&
+        (transformPreviewResult.hasBasicsChanges ||
+          transformPreviewResult.hasMetadataChanges ||
+          transformPreviewResult.shouldUploadWalrus),
+    );
+
   const campaignData = campaign!;
 
   const formattedSubdomain = campaignData.subdomainName ?? "";
@@ -645,9 +687,6 @@ export default function EditCampaignPage() {
       message.includes("request rejected")
     );
   };
-
-  const dirtyFields = form.formState
-    .dirtyFields as FieldNamesMarkedBoolean<EditCampaignFormData>;
   const campaignNameDirty = isEditFieldDirty(dirtyFields, "campaignName");
   const descriptionDirty = isEditFieldDirty(dirtyFields, "description");
   const coverImageDirty = Boolean(dirtyFields.coverImage);
@@ -678,7 +717,7 @@ export default function EditCampaignPage() {
       if (currentWalrusSnapshot) {
         walrusBaselineRef.current = currentWalrusSnapshot;
       }
-      modal.closeModal();
+      closeModal();
       setWizardStep(WizardStep.FORM);
       toast.success(
         "Walrus storage registered. Publish update to finalize on-chain metadata.",
@@ -688,7 +727,7 @@ export default function EditCampaignPage() {
         setCertifyRejectionMessage(
           "Approve the certification transaction in your wallet to continue.",
         );
-        modal.closeModal();
+        closeModal();
         setWizardStep(WizardStep.FORM);
         return;
       }
@@ -706,7 +745,7 @@ export default function EditCampaignPage() {
       return;
     }
 
-    if (!walrusChangesPending) {
+    if (!walrusChangesDetected) {
       toast.info("No Walrus-related changes detected.");
       return;
     }
@@ -909,7 +948,7 @@ export default function EditCampaignPage() {
     setWalrusError(null);
     setWalrusErrorTitle(null);
     setCertifyRejectionMessage(null);
-    modal.closeModal();
+    closeModal();
   };
 
   const handleModalClose = () => {
@@ -984,11 +1023,9 @@ export default function EditCampaignPage() {
     const {
       basicsUpdates,
       metadataPatch,
-      coverImageChanged,
-      descriptionChanged,
-      storageEpochsChanged,
       hasBasicsChanges,
       hasMetadataChanges,
+      shouldUploadWalrus,
     } = transformEditCampaignFormData({
       values,
       dirtyFields,
@@ -997,8 +1034,7 @@ export default function EditCampaignPage() {
     });
 
     const metadataUpdates = { ...metadataPatch };
-    const walrusChanges =
-      coverImageChanged || descriptionChanged || storageEpochsChanged;
+    const walrusChanges = shouldUploadWalrus;
 
     if (!hasBasicsChanges && !hasMetadataChanges && !walrusChanges) {
       toast.info("No changes detected.");
@@ -1097,7 +1133,10 @@ export default function EditCampaignPage() {
       }
 
       if (walrusChanges && storageRegistrationComplete && walrusCertifyResult) {
-        setInitialDescription(values.campaignDetails ?? "");
+        const normalizedDetails = normalizeSerializedEditorStateString(
+          values.campaignDetails ?? "",
+        );
+        setInitialDescription(normalizedDetails);
         setDescriptionInstanceKey((prev) => prev + 1);
         walrusBaselineRef.current = currentWalrusSnapshot;
         resetWalrusState();
@@ -1137,18 +1176,7 @@ export default function EditCampaignPage() {
   });
 
   const disableSubmit =
-    isSubmitting ||
-    walrusChangesPending ||
-    !(
-      campaignNameDirty ||
-      descriptionDirty ||
-      coverImageDirty ||
-      detailsDirty ||
-      storageEpochsDirty ||
-      campaignTypeDirty ||
-      categoriesDirty ||
-      socialsDirty
-    );
+    isSubmitting || requireWalrusRegistration || !hasAnyChanges;
 
   const sectionStatuses: Record<SectionKey, string | null> = {
     campaignName: getSectionStatus("campaignName", campaignNameDirty),
@@ -1233,7 +1261,7 @@ export default function EditCampaignPage() {
             ]
           : []),
       ]
-    : walrusChangesPending
+    : walrusChangesDetected
       ? [
           { label: "Campaign metadata", amount: "Calculate first" },
           { label: "Cover image", amount: "Calculate first" },
@@ -1251,12 +1279,13 @@ export default function EditCampaignPage() {
     ? `${costEstimate.subsidizedTotalCost.toFixed(6)} WAL`
     : storageRegistrationComplete
       ? "Registered"
-      : walrusChangesPending
+      : walrusChangesDetected
         ? "Calculate first"
         : "—";
 
-  const shouldHideRegisterButton =
-    !editingSections.details || !walrusChangesPending;
+  const canInteractWithWalrusSection =
+    editingSections.details || walrusChangesDetected;
+  const shouldHideRegisterButton = !walrusChangesDetected;
   const isWalrusOperationPending =
     walrus.prepare.isPending ||
     walrus.register.isPending ||
@@ -1564,8 +1593,8 @@ export default function EditCampaignPage() {
                       hasInsufficientBalance={hasInsufficientWalBalance}
                       requiredWalAmount={costEstimate?.subsidizedTotalCost}
                       hideRegisterButton={shouldHideRegisterButton}
-                      isLocked={!editingSections.details}
-                      disabled={!editingSections.details}
+                      isLocked={!canInteractWithWalrusSection}
+                      disabled={!canInteractWithWalrusSection}
                       storageRegistered={storageRegistrationComplete}
                       selectedEpochs={selectedEpochs}
                       onEpochsChange={(value) =>

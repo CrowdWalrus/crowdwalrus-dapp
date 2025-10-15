@@ -3,6 +3,7 @@ import type { ReactNode } from "react";
 import { FormLabel, FormMessage } from "@/shared/components/ui/form";
 import { Editor } from "@/shared/components/editor/blocks/editor-00/editor";
 import { SerializedEditorState } from "lexical";
+import { normalizeSerializedEditorState } from "@/shared/components/editor/utils/normalizeSerializedState";
 
 export interface CampaignDetailsEditorProps {
   disabled?: boolean;
@@ -25,13 +26,17 @@ export function CampaignDetailsEditor({
       name="campaignDetails"
       render={({ field: { onChange, value }, fieldState: { error } }) => {
         const handleEditorChange = (serializedState: SerializedEditorState) => {
-          onChange(JSON.stringify(serializedState));
+          const normalizedState =
+            normalizeSerializedEditorState(serializedState) ?? serializedState;
+          onChange(JSON.stringify(normalizedState));
         };
 
         let editorState: SerializedEditorState | undefined;
         if (value) {
           try {
-            editorState = JSON.parse(value);
+            const parsedState = JSON.parse(value) as SerializedEditorState;
+            editorState =
+              normalizeSerializedEditorState(parsedState) ?? parsedState;
           } catch (parseError) {
             console.warn(
               "Failed to parse campaign details editor state:",

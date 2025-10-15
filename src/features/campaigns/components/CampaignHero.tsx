@@ -15,6 +15,8 @@ import {
   StartsInBadge,
 } from "./CampaignBadges";
 
+const PLACEHOLDER_IMAGE = "/assets/images/placeholders/campaign.png";
+
 interface CampaignHeroProps {
   coverImageUrl: string;
   campaignName: string;
@@ -67,15 +69,24 @@ export function CampaignHero({
       : category.trim()
         ? [category.trim()]
         : [];
+  const hasCoverImage =
+    !!(coverImageUrl && coverImageUrl.trim().length > 0);
+  const displayCoverImageUrl = hasCoverImage
+    ? coverImageUrl
+    : PLACEHOLDER_IMAGE;
 
   return (
     <div className="flex flex-col gap-6 w-full">
       {/* Cover Image */}
       <div className="w-full h-[432px] rounded-3xl overflow-hidden bg-muted">
         <img
-          src={coverImageUrl}
+          src={displayCoverImageUrl}
           alt={campaignName}
           className="w-full h-full object-cover"
+          onError={(event) => {
+            event.currentTarget.onerror = null;
+            event.currentTarget.src = PLACEHOLDER_IMAGE;
+          }}
         />
       </div>
 

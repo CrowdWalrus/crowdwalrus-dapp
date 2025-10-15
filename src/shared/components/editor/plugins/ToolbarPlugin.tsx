@@ -10,7 +10,7 @@ import {
 } from "@/shared/components/ui/popover";
 import { useState, useRef } from "react";
 import { HexColorPicker } from "react-colorful";
-import { INSERT_IMAGE_COMMAND } from "./ImagePlugin";
+import { INSERT_IMAGE_COMMAND } from "./insertImageCommand";
 
 interface ToolbarPluginProps {
   disabled?: boolean;
