@@ -45,7 +45,6 @@ import { useEstimateUpdateStorageCost } from "@/features/campaigns/hooks/useCamp
 import { useOwnedCampaignCap } from "@/features/campaigns/hooks/useOwnedCampaignCap";
 import { useDebounce } from "@/shared/hooks/useDebounce";
 import { useWalBalance } from "@/shared/hooks/useWalBalance";
-import { lexicalToSummary } from "@/shared/utils/lexical";
 import { ROUTES } from "@/shared/config/routes";
 import { getContractConfig } from "@/shared/config/contracts";
 import {
@@ -439,11 +438,9 @@ export default function PostCampaignUpdatePage() {
       return;
     }
 
-    const summary = lexicalToSummary(updateContent, 220);
     const updatePayload: CampaignUpdateStorageData = {
       serializedContent: updateContent,
       identifier: "update.json",
-      plainTextSummary: summary,
     };
 
     setPreparedUpdateData(updatePayload);
@@ -597,19 +594,11 @@ export default function PostCampaignUpdatePage() {
     setError(null);
 
     try {
-      const summary =
-        preparedUpdateData?.plainTextSummary ??
-        lexicalToSummary(form.getValues("updateContent"), 220);
-
       const metadata: Record<string, string> = {
         walrus_blob_id: certifyResult.blobId,
         walrus_storage_epochs: certifyResult.storageEpochs.toString(),
         walrus_content_path: preparedUpdateData?.identifier ?? "update.json",
       };
-
-      if (summary) {
-        metadata.summary = summary;
-      }
 
       const transaction = buildAddUpdateTransaction(
         campaign.id,

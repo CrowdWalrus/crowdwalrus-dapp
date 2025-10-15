@@ -211,12 +211,6 @@ export function useCampaignUpdates(
       const sequenceRaw = normalizeToString(parsedJson.sequence);
       const updateId = normalizeToString(parsedJson.update_id);
       const author = normalizeToString(parsedJson.author);
-      const summary =
-        metadata["summary"] ??
-        metadata["plain_text_summary"] ??
-        metadata["description"] ??
-        undefined;
-
       if (!updateId) {
         return;
       }
@@ -233,7 +227,6 @@ export function useCampaignUpdates(
         walrusBlobId: walrusBlobIdRaw ?? "",
         walrusContentPath,
         walrusContentUrl,
-        summary,
       });
     });
 

@@ -31,8 +31,7 @@ function CampaignUpdateItem({ update }: CampaignUpdateItemProps) {
     }
   }
 
-  const fallbackSummary =
-    update.summary || (content ? lexicalToSummary(content) : "");
+  const fallbackSummary = content ? lexicalToSummary(content) : "";
 
   return (
     <div className="flex flex-col gap-4">

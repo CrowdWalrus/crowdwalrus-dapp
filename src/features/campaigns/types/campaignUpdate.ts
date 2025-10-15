@@ -5,9 +5,6 @@ export interface CampaignUpdateStorageData {
   /** Optional identifier for the Walrus file (defaults to update.json) */
   identifier?: string;
 
-  /** Optional plain text summary extracted from the content */
-  plainTextSummary?: string;
-
   /** Optional headline or title for the update */
   title?: string;
 }
@@ -29,5 +26,4 @@ export interface CampaignUpdate {
   walrusBlobId?: string;
   walrusContentPath?: string;
   walrusContentUrl?: string;
-  summary?: string;
 }
