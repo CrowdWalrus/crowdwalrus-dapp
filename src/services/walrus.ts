@@ -16,6 +16,7 @@ import {
 import type { CampaignUpdateStorageData } from "@/features/campaigns/types/campaignUpdate";
 import { getContractConfig } from "@/shared/config/contracts";
 import { WALRUS_EPOCH_CONFIG } from "@/shared/config/networkConfig";
+import { lexicalToPlainText } from "@/shared/utils/lexical";
 import {
   calculateCampaignStorageCost,
   type CampaignStorageCost,
@@ -95,7 +96,12 @@ export async function prepareCampaignUpdateFiles(
   const identifier = data.identifier?.trim() || "update.json";
   const serializedContent = data.serializedContent ?? "";
 
-  if (!serializedContent || serializedContent.trim().length === 0) {
+  const plainTextContent = lexicalToPlainText(serializedContent);
+  if (
+    !serializedContent ||
+    serializedContent.trim().length === 0 ||
+    plainTextContent.length === 0
+  ) {
     throw new WalrusUploadError("Update content is empty. Please add content before uploading.");
   }
 
