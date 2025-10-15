@@ -21,7 +21,7 @@ export interface SuccessStateProps {
 
 export const SuccessState = ({
   campaignResult,
-  onClose: _onClose,
+  onClose,
   updateResult,
   mode = "campaign",
 }: SuccessStateProps) => {
@@ -58,6 +58,11 @@ export const SuccessState = ({
     } catch (err) {
       console.error("Failed to copy:", err);
     }
+  };
+
+  const handleViewCampaign = () => {
+    onClose?.();
+    window.location.href = getCampaignUrl();
   };
 
   return (
@@ -113,12 +118,7 @@ export const SuccessState = ({
 
       {/* Action buttons */}
       <div>
-        <Button
-          onClick={() => {
-            window.location.href = getCampaignUrl();
-          }}
-          className="w-full"
-        >
+        <Button onClick={handleViewCampaign} className="w-full">
           {isUpdate ? "View Campaign" : "View Campaign"}
         </Button>
       </div>

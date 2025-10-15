@@ -2,7 +2,7 @@ import { useEffect, useState } from "react"
 import { useLexicalComposerContext } from "@lexical/react/LexicalComposerContext"
 import { COMMAND_PRIORITY_CRITICAL, SELECTION_CHANGE_COMMAND } from "lexical"
 
-import { ToolbarContext } from "@/shared/components/editor/context/toolbar-context"
+import { ToolbarContextProvider } from "@/shared/components/editor/context/ToolbarContextProvider"
 import { useEditorModal } from "@/shared/components/editor/editor-hooks/use-modal"
 
 export function ToolbarPlugin({
@@ -28,10 +28,10 @@ export function ToolbarPlugin({
       },
       COMMAND_PRIORITY_CRITICAL
     )
-  }, [editor])
+  }, [activeEditor])
 
   return (
-    <ToolbarContext
+    <ToolbarContextProvider
       activeEditor={activeEditor}
       $updateToolbar={$updateToolbar}
       blockType={blockType}
@@ -41,6 +41,6 @@ export function ToolbarPlugin({
       {modal}
 
       {children({ blockType })}
-    </ToolbarContext>
+    </ToolbarContextProvider>
   )
 }

@@ -74,14 +74,14 @@ export function useWalrusUpload() {
         purpose?: "campaign";
         formData: CampaignFormData;
         update?: undefined;
-        network?: string;
+        network?: "devnet" | "testnet" | "mainnet";
         storageEpochs?: number;
       }
     | {
         purpose: "campaign-update";
         update: CampaignUpdateStorageData;
         formData?: undefined;
-        network?: string;
+        network?: "devnet" | "testnet" | "mainnet";
         storageEpochs?: number;
       };
 
@@ -93,8 +93,10 @@ export function useWalrusUpload() {
       network = DEFAULT_NETWORK,
       storageEpochs,
     }) => {
-      const networkKey = (network === "devnet" ? "devnet" : network) as keyof typeof WALRUS_EPOCH_CONFIG;
-      const epochs = storageEpochs || WALRUS_EPOCH_CONFIG[networkKey].defaultEpochs;
+      const resolvedNetwork = network ?? DEFAULT_NETWORK;
+      const networkKey: keyof typeof WALRUS_EPOCH_CONFIG = resolvedNetwork;
+      const epochs =
+        storageEpochs ?? WALRUS_EPOCH_CONFIG[networkKey].defaultEpochs;
 
       let files: WalrusFile[];
 
@@ -110,14 +112,14 @@ export function useWalrusUpload() {
         files = await prepareCampaignUpdateFiles(update);
       }
 
-      const walrusClient = createWalrusClient(suiClient, network as any);
+      const walrusClient = createWalrusClient(suiClient, resolvedNetwork);
       const flow = await createWalrusUploadFlow(walrusClient, files);
 
       return {
         flow,
         files,
         storageEpochs: epochs,
-        network: network as any,
+        network: resolvedNetwork,
         purpose,
       };
     },

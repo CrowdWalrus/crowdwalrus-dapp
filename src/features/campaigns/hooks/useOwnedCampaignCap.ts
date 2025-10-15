@@ -11,6 +11,19 @@ interface UseOwnedCampaignCapResult {
   refetch: () => void;
 }
 
+interface CampaignOwnerCapFields {
+  campaign_id?: string;
+  campaignId?: string;
+  id?: { id?: string };
+}
+
+const isCampaignOwnerCapContent = (
+  content: unknown,
+): content is { dataType: "moveObject"; fields?: CampaignOwnerCapFields } =>
+  typeof content === "object" &&
+  content !== null &&
+  (content as { dataType?: unknown }).dataType === "moveObject";
+
 export function useOwnedCampaignCap(
   campaignId: string,
   network: "devnet" | "testnet" | "mainnet" = DEFAULT_NETWORK,
@@ -18,6 +31,7 @@ export function useOwnedCampaignCap(
   const account = useCurrentAccount();
   const config = getContractConfig(network);
   const enabled = Boolean(account?.address) && Boolean(campaignId);
+  const ownerAddress = account?.address ?? "";
 
   const {
     data,
@@ -27,7 +41,7 @@ export function useOwnedCampaignCap(
   } = useSuiClientQuery(
     "getOwnedObjects",
     {
-      owner: account?.address as string,
+      owner: ownerAddress,
       filter: {
         StructType: `${config.contracts.packageId}::campaign::CampaignOwnerCap`,
       },
@@ -47,20 +61,16 @@ export function useOwnedCampaignCap(
 
     for (const item of data.data) {
       const objectData = item.data;
-      const content: any = objectData?.content;
-      if (!content || content.dataType !== "moveObject") {
+      const content = objectData?.content;
+      if (!isCampaignOwnerCapContent(content)) {
         continue;
       }
 
-      const fields = content.fields as {
-        campaign_id?: string;
-        campaignId?: string;
-        id?: { id?: string };
-      };
-      const capCampaignId = fields?.campaign_id ?? fields?.campaignId;
+      const fields: CampaignOwnerCapFields = content.fields ?? {};
+      const capCampaignId = fields.campaign_id ?? fields.campaignId;
 
       if (capCampaignId === campaignId) {
-        return objectData?.objectId ?? fields?.id?.id ?? null;
+        return objectData?.objectId ?? fields.id?.id ?? null;
       }
     }
 
@@ -70,7 +80,7 @@ export function useOwnedCampaignCap(
   return {
     ownerCapId,
     isLoading: isPending,
-    error: (error as Error) ?? null,
+    error: error instanceof Error ? error : null,
     refetch,
   };
 }

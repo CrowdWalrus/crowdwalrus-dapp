@@ -3,7 +3,7 @@ import { $isHeadingNode } from "@lexical/rich-text"
 import { $findMatchingParent, $getNearestNodeOfType } from "@lexical/utils"
 import { $isRangeSelection, $isRootOrShadowRoot, BaseSelection } from "lexical"
 
-import { useToolbarContext } from "@/shared/components/editor/context/toolbar-context"
+import { useToolbarContext } from "@/shared/components/editor/context/useToolbarContext"
 import { useUpdateToolbarHandler } from "@/shared/components/editor/editor-hooks/use-update-toolbar"
 import { blockTypeToBlockName } from "@/shared/components/editor/plugins/toolbar/block-format/block-format-data"
 import {

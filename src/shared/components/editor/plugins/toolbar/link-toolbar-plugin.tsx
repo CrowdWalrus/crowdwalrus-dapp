@@ -8,7 +8,7 @@ import {
 } from "lexical"
 import { LinkIcon } from "lucide-react"
 
-import { useToolbarContext } from "@/shared/components/editor/context/toolbar-context"
+import { useToolbarContext } from "@/shared/components/editor/context/useToolbarContext"
 import { useUpdateToolbarHandler } from "@/shared/components/editor/editor-hooks/use-update-toolbar"
 import { getSelectedNode } from "@/shared/components/editor/utils/get-selected-node"
 import { sanitizeUrl } from "@/shared/components/editor/utils/url"
