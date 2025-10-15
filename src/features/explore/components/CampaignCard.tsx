@@ -8,6 +8,7 @@
 import { Link } from "react-router-dom";
 import { Button } from "@/shared/components/ui/button";
 import type { CampaignData } from "@/features/campaigns/hooks/useMyCampaigns";
+import { useWalrusImage } from "@/features/campaigns/hooks/useWalrusImage";
 import {
   getCampaignStatusInfo,
   type CampaignStatus,
@@ -19,6 +20,9 @@ interface CampaignCardProps {
   raised?: number; // Amount raised in SUI (mock data for now)
   supporters?: number; // Number of supporters (mock data for now)
 }
+
+const CAMPAIGN_PLACEHOLDER_IMAGE =
+  "/assets/images/placeholders/campaign.png";
 
 /**
  * Get status badge styling based on campaign status
@@ -73,6 +77,11 @@ export function CampaignCard({
   raised = 0,
   supporters = 0,
 }: CampaignCardProps) {
+  const {
+    data: coverImageObjectUrl,
+    isPending: isCoverImagePending,
+  } = useWalrusImage(campaign.coverImageUrl);
+
   const statusInfo = getCampaignStatusInfo(
     campaign.startDateMs,
     campaign.endDateMs,
@@ -85,21 +94,31 @@ export function CampaignCard({
 
   const fundingGoal = parseFloat(campaign.fundingGoal) || 0;
   const fundingPercentage = calculateFundingPercentage(raised, fundingGoal);
+  const hasCoverImage =
+    typeof coverImageObjectUrl === "string" &&
+    coverImageObjectUrl.trim().length > 0;
+  const displayCoverImageUrl = hasCoverImage
+    ? coverImageObjectUrl
+    : CAMPAIGN_PLACEHOLDER_IMAGE;
 
   return (
     <div className="flex flex-col overflow-hidden rounded-[24px] relative">
       {/* Cover Image */}
       <div className="relative h-[280px] w-full">
-        {campaign.coverImageUrl ? (
+        {isCoverImagePending ? (
+          <div className="absolute inset-0 w-full h-full bg-white-600 flex items-center justify-center">
+            <span className="text-black-300 text-sm">Loading image...</span>
+          </div>
+        ) : (
           <img
-            src={campaign.coverImageUrl}
+            src={displayCoverImageUrl}
             alt={campaign.name}
             className="absolute inset-0 w-full h-full object-cover"
+            onError={(event) => {
+              event.currentTarget.onerror = null;
+              event.currentTarget.src = CAMPAIGN_PLACEHOLDER_IMAGE;
+            }}
           />
-        ) : (
-          <div className="absolute inset-0 w-full h-full bg-white-600 flex items-center justify-center">
-            <span className="text-black-300 text-sm">No image</span>
-          </div>
         )}
 
         {/* Status Badge - Top Left */}
