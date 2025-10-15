@@ -21,28 +21,33 @@ export function ExplorePage() {
     <div>
       {/* Hero Section with Background */}
       <div className="relative">
-        {/* Breadcrumb - Positioned absolutely over hero */}
-        <div className="absolute top-8 left-[120px] z-20">
-          <Breadcrumb>
-            <BreadcrumbList>
-              <BreadcrumbItem>
-                <BreadcrumbLink asChild>
-                  <Link to={ROUTES.HOME}>Home</Link>
-                </BreadcrumbLink>
-              </BreadcrumbItem>
-              <BreadcrumbSeparator />
-              <BreadcrumbItem>
-                <BreadcrumbPage>Explore</BreadcrumbPage>
-              </BreadcrumbItem>
-            </BreadcrumbList>
-          </Breadcrumb>
+        {/* Breadcrumb - Inside Container, Positioned Absolutely */}
+        <div className="absolute top-8 left-0 right-0 z-20">
+          <div className="container mx-auto px-4">
+            <Breadcrumb>
+              <BreadcrumbList>
+                <BreadcrumbItem>
+                  <BreadcrumbLink asChild>
+                    <Link to={ROUTES.HOME}>Home</Link>
+                  </BreadcrumbLink>
+                </BreadcrumbItem>
+                <BreadcrumbSeparator />
+                <BreadcrumbItem>
+                  <BreadcrumbPage>Explore</BreadcrumbPage>
+                </BreadcrumbItem>
+              </BreadcrumbList>
+            </Breadcrumb>
+          </div>
         </div>
 
         {/* Hero Section */}
         <ExploreHeroSection />
       </div>
 
-      {/* Rest of the page content will go here */}
+      {/* Rest of the page content */}
+      <div className="container mx-auto px-4">
+        {/* Future content will go here */}
+      </div>
     </div>
   );
 }

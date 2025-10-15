@@ -11,7 +11,7 @@ interface CategoryCardProps {
 
 export function CategoryCard({ icon, label }: CategoryCardProps) {
   return (
-    <div className="bg-white border border-black-50 rounded-xl flex flex-col gap-3 items-center p-3 w-40 shrink-0">
+    <div className="bg-white rounded-xl flex flex-col gap-3 items-center p-3 w-40 shrink-0 shadow-sm">
       <div className="size-12 relative shrink-0">
         <img
           src={icon}
@@ -20,7 +20,7 @@ export function CategoryCard({ icon, label }: CategoryCardProps) {
         />
       </div>
       <div className="flex flex-col justify-center shrink-0">
-        <p className="font-medium text-xs text-black-500 text-center leading-[1.6] whitespace-pre-wrap">
+        <p className="font-medium text-xs text-black-500 text-center whitespace-pre-wrap">
           {label}
         </p>
       </div>
