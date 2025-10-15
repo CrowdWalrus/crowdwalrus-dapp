@@ -16,8 +16,8 @@
  * }, [wizardStep])
  */
 
-import { useState } from 'react'
-import { WizardStep } from '@/features/campaigns/types/campaign'
+import { useCallback, useMemo, useState } from "react";
+import { WizardStep } from "@/features/campaigns/types/campaign";
 
 export interface CampaignCreationModalState {
   /** Whether the modal is currently open */
@@ -37,29 +37,32 @@ export interface CampaignCreationModalState {
 }
 
 export const useCampaignCreationModal = (): CampaignCreationModalState => {
-  const [isOpen, setIsOpen] = useState(false)
-  const [currentStep, setCurrentStep] = useState<WizardStep | null>(null)
+  const [isOpen, setIsOpen] = useState(false);
+  const [currentStep, setCurrentStep] = useState<WizardStep | null>(null);
 
-  const openModal = (step: WizardStep) => {
-    setCurrentStep(step)
-    setIsOpen(true)
-  }
+  const openModal = useCallback((step: WizardStep) => {
+    setCurrentStep(step);
+    setIsOpen(true);
+  }, []);
 
-  const closeModal = () => {
-    setIsOpen(false)
+  const closeModal = useCallback(() => {
+    setIsOpen(false);
     // Optional: Add a small delay before resetting step for exit animation
     // setTimeout(() => setCurrentStep(null), 200)
-  }
+  }, []);
 
-  const setStep = (step: WizardStep) => {
-    setCurrentStep(step)
-  }
+  const setStep = useCallback((step: WizardStep) => {
+    setCurrentStep(step);
+  }, []);
 
-  return {
-    isOpen,
-    currentStep,
-    openModal,
-    closeModal,
-    setStep,
-  }
-}
+  return useMemo(
+    () => ({
+      isOpen,
+      currentStep,
+      openModal,
+      closeModal,
+      setStep,
+    }),
+    [closeModal, currentStep, isOpen, openModal, setStep],
+  );
+};
