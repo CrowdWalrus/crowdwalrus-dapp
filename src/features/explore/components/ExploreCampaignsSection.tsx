@@ -54,13 +54,15 @@ function generateMockData(campaignId: string) {
 }
 
 export function ExploreCampaignsSection() {
-  const [displayCounts, setDisplayCounts] = useState<Record<TabFilter, number>>({
-    all: 6,
-    open_soon: 6,
-    funding: 6,
-    active: 6,
-    ended: 6,
-  });
+  const [displayCounts, setDisplayCounts] = useState<Record<TabFilter, number>>(
+    {
+      all: 6,
+      open_soon: 6,
+      funding: 6,
+      active: 6,
+      ended: 6,
+    },
+  );
 
   const { campaigns, isPending, error } = useMyCampaigns();
 
@@ -101,7 +103,7 @@ export function ExploreCampaignsSection() {
 
           {/* Tabs and Content */}
           <Tabs defaultValue="all" className="w-full">
-            <div className="flex items-center justify-between">
+            <div className="flex items-center justify-between pb-10">
               {/* Tabs List */}
               <TabsList className="bg-white-500 rounded-xl p-1">
                 {TABS.map((tab) => (
@@ -129,7 +131,10 @@ export function ExploreCampaignsSection() {
             {TABS.map((tab) => {
               const filteredCampaigns = getFilteredCampaigns(tab.id);
               const displayCount = displayCounts[tab.id];
-              const displayedCampaigns = filteredCampaigns.slice(0, displayCount);
+              const displayedCampaigns = filteredCampaigns.slice(
+                0,
+                displayCount,
+              );
               const hasMore = filteredCampaigns.length > displayCount;
 
               return (
