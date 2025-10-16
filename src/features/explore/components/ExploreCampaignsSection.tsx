@@ -7,6 +7,12 @@
 import { useState } from "react";
 import { Button } from "@/shared/components/ui/button";
 import { Separator } from "@/shared/components/ui/separator";
+import {
+  Tabs,
+  TabsContent,
+  TabsList,
+  TabsTrigger,
+} from "@/shared/components/ui/tabs";
 import { useMyCampaigns } from "@/features/campaigns/hooks/useMyCampaigns";
 import { CampaignCard } from "./CampaignCard";
 import { getCampaignStatus } from "../utils/campaignStatus";
@@ -48,31 +54,37 @@ function generateMockData(campaignId: string) {
 }
 
 export function ExploreCampaignsSection() {
-  const [activeTab, setActiveTab] = useState<TabFilter>("all");
-  const [displayCount, setDisplayCount] = useState(6);
+  const [displayCounts, setDisplayCounts] = useState<Record<TabFilter, number>>({
+    all: 6,
+    open_soon: 6,
+    funding: 6,
+    active: 6,
+    ended: 6,
+  });
 
   const { campaigns, isPending, error } = useMyCampaigns();
 
-  // Filter campaigns based on active tab
-  const filteredCampaigns = campaigns.filter((campaign) => {
-    if (activeTab === "all") return true;
+  // Helper function to filter campaigns by tab
+  const getFilteredCampaigns = (filter: TabFilter) => {
+    return campaigns.filter((campaign) => {
+      if (filter === "all") return true;
 
-    const status = getCampaignStatus(
-      campaign.startDateMs,
-      campaign.endDateMs,
-      campaign.isActive,
-      campaign.isDeleted,
-    );
+      const status = getCampaignStatus(
+        campaign.startDateMs,
+        campaign.endDateMs,
+        campaign.isActive,
+        campaign.isDeleted,
+      );
 
-    return status === activeTab;
-  });
+      return status === filter;
+    });
+  };
 
-  // Limit displayed campaigns
-  const displayedCampaigns = filteredCampaigns.slice(0, displayCount);
-  const hasMore = filteredCampaigns.length > displayCount;
-
-  const handleShowMore = () => {
-    setDisplayCount((prev) => prev + 6);
+  const handleShowMore = (filter: TabFilter) => {
+    setDisplayCounts((prev) => ({
+      ...prev,
+      [filter]: prev[filter] + 6,
+    }));
   };
 
   return (
@@ -87,25 +99,21 @@ export function ExploreCampaignsSection() {
             <Separator className="flex-1 bg-border" />
           </div>
 
-          {/* Tabs and Filters */}
-          <div className="flex flex-col gap-20">
+          {/* Tabs and Content */}
+          <Tabs defaultValue="all" className="w-full">
             <div className="flex items-center justify-between">
-              {/* Tabs */}
-              <div className="flex items-center gap-4 bg-white-500 rounded-xl p-1">
+              {/* Tabs List */}
+              <TabsList className="bg-white-500 rounded-xl p-1">
                 {TABS.map((tab) => (
-                  <button
+                  <TabsTrigger
                     key={tab.id}
-                    onClick={() => setActiveTab(tab.id)}
-                    className={`px-2.5 py-1.5 rounded-[10px] text-sm font-medium transition-all ${
-                      activeTab === tab.id
-                        ? "bg-white-50 text-black-500 shadow-sm"
-                        : "text-black-300 hover:text-black-500"
-                    }`}
+                    value={tab.id}
+                    className="px-2.5 py-1.5 rounded-[10px] text-sm font-medium data-[state=active]:bg-white-50 data-[state=active]:text-black-500 data-[state=active]:shadow-sm data-[state=inactive]:text-black-300"
                   >
                     {tab.label}
-                  </button>
+                  </TabsTrigger>
                 ))}
-              </div>
+              </TabsList>
 
               {/* Filters Button */}
               {/* <Button
@@ -117,52 +125,66 @@ export function ExploreCampaignsSection() {
               </Button> */}
             </div>
 
-            {/* Campaign Cards Grid */}
-            {isPending ? (
-              <div className="flex items-center justify-center py-20">
-                <p className="text-black-300">Loading campaigns...</p>
-              </div>
-            ) : error ? (
-              <div className="flex items-center justify-center py-20">
-                <p className="text-red-500">
-                  Error loading campaigns: {error.message}
-                </p>
-              </div>
-            ) : displayedCampaigns.length === 0 ? (
-              <div className="flex items-center justify-center py-20">
-                <p className="text-black-300">
-                  No campaigns found for this filter.
-                </p>
-              </div>
-            ) : (
-              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
-                {displayedCampaigns.map((campaign) => {
-                  const mockData = generateMockData(campaign.id);
-                  return (
-                    <CampaignCard
-                      key={campaign.id}
-                      campaign={campaign}
-                      raised={mockData.raised}
-                      supporters={mockData.supporters}
-                    />
-                  );
-                })}
-              </div>
-            )}
+            {/* Tab Content for each filter */}
+            {TABS.map((tab) => {
+              const filteredCampaigns = getFilteredCampaigns(tab.id);
+              const displayCount = displayCounts[tab.id];
+              const displayedCampaigns = filteredCampaigns.slice(0, displayCount);
+              const hasMore = filteredCampaigns.length > displayCount;
 
-            {/* Show More Button */}
-            {hasMore && (
-              <div className="flex justify-center">
-                <Button
-                  onClick={handleShowMore}
-                  className="flex items-center gap-2 bg-blue-50 text-blue-500 hover:bg-blue-100 px-6"
-                >
-                  <span>Show more</span>
-                  <ChevronDown className="w-3.5 h-3.5" />
-                </Button>
-              </div>
-            )}
-          </div>
+              return (
+                <TabsContent key={tab.id} value={tab.id} className="mt-20">
+                  <div className="flex flex-col gap-20">
+                    {/* Campaign Cards Grid */}
+                    {isPending ? (
+                      <div className="flex items-center justify-center py-20">
+                        <p className="text-black-300">Loading campaigns...</p>
+                      </div>
+                    ) : error ? (
+                      <div className="flex items-center justify-center py-20">
+                        <p className="text-red-500">
+                          Error loading campaigns: {error.message}
+                        </p>
+                      </div>
+                    ) : displayedCampaigns.length === 0 ? (
+                      <div className="flex items-center justify-center py-20">
+                        <p className="text-black-300">
+                          No campaigns found for this filter.
+                        </p>
+                      </div>
+                    ) : (
+                      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
+                        {displayedCampaigns.map((campaign) => {
+                          const mockData = generateMockData(campaign.id);
+                          return (
+                            <CampaignCard
+                              key={campaign.id}
+                              campaign={campaign}
+                              raised={mockData.raised}
+                              supporters={mockData.supporters}
+                            />
+                          );
+                        })}
+                      </div>
+                    )}
+
+                    {/* Show More Button */}
+                    {hasMore && (
+                      <div className="flex justify-center">
+                        <Button
+                          onClick={() => handleShowMore(tab.id)}
+                          className="flex items-center gap-2 bg-blue-50 text-blue-500 hover:bg-blue-100 px-6"
+                        >
+                          <span>Show more</span>
+                          <ChevronDown className="w-3.5 h-3.5" />
+                        </Button>
+                      </div>
+                    )}
+                  </div>
+                </TabsContent>
+              );
+            })}
+          </Tabs>
         </div>
       </div>
     </div>
