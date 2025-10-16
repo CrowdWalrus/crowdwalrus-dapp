@@ -107,11 +107,7 @@ export function ExploreCampaignsSection() {
               {/* Tabs List */}
               <TabsList className="bg-white-500 rounded-xl p-1">
                 {TABS.map((tab) => (
-                  <TabsTrigger
-                    key={tab.id}
-                    value={tab.id}
-                    className="px-2.5 py-1.5 rounded-[10px] text-sm font-medium data-[state=active]:bg-white-50 data-[state=active]:text-black-500 data-[state=active]:shadow-sm data-[state=inactive]:text-black-300"
-                  >
+                  <TabsTrigger key={tab.id} value={tab.id}>
                     {tab.label}
                   </TabsTrigger>
                 ))}

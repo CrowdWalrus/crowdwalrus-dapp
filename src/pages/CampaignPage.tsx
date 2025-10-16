@@ -16,6 +16,12 @@ import { Card, CardContent } from "@/shared/components/ui/card";
 import { Button } from "@/shared/components/ui/button";
 import { Separator } from "@/shared/components/ui/separator";
 import { Dialog, DialogContent } from "@/shared/components/ui/dialog";
+import {
+  Tabs,
+  TabsContent,
+  TabsList,
+  TabsTrigger,
+} from "@/shared/components/ui/tabs";
 import { CampaignBreadcrumb } from "@/features/campaigns/components/CampaignBreadcrumb";
 import { CampaignHero } from "@/features/campaigns/components/CampaignHero";
 
@@ -40,8 +46,7 @@ import {
 } from "lucide-react";
 import { ROUTES } from "@/shared/config/routes";
 
-const CAMPAIGN_PLACEHOLDER_IMAGE =
-  "/assets/images/placeholders/campaign.png";
+const CAMPAIGN_PLACEHOLDER_IMAGE = "/assets/images/placeholders/campaign.png";
 
 export function CampaignPage() {
   const { id } = useParams<{ id: string }>();
@@ -109,9 +114,6 @@ export function CampaignPage() {
 
   // State to toggle between owner view and public view
   const [isOwnerView, setIsOwnerView] = useState(true);
-  const [activeContentTab, setActiveContentTab] = useState<"about" | "updates">(
-    "about",
-  );
 
   // State for deactivate modal
   const [isDeactivateModalOpen, setIsDeactivateModalOpen] = useState(false);
@@ -399,48 +401,30 @@ export function CampaignPage() {
                 socialLinks={campaign.socialLinks}
               />
 
-              <div className="pt-10">
-                <div className="flex items-center gap-6 border-b border-black-50">
-                  <button
-                    type="button"
-                    onClick={() => setActiveContentTab("about")}
-                    className={`pb-3 text-sm font-semibold transition-colors ${
-                      activeContentTab === "about"
-                        ? "border-b-2 border-black-500 text-black-500"
-                        : "text-muted-foreground hover:text-black-500"
-                    }`}
-                  >
-                    About
-                  </button>
-                  <button
-                    type="button"
-                    onClick={() => setActiveContentTab("updates")}
-                    className={`pb-3 text-sm font-semibold transition-colors ${
-                      activeContentTab === "updates"
-                        ? "border-b-2 border-black-500 text-black-500"
-                        : "text-muted-foreground hover:text-black-500"
-                    }`}
-                  >
+              <Tabs defaultValue="about" className="pt-10">
+                <TabsList className="bg-white-500 rounded-xl p-1">
+                  <TabsTrigger value="about">About</TabsTrigger>
+                  <TabsTrigger value="updates">
                     Updates ({updates.length})
-                  </button>
-                </div>
+                  </TabsTrigger>
+                </TabsList>
 
-                <div className="pt-8">
-                  {activeContentTab === "about" ? (
-                    <>
-                      {loadingDescription ? (
-                        <p className="text-muted-foreground">
-                          Loading description...
-                        </p>
-                      ) : description ? (
-                        <CampaignAbout description={description} />
-                      ) : (
-                        <p className="text-sm text-muted-foreground">
-                          No description available for this campaign.
-                        </p>
-                      )}
-                    </>
-                  ) : isUpdatesLoading ? (
+                <TabsContent value="about" className="pt-8">
+                  {loadingDescription ? (
+                    <p className="text-muted-foreground">
+                      Loading description...
+                    </p>
+                  ) : description ? (
+                    <CampaignAbout description={description} />
+                  ) : (
+                    <p className="text-sm text-muted-foreground">
+                      No description available for this campaign.
+                    </p>
+                  )}
+                </TabsContent>
+
+                <TabsContent value="updates" className="pt-8">
+                  {isUpdatesLoading ? (
                     <p className="text-muted-foreground">Loading updates...</p>
                   ) : updatesError ? (
                     <div className="flex flex-col gap-2">
@@ -454,8 +438,8 @@ export function CampaignPage() {
                   ) : (
                     <CampaignUpdatesList updates={updates} />
                   )}
-                </div>
-              </div>
+                </TabsContent>
+              </Tabs>
 
               <div className="pb-10">
                 <Separator />
