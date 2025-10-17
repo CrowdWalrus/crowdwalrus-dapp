@@ -11,10 +11,14 @@ import { ROUTES } from "@/shared/config/routes";
 import type { CampaignData } from "@/features/campaigns/hooks/useMyCampaigns";
 import { useWalrusImage } from "@/features/campaigns/hooks/useWalrusImage";
 import {
+  CampaignStatusBadge,
+  CampaignTimelineBadge,
+  CategoryBadge,
+  ContributorsBadge,
+} from "@/features/campaigns/components/CampaignBadges";
+import {
   getCampaignStatusInfo,
-  type CampaignStatus,
-} from "../utils/campaignStatus";
-import { Clock, CheckCircle, XCircle, TrendingUp } from "lucide-react";
+} from "@/features/campaigns/utils/campaignStatus";
 
 interface CampaignCardProps {
   campaign: CampaignData;
@@ -24,38 +28,6 @@ interface CampaignCardProps {
 
 const CAMPAIGN_PLACEHOLDER_IMAGE =
   "/assets/images/placeholders/campaign.png";
-
-/**
- * Get status badge styling based on campaign status
- */
-function getStatusBadgeStyles(status: CampaignStatus) {
-  switch (status) {
-    case "open_soon":
-      return {
-        container: "bg-orange-50 border-orange-500",
-        text: "text-orange-600",
-        icon: Clock,
-      };
-    case "funding":
-      return {
-        container: "bg-sgreen-50 border-sgreen-500",
-        text: "text-sgreen-700",
-        icon: TrendingUp,
-      };
-    case "active":
-      return {
-        container: "bg-sky-50 border-sky-500",
-        text: "text-sky-600",
-        icon: CheckCircle,
-      };
-    case "ended":
-      return {
-        container: "bg-red-50 border-red-500",
-        text: "text-red-600",
-        icon: XCircle,
-      };
-  }
-}
 
 /**
  * Format address for display (0x36...c088)
@@ -90,9 +62,6 @@ export function CampaignCard({
     campaign.isDeleted,
   );
 
-  const statusStyles = getStatusBadgeStyles(statusInfo.status);
-  const StatusIcon = statusStyles.icon;
-
   const fundingGoal = parseFloat(campaign.fundingGoal) || 0;
   const fundingPercentage = calculateFundingPercentage(raised, fundingGoal);
   const hasCoverImage =
@@ -123,23 +92,19 @@ export function CampaignCard({
         )}
 
         {/* Status Badge - Top Left */}
-        <div
-          className={`absolute left-4 top-5 flex items-center gap-1.5 px-2 py-0.5 rounded-lg border ${statusStyles.container}`}
-        >
-          <StatusIcon className={`w-3 h-3 ${statusStyles.text}`} />
-          <span
-            className={`text-xs font-medium leading-tight ${statusStyles.text}`}
-          >
-            {statusInfo.label}
-          </span>
+        <div className="absolute left-4 top-5">
+          <CampaignStatusBadge
+            status={statusInfo.status}
+            label={statusInfo.label}
+          />
         </div>
 
         {/* Date Badge - Top Right */}
-        <div className="absolute right-4 top-5 flex items-center gap-1.5 px-2 py-0.5 rounded-lg border bg-white-500 border-black-50">
-          <Clock className="w-3 h-3" />
-          <span className="text-xs font-medium leading-tight">
-            {statusInfo.dateLabel} {statusInfo.dateValue}
-          </span>
+        <div className="absolute right-4 top-5">
+          <CampaignTimelineBadge
+            label={statusInfo.dateLabel}
+            value={statusInfo.dateValue}
+          />
         </div>
       </div>
 
@@ -171,21 +136,10 @@ export function CampaignCard({
               </span>
             </div>
 
-            <div className="flex items-center gap-2">
-              {/* Category Badge */}
-              <div className="flex items-center gap-1.5 px-2 py-0.5 rounded-lg bg-white-600 min-h-6">
-                <span className="text-xs font-medium leading-tight">
-                  {campaign.category}
-                </span>
-              </div>
-
-              {/* Supporters Badge */}
+            <div className="flex items-center gap-2 flex-wrap">
+              <CategoryBadge category={campaign.category} />
               {supporters > 0 && (
-                <div className="flex items-center gap-1.5 px-2 py-0.5 rounded-lg bg-white-600 min-h-6">
-                  <span className="text-xs font-medium leading-tight">
-                    {supporters}
-                  </span>
-                </div>
+                <ContributorsBadge contributorsCount={supporters} />
               )}
             </div>
           </div>
