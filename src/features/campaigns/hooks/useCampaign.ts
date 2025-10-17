@@ -14,7 +14,7 @@ import { parseSocialLinksFromMetadata } from "@/features/campaigns/utils/socials
 import { DEFAULT_NETWORK } from "@/shared/config/networkConfig";
 import type { SupportedNetwork } from "@/shared/types/network";
 import { getWalrusUrl } from "@/services/walrus";
-import type { CampaignData } from "./useMyCampaigns";
+import type { CampaignData } from "./useAllCampaigns";
 import { useCampaignCreator } from "./useCampaignCreator";
 import {
   parseOptionalTimestampFromMove,
@@ -151,9 +151,6 @@ export function useCampaign(
 
       const walrusQuiltId = metadataMap["walrus_quilt_id"] || "";
 
-      console.log(`Campaign "${fields.name}" metadata:`, metadataMap);
-      console.log(`Walrus Quilt ID:`, walrusQuiltId);
-
       const socialLinks = parseSocialLinksFromMetadata(metadataMap);
 
       const rawCampaignType = normalizeCampaignType(
@@ -204,11 +201,6 @@ export function useCampaign(
           ? getWalrusUrl(walrusQuiltId, network, "description.json")
           : "",
       };
-
-      console.log("Generated URLs:", {
-        coverImageUrl: campaignData.coverImageUrl,
-        descriptionUrl: campaignData.descriptionUrl,
-      });
 
       return campaignData;
     } catch (err) {
