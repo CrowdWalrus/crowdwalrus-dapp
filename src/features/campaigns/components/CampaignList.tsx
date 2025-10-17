@@ -15,9 +15,9 @@ import {
 } from "@/shared/components/ui/card";
 import { Button } from "@/shared/components/ui/button";
 import {
-  useMyCampaigns,
+  useAllCampaigns,
   type CampaignData,
-} from "@/features/campaigns/hooks/useMyCampaigns";
+} from "@/features/campaigns/hooks/useAllCampaigns";
 import { SOCIAL_PLATFORM_CONFIG } from "@/features/campaigns/constants/socialPlatforms";
 import { getContractConfig } from "@/shared/config/contracts";
 import { DEFAULT_NETWORK } from "@/shared/config/networkConfig";
@@ -129,11 +129,14 @@ function CampaignCard({ campaign, network }: CampaignCardProps) {
   const { campaignDomain } = getContractConfig(network);
   const fullSubdomain = formatSubdomain(campaign.subdomainName, campaignDomain);
   const socialLinks = campaign.socialLinks ?? [];
-  const platformTotals = socialLinks.reduce<Record<string, number>>((acc, link) => {
-    const key = link.platform;
-    acc[key] = (acc[key] ?? 0) + 1;
-    return acc;
-  }, {});
+  const platformTotals = socialLinks.reduce<Record<string, number>>(
+    (acc, link) => {
+      const key = link.platform;
+      acc[key] = (acc[key] ?? 0) + 1;
+      return acc;
+    },
+    {},
+  );
   const platformRenderedCounts: Record<string, number> = {};
 
   return (
@@ -247,7 +250,8 @@ function CampaignCard({ campaign, network }: CampaignCardProps) {
                 const occurrence =
                   (platformRenderedCounts[link.platform] ?? 0) + 1;
                 platformRenderedCounts[link.platform] = occurrence;
-                const suffix = platformTotals[link.platform] > 1 ? ` #${occurrence}` : "";
+                const suffix =
+                  platformTotals[link.platform] > 1 ? ` #${occurrence}` : "";
                 const label = `${baseLabel}${suffix}`;
 
                 return (
@@ -292,7 +296,7 @@ function CampaignCard({ campaign, network }: CampaignCardProps) {
 export function CampaignList() {
   const network = DEFAULT_NETWORK;
   const { campaigns, isPending, error, hasNoCampaigns, refetch } =
-    useMyCampaigns(network);
+    useAllCampaigns(network);
 
   // Loading state
   if (isPending) {
