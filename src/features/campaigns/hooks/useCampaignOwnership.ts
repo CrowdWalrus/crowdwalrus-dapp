@@ -2,12 +2,13 @@ import { useMemo } from "react";
 import { useCurrentAccount } from "@mysten/dapp-kit";
 
 import { DEFAULT_NETWORK } from "@/shared/config/networkConfig";
+import type { SupportedNetwork } from "@/shared/types/network";
 import { deriveIsCampaignOwner } from "@/features/campaigns/utils/campaignOwnership";
 import { useOwnedCampaignCap } from "./useOwnedCampaignCap";
 
 interface UseCampaignOwnershipOptions {
   campaignId?: string | null;
-  network?: "devnet" | "testnet" | "mainnet";
+  network?: SupportedNetwork;
 }
 
 interface UseCampaignOwnershipResult {

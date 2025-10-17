@@ -16,6 +16,7 @@ import { parseSocialLinksFromMetadata } from "@/features/campaigns/utils/socials
 import { getContractConfig } from "@/shared/config/contracts";
 import { DEFAULT_NETWORK } from "@/shared/config/networkConfig";
 import { getWalrusUrl } from "@/services/walrus";
+import type { SupportedNetwork } from "@/shared/types/network";
 import {
   parseOptionalTimestampFromMove,
   parseTimestampFromMove,
@@ -140,7 +141,7 @@ const extractCampaignIdFromEvent = (event: unknown): string | null => {
 };
 
 export function useMyCampaigns(
-  network: "devnet" | "testnet" | "mainnet" = DEFAULT_NETWORK,
+  network: SupportedNetwork = DEFAULT_NETWORK,
 ) {
   const config = getContractConfig(network);
 

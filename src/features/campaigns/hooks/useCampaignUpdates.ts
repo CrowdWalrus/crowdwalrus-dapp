@@ -5,6 +5,7 @@ import type { EventId, PaginatedEvents, SuiEvent } from "@mysten/sui/client";
 
 import { DEFAULT_NETWORK } from "@/shared/config/networkConfig";
 import { getContractConfig } from "@/shared/config/contracts";
+import type { SupportedNetwork } from "@/shared/types/network";
 import { getWalrusUrl } from "@/services/walrus";
 import type { CampaignUpdate } from "@/features/campaigns/types/campaignUpdate";
 
@@ -113,7 +114,7 @@ const MAX_AUTO_PAGES = 10;
 
 export function useCampaignUpdates(
   campaignId: string | null | undefined,
-  network: "devnet" | "testnet" | "mainnet" = DEFAULT_NETWORK,
+  network: SupportedNetwork = DEFAULT_NETWORK,
   limit = 50,
 ): UseCampaignUpdatesResult {
   const enabled = Boolean(campaignId);

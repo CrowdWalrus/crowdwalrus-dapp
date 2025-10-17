@@ -12,6 +12,7 @@ import { useMemo } from "react";
 import { useSuiClientQuery } from "@mysten/dapp-kit";
 import { parseSocialLinksFromMetadata } from "@/features/campaigns/utils/socials";
 import { DEFAULT_NETWORK } from "@/shared/config/networkConfig";
+import type { SupportedNetwork } from "@/shared/types/network";
 import { getWalrusUrl } from "@/services/walrus";
 import type { CampaignData } from "./useMyCampaigns";
 import {
@@ -98,7 +99,7 @@ const normalizeCampaignType = (value: string | undefined): string => {
 
 export function useCampaign(
   campaignId: string,
-  network: "devnet" | "testnet" | "mainnet" = DEFAULT_NETWORK,
+  network: SupportedNetwork = DEFAULT_NETWORK,
 ) {
   // Fetch single campaign object
   const {

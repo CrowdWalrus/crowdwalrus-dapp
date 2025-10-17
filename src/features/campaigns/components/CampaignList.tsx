@@ -21,6 +21,7 @@ import {
 import { SOCIAL_PLATFORM_CONFIG } from "@/features/campaigns/constants/socialPlatforms";
 import { getContractConfig } from "@/shared/config/contracts";
 import { DEFAULT_NETWORK } from "@/shared/config/networkConfig";
+import type { SupportedNetwork } from "@/shared/types/network";
 import { EditorViewer } from "@/shared/components/editor/blocks/editor-00/viewer";
 import { SerializedEditorState } from "lexical";
 import { formatSubdomain } from "@/shared/utils/subdomain";
@@ -29,7 +30,7 @@ import { useWalrusImage } from "@/features/campaigns/hooks/useWalrusImage";
 
 interface CampaignCardProps {
   campaign: CampaignData;
-  network: "devnet" | "testnet" | "mainnet";
+  network: SupportedNetwork;
 }
 
 /**

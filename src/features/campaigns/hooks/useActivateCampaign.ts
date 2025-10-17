@@ -6,9 +6,8 @@ import {
 import { toast } from "sonner";
 
 import { DEFAULT_NETWORK } from "@/shared/config/networkConfig";
+import type { SupportedNetwork } from "@/shared/types/network";
 import { buildToggleActiveTransaction } from "@/services/campaign-transaction";
-
-type SupportedNetwork = "devnet" | "testnet" | "mainnet";
 
 export type ActivateCampaignResult =
   | "success"

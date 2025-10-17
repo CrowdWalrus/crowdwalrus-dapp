@@ -6,8 +6,7 @@ import {
 
 import { getContractConfig } from "@/shared/config/contracts";
 import { DEFAULT_NETWORK } from "@/shared/config/networkConfig";
-
-type SupportedNetwork = "devnet" | "testnet" | "mainnet";
+import type { SupportedNetwork } from "@/shared/types/network";
 
 interface AdminCapFields {
   crowd_walrus_id?: string;

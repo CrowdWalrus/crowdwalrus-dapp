@@ -1,3 +1,5 @@
+import type { SupportedNetwork } from "@/shared/types/network";
+
 /**
  * Smart Contract and Walrus Configuration
  *
@@ -20,7 +22,7 @@ export interface ContractAddresses {
  * Walrus network configuration
  */
 export interface WalrusConfig {
-  network: "devnet" | "testnet" | "mainnet";
+  network: SupportedNetwork;
   uploadRelay?: string;
   aggregatorUrl: string;
   systemObjectId: string; // Walrus system object on Sui for pricing queries
@@ -154,7 +156,7 @@ export const STORAGE_COST_MULTIPLIER = 5;
  * Get contract configuration for a specific network
  */
 export function getContractConfig(
-  network: "devnet" | "testnet" | "mainnet",
+  network: SupportedNetwork,
 ): NetworkContractConfig {
   switch (network) {
     case "devnet":

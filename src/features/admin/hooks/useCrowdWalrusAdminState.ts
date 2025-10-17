@@ -3,8 +3,7 @@ import { useSuiClientQuery } from "@mysten/dapp-kit";
 
 import { getContractConfig } from "@/shared/config/contracts";
 import { DEFAULT_NETWORK } from "@/shared/config/networkConfig";
-
-type SupportedNetwork = "devnet" | "testnet" | "mainnet";
+import type { SupportedNetwork } from "@/shared/types/network";
 
 interface CrowdWalrusFields {
   verified_campaigns_list?: unknown;
