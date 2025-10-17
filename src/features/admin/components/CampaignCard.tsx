@@ -11,6 +11,15 @@ import { getCampaignStatusInfo } from "@/features/campaigns/utils/campaignStatus
 import { Badge } from "@/shared/components/ui/badge";
 import { Check, Users, X } from "lucide-react";
 
+/**
+ * Format address for display (0x36...c088)
+ * Returns fallback message if address is missing or invalid
+ */
+function formatAddress(address: string | null | undefined): string {
+  if (!address || address.length < 10) return "Not available";
+  return `${address.slice(0, 6)}...${address.slice(-4)}`;
+}
+
 interface CampaignCardProps {
   campaign: CampaignData;
   isVerified: boolean;
@@ -78,7 +87,7 @@ export function CampaignCard({
           <div className="flex flex-col leading-relaxed">
             <p className="text-xs text-black-200">Published by</p>
             <p className="text-sm font-medium text-black-500">
-              {campaign.adminId.slice(0, 6)}...{campaign.adminId.slice(-4)}
+              {formatAddress(campaign.creatorAddress)}
             </p>
           </div>
           <div className="flex items-center gap-2 flex-wrap">
