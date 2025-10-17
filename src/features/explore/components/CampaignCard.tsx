@@ -31,9 +31,10 @@ const CAMPAIGN_PLACEHOLDER_IMAGE =
 
 /**
  * Format address for display (0x36...c088)
+ * Returns fallback message if address is missing or invalid
  */
-function formatAddress(address: string): string {
-  if (!address || address.length < 10) return address;
+function formatAddress(address: string | null | undefined): string {
+  if (!address || address.length < 10) return "Not available";
   return `${address.slice(0, 4)}...${address.slice(-4)}`;
 }
 
@@ -132,7 +133,7 @@ export function CampaignCard({
                 Published by
               </span>
               <span className="text-sm font-medium leading-relaxed">
-                {formatAddress(campaign.adminId)}
+                {formatAddress(campaign.creatorAddress)}
               </span>
             </div>
 
