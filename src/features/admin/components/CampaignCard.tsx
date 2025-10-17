@@ -1,6 +1,6 @@
 import { Button } from "@/shared/components/ui/button";
 import { Separator } from "@/shared/components/ui/separator";
-import type { CampaignData } from "@/features/campaigns/hooks/useMyCampaigns";
+import type { CampaignData } from "@/features/campaigns/hooks/useAllCampaigns";
 import {
   CampaignStatusBadge,
   CampaignTimelineBadge,
