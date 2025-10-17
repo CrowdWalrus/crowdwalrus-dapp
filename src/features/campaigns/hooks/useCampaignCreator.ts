@@ -108,7 +108,7 @@ export function useCampaignCreator(
 
 /**
  * Shared utility to extract all campaign creators from CampaignCreated events
- * Used by useMyCampaigns to build a map of campaign_id -> creator
+ * Used by useAllCampaigns to build a map of campaign_id -> creator
  * Normalizes campaign IDs to ensure consistent matching
  */
 export interface CampaignCreatedEventData {
@@ -133,7 +133,7 @@ export function extractCampaignDataFromEvent(
     // Normalize campaign ID to ensure consistent matching across different ID formats
     return {
       campaign_id: normalizeSuiAddress(campaignId),
-      creator
+      creator,
     };
   }
 
