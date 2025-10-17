@@ -2,7 +2,11 @@ import { useState, useMemo } from "react";
 import { ConnectButton } from "@mysten/dapp-kit";
 import { Tabs, TabsList, TabsTrigger } from "@/shared/components/ui/tabs";
 import { Button } from "@/shared/components/ui/button";
-import { Alert, AlertDescription, AlertTitle } from "@/shared/components/ui/alert";
+import {
+  Alert,
+  AlertDescription,
+  AlertTitle,
+} from "@/shared/components/ui/alert";
 import { Filter, AlertCircle, Loader2 } from "lucide-react";
 import {
   useCrowdWalrusAdminCaps,
@@ -11,7 +15,8 @@ import {
   useUnverifyCampaign,
   useCreateVerifyCap,
 } from "@/features/admin";
-import { useMyCampaigns } from "@/features/campaigns/hooks/useMyCampaigns";
+import { useAllCampaigns } from "@/features/campaigns/hooks/useAllCampaigns";
+import type { CampaignData } from "@/features/campaigns/hooks/useAllCampaigns";
 import { CampaignCard } from "@/features/admin/components/CampaignCard";
 import { VerifierManagementPanel } from "@/features/admin/components/VerifierManagementPanel";
 
@@ -46,7 +51,7 @@ export function AdminPage() {
     isPending: isCampaignsLoading,
     error: campaignsError,
     refetch: refetchCampaigns,
-  } = useMyCampaigns();
+  } = useAllCampaigns();
 
   // Create verifier hook (for admin panel)
   const { createVerifyCap, isProcessing: isCreatingCap } = useCreateVerifyCap({
@@ -61,12 +66,12 @@ export function AdminPage() {
   const filteredCampaigns = useMemo(() => {
     if (activeTab === "verified") {
       return campaigns.filter((c) =>
-        verifiedCampaignIdSet.has(c.id.toLowerCase())
+        verifiedCampaignIdSet.has(c.id.toLowerCase()),
       );
     }
     if (activeTab === "unverified") {
       return campaigns.filter(
-        (c) => !verifiedCampaignIdSet.has(c.id.toLowerCase())
+        (c) => !verifiedCampaignIdSet.has(c.id.toLowerCase()),
       );
     }
     return campaigns;
@@ -145,7 +150,8 @@ export function AdminPage() {
             Hey! Admin 👋🏻
           </h1>
           <p className="text-base text-black-400 leading-relaxed">
-            Check published campaigns and verify them to get listed on CrowdWalrus.
+            Check published campaigns and verify them to get listed on
+            CrowdWalrus.
           </p>
         </div>
 
@@ -207,7 +213,7 @@ export function AdminPage() {
               <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
                 {filteredCampaigns.map((campaign) => {
                   const isVerified = verifiedCampaignIdSet.has(
-                    campaign.id.toLowerCase()
+                    campaign.id.toLowerCase(),
                   );
 
                   return (
@@ -250,7 +256,7 @@ export function AdminPage() {
 
 // Separate component to handle verify/unverify actions per campaign
 interface CampaignCardWithActionsProps {
-  campaign: any;
+  campaign: CampaignData;
   isVerified: boolean;
   primaryVerifyCapId: string | null;
   accountAddress: string | null;
@@ -279,7 +285,7 @@ function CampaignCardWithActions({
       accountAddress,
       isVerified,
       onSuccess: onRefetch,
-    }
+    },
   );
 
   return (
