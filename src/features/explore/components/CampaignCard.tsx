@@ -8,7 +8,7 @@
 import { Link } from "react-router-dom";
 import { Button } from "@/shared/components/ui/button";
 import { ROUTES } from "@/shared/config/routes";
-import type { CampaignData } from "@/features/campaigns/hooks/useMyCampaigns";
+import type { CampaignData } from "@/features/campaigns/hooks/useAllCampaigns";
 import { useWalrusImage } from "@/features/campaigns/hooks/useWalrusImage";
 import {
   CampaignStatusBadge,
@@ -16,9 +16,7 @@ import {
   CategoryBadge,
   ContributorsBadge,
 } from "@/features/campaigns/components/CampaignBadges";
-import {
-  getCampaignStatusInfo,
-} from "@/features/campaigns/utils/campaignStatus";
+import { getCampaignStatusInfo } from "@/features/campaigns/utils/campaignStatus";
 
 interface CampaignCardProps {
   campaign: CampaignData;
@@ -26,8 +24,7 @@ interface CampaignCardProps {
   supporters?: number; // Number of supporters (mock data for now)
 }
 
-const CAMPAIGN_PLACEHOLDER_IMAGE =
-  "/assets/images/placeholders/campaign.png";
+const CAMPAIGN_PLACEHOLDER_IMAGE = "/assets/images/placeholders/campaign.png";
 
 /**
  * Format address for display (0x36...c088)
@@ -51,10 +48,8 @@ export function CampaignCard({
   raised = 0,
   supporters = 0,
 }: CampaignCardProps) {
-  const {
-    data: coverImageObjectUrl,
-    isPending: isCoverImagePending,
-  } = useWalrusImage(campaign.coverImageUrl);
+  const { data: coverImageObjectUrl, isPending: isCoverImagePending } =
+    useWalrusImage(campaign.coverImageUrl);
 
   const statusInfo = getCampaignStatusInfo(
     campaign.startDateMs,
