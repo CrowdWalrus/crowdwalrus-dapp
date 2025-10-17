@@ -17,6 +17,15 @@ import {
 
 const PLACEHOLDER_IMAGE = "/assets/images/placeholders/campaign.png";
 
+/**
+ * Format address for display (0x36...c088)
+ * Returns fallback message if address is missing or invalid
+ */
+function formatAddress(address: string | null | undefined): string {
+  if (!address || address.length < 10) return "Not available";
+  return `${address.slice(0, 4)}...${address.slice(-4)}`;
+}
+
 interface CampaignHeroProps {
   coverImageUrl: string;
   campaignName: string;
@@ -130,7 +139,7 @@ export function CampaignHero({
           <div className="flex flex-col">
             <p className="text-sm text-black-200">Published by</p>
             <p>
-              {publisherAddress.slice(0, 4)}...{publisherAddress.slice(-4)}
+              {formatAddress(publisherAddress)}
             </p>
           </div>
 
