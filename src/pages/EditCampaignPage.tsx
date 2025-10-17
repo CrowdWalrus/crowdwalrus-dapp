@@ -15,7 +15,7 @@ import { Transaction } from "@mysten/sui/transactions";
 import { toast } from "sonner";
 
 import { useCampaign } from "@/features/campaigns/hooks/useCampaign";
-import type { CampaignData } from "@/features/campaigns/hooks/useMyCampaigns";
+import type { CampaignData } from "@/features/campaigns/hooks/useAllCampaigns";
 import { useOwnedCampaignCap } from "@/features/campaigns/hooks/useOwnedCampaignCap";
 import {
   useWalrusUpload,
