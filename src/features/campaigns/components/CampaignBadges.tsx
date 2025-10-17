@@ -211,19 +211,27 @@ export function ContributorsBadge({
 
 interface VerificationBadgeProps {
   isVerified: boolean;
+  className?: string;
 }
 
-export function VerificationBadge({ isVerified }: VerificationBadgeProps) {
+export function VerificationBadge({
+  isVerified,
+  className,
+}: VerificationBadgeProps) {
+  const IconComponent = isVerified ? CheckCircle : AlertCircle;
+  const verifiedClasses = "bg-primary text-primary-foreground border-none";
+  const unverifiedClasses = "bg-orange-600 text-white-50 border-orange-600";
+
   return (
     <Badge
       variant="outline"
       className={cn(
         BADGE_TEXT_CLASS,
-        "border-transparent",
-        isVerified ? "bg-green-600 text-white" : "bg-orange-600 text-white",
+        isVerified ? verifiedClasses : unverifiedClasses,
+        className,
       )}
     >
-      <AlertCircle className="size-3" />
+      <IconComponent className="size-3" />
       {isVerified ? "Verified" : "Not Verified"}
     </Badge>
   );
