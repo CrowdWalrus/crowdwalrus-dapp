@@ -11,8 +11,10 @@
 
 import { useMemo } from "react";
 import { useSuiClientQuery } from "@mysten/dapp-kit";
+import { normalizeSuiAddress } from "@mysten/sui/utils";
 import type { CampaignSocialLink } from "@/features/campaigns/types/campaign";
 import { parseSocialLinksFromMetadata } from "@/features/campaigns/utils/socials";
+import { extractCampaignDataFromEvent } from "./useCampaignCreator";
 import { getContractConfig } from "@/shared/config/contracts";
 import { DEFAULT_NETWORK } from "@/shared/config/networkConfig";
 import { getWalrusUrl } from "@/services/walrus";
@@ -27,6 +29,7 @@ export interface CampaignData {
   // Sui blockchain data
   id: string;
   adminId: string;
+  creatorAddress: string; // Address of the campaign owner (who owns CampaignOwnerCap)
   name: string;
   shortDescription: string;
   subdomainName: string;
@@ -130,16 +133,6 @@ const normalizeCampaignType = (value: string | undefined): string => {
   return value;
 };
 
-const extractCampaignIdFromEvent = (event: unknown): string | null => {
-  if (!event || typeof event !== "object") {
-    return null;
-  }
-
-  const parsedJson = (event as { parsedJson?: { campaign_id?: unknown } }).parsedJson;
-  const campaignId = parsedJson?.campaign_id;
-  return typeof campaignId === "string" ? campaignId : null;
-};
-
 export function useMyCampaigns(
   network: SupportedNetwork = DEFAULT_NETWORK,
 ) {
@@ -155,20 +148,28 @@ export function useMyCampaigns(
     query: {
       MoveEventType: `${config.contracts.packageId}::crowd_walrus::CampaignCreated`,
     },
-    limit: 50,
+    limit: 100, // Increased from 50 to support more campaigns
     order: "descending",
   });
 
-  // Extract campaign IDs from events
-  const campaignIds = useMemo(() => {
-    if (!eventsData?.data) return [];
+  // Extract campaign IDs and creator addresses from events
+  const { campaignIds, creatorMap } = useMemo(() => {
+    if (!eventsData?.data) return { campaignIds: [], creatorMap: new Map<string, string>() };
 
-    const ids = eventsData.data
-      .map((event) => extractCampaignIdFromEvent(event))
-      .filter((id): id is string => Boolean(id));
+    const map = new Map<string, string>();
+    const ids: string[] = [];
+
+    eventsData.data.forEach((event) => {
+      const data = extractCampaignDataFromEvent(event);
+      if (data) {
+        ids.push(data.campaign_id);
+        map.set(data.campaign_id, data.creator);
+      }
+    });
 
     console.log("Campaign IDs from events:", ids);
-    return ids;
+    console.log("Creator map:", map);
+    return { campaignIds: ids, creatorMap: map };
   }, [eventsData]);
 
   // Step 2: Fetch campaign objects (only when we have IDs)
@@ -227,9 +228,15 @@ export function useMyCampaigns(
               "",
           );
 
+          const campaignId = fields.id?.id || obj.data?.objectId || "";
+          // Normalize campaign ID before looking up in creator map
+          const normalizedCampaignId = normalizeSuiAddress(campaignId);
+          const creatorAddress = creatorMap.get(normalizedCampaignId) || "";
+
           const campaignData: CampaignData = {
-            id: fields.id?.id || obj.data?.objectId || "",
+            id: campaignId,
             adminId: fields.admin_id ?? "",
+            creatorAddress,
             name: fields.name ?? "",
             shortDescription: fields.short_description ?? "",
             subdomainName: fields.subdomain_name ?? "",
@@ -286,7 +293,7 @@ export function useMyCampaigns(
       .sort((a, b) => b.createdAtMs - a.createdAtMs);
 
     return processedCampaigns;
-  }, [campaignObjects, network]);
+  }, [campaignObjects, network, creatorMap]);
 
   // Combine loading and error states
   const isPending = isEventsPending || isCampaignsPending;
