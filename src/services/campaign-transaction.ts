@@ -371,6 +371,75 @@ export function buildDeleteCampaignTransaction(
 }
 
 /**
+ * Build a transaction to verify a campaign using a VerifyCap.
+ */
+export function buildVerifyCampaignTransaction(
+  campaignId: string,
+  verifyCapId: string,
+  network: "devnet" | "testnet" | "mainnet",
+): Transaction {
+  const config = getContractConfig(network);
+  const tx = new Transaction();
+
+  tx.moveCall({
+    target: `${config.contracts.packageId}::crowd_walrus::verify_campaign`,
+    arguments: [
+      tx.object(config.contracts.crowdWalrusObjectId),
+      tx.object(verifyCapId),
+      tx.object(campaignId),
+    ],
+  });
+
+  return tx;
+}
+
+/**
+ * Build a transaction to unverify a campaign using a VerifyCap.
+ */
+export function buildUnverifyCampaignTransaction(
+  campaignId: string,
+  verifyCapId: string,
+  network: "devnet" | "testnet" | "mainnet",
+): Transaction {
+  const config = getContractConfig(network);
+  const tx = new Transaction();
+
+  tx.moveCall({
+    target: `${config.contracts.packageId}::crowd_walrus::unverify_campaign`,
+    arguments: [
+      tx.object(config.contracts.crowdWalrusObjectId),
+      tx.object(verifyCapId),
+      tx.object(campaignId),
+    ],
+  });
+
+  return tx;
+}
+
+/**
+ * Build a transaction to create a new VerifyCap for a given address.
+ */
+export function buildCreateVerifyCapTransaction(
+  adminCapId: string,
+  newVerifierAddress: string,
+  network: "devnet" | "testnet" | "mainnet",
+): Transaction {
+  const config = getContractConfig(network);
+  const tx = new Transaction();
+
+  tx.moveCall({
+    target: `${config.contracts.packageId}::crowd_walrus::create_verify_cap`,
+    arguments: [
+      tx.object(config.contracts.crowdWalrusObjectId),
+      tx.object(adminCapId),
+      tx.pure.address(newVerifierAddress),
+    ],
+  });
+
+  return tx;
+}
+
+/**
  * Extract campaign ID from transaction result
  * Looks for the created Campaign object in the transaction results
  * Note: Expects the full transaction result with objectChanges at top level
