@@ -15,7 +15,7 @@ import {
 } from "@/shared/components/ui/tabs";
 import { useMyCampaigns } from "@/features/campaigns/hooks/useMyCampaigns";
 import { CampaignCard } from "./CampaignCard";
-import { getCampaignStatus } from "../utils/campaignStatus";
+import { getCampaignStatus } from "@/features/campaigns/utils/campaignStatus";
 import { ChevronDown } from "lucide-react";
 
 type TabFilter = "all" | "open_soon" | "funding" | "active" | "ended";
