@@ -7,6 +7,7 @@
 
 import { Link } from "react-router-dom";
 import { Button } from "@/shared/components/ui/button";
+import { ROUTES } from "@/shared/config/routes";
 import type { CampaignData } from "@/features/campaigns/hooks/useMyCampaigns";
 import { useWalrusImage } from "@/features/campaigns/hooks/useWalrusImage";
 import {
@@ -224,7 +225,10 @@ export function CampaignCard({
         </div>
 
         {/* Action Button Section - Always at Bottom */}
-        <Link to={`/campaign/${campaign.id}`} className="w-full pt-4">
+        <Link
+          to={ROUTES.CAMPAIGNS_DETAIL.replace(":id", campaign.id)}
+          className="w-full pt-4"
+        >
           <Button
             className={`w-full min-h-10 ${
               statusInfo.buttonVariant === "primary"
