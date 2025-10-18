@@ -19,8 +19,13 @@ function CampaignUpdateItem({ update }: CampaignUpdateItemProps) {
   const {
     data: content,
     isLoading,
+    isFetching,
+    isPlaceholderData,
     error,
   } = useWalrusDescription(update.walrusContentUrl);
+
+  const isWalrusContentLoading =
+    (isLoading || isFetching || isPlaceholderData) && !content;
 
   let editorState: SerializedEditorState | null = null;
   if (content) {
@@ -43,8 +48,8 @@ function CampaignUpdateItem({ update }: CampaignUpdateItemProps) {
       </div>
 
       <div className="pl-6">
-        {isLoading ? (
-          <div className="flex flex-col gap-3">
+        {isWalrusContentLoading ? (
+          <div className="flex flex-col gap-3 pb-10">
             <div className="h-4 w-2/3 rounded bg-black-50 animate-pulse" />
             <div className="h-4 w-1/2 rounded bg-black-50 animate-pulse" />
             <div className="h-4 w-3/4 rounded bg-black-50 animate-pulse" />
