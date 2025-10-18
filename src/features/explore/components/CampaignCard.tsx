@@ -13,7 +13,7 @@ import { useWalrusImage } from "@/features/campaigns/hooks/useWalrusImage";
 import {
   CampaignStatusBadge,
   CampaignTimelineBadge,
-  CategoryBadge,
+  CategoriesBadgeGroup,
   ContributorsBadge,
 } from "@/features/campaigns/components/CampaignBadges";
 import { getCampaignStatusInfo } from "@/features/campaigns/utils/campaignStatus";
@@ -133,7 +133,7 @@ export function CampaignCard({
             </div>
 
             <div className="flex items-center gap-2 flex-wrap">
-              <CategoryBadge category={campaign.category} />
+              <CategoriesBadgeGroup categories={campaign.category} />
               {supporters > 0 && (
                 <ContributorsBadge contributorsCount={supporters} />
               )}

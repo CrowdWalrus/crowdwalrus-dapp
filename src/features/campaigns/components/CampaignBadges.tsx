@@ -20,6 +20,11 @@ import type { LucideIcon } from "lucide-react";
 import { Badge } from "@/shared/components/ui/badge";
 import { cn } from "@/shared/lib/utils";
 import type { CampaignStatus } from "@/features/campaigns/utils/campaignStatus";
+import {
+  Tooltip,
+  TooltipContent,
+  TooltipTrigger,
+} from "@/shared/components/ui/tooltip";
 
 type CategoryKey =
   | "arts"
@@ -234,5 +239,92 @@ export function VerificationBadge({
       <IconComponent className="size-3" />
       {isVerified ? "Verified" : "Not Verified"}
     </Badge>
+  );
+}
+
+interface CategoriesBadgeGroupProps {
+  categories: string;
+  maxVisible?: number;
+}
+
+/**
+ * Displays multiple category badges with overflow handling
+ * Shows first N categories, with a "+X more" tooltip for remaining ones
+ */
+export function CategoriesBadgeGroup({
+  categories,
+  maxVisible = 1,
+}: CategoriesBadgeGroupProps) {
+  // Parse comma-separated categories
+  const categoryList = categories
+    .split(",")
+    .map((cat) => cat.trim())
+    .filter(Boolean);
+
+  if (categoryList.length === 0) {
+    return null;
+  }
+
+  // Show all if within limit
+  if (categoryList.length <= maxVisible) {
+    return (
+      <>
+        {categoryList.map((category, index) => (
+          <CategoryBadge key={`${category}-${index}`} category={category} />
+        ))}
+      </>
+    );
+  }
+
+  // Show limited badges + "more" indicator with tooltip
+  const visibleCategories = categoryList.slice(0, maxVisible);
+  const remainingCategories = categoryList.slice(maxVisible);
+  const remainingCount = remainingCategories.length;
+
+  return (
+    <>
+      {visibleCategories.map((category, index) => (
+        <CategoryBadge key={`${category}-${index}`} category={category} />
+      ))}
+      <Tooltip>
+        <TooltipTrigger asChild>
+          <div>
+            <Badge
+              variant="outline"
+              className={cn(BADGE_TEXT_CLASS, "bg-black-50 cursor-help")}
+            >
+              <Tag className="size-3" />
+              +{remainingCount} more
+            </Badge>
+          </div>
+        </TooltipTrigger>
+        <TooltipContent side="top" className="max-w-xs">
+          <div className="flex flex-col gap-1">
+            <div className="font-semibold text-xs">All categories:</div>
+            <div className="flex flex-wrap gap-1">
+              {categoryList.map((category, index) => {
+                const normalizedCategory = category.trim().toLowerCase();
+                const config =
+                  CATEGORY_BADGE_CONFIG[normalizedCategory as CategoryKey];
+                const label =
+                  config?.label ??
+                  category
+                    .trim()
+                    .split(/[\s_-]+/)
+                    .filter(Boolean)
+                    .map((word) => word.charAt(0).toUpperCase() + word.slice(1))
+                    .join(" ");
+                return (
+                  <span key={`tooltip-${category}-${index}`} className="text-xs">
+                    {label}
+                    {index < categoryList.length - 1 && ", "}
+                  </span>
+                );
+              })}
+            </div>
+          </div>
+        </TooltipContent>
+      </Tooltip>
+    </>
   );
 }
