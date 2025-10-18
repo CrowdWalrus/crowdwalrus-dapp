@@ -182,8 +182,8 @@ export function CampaignCard({
           <Button
             className={`w-full min-h-10 ${
               statusInfo.buttonVariant === "primary"
-                ? "bg-blue-500 text-white-50 hover:bg-blue-600 border-0"
-                : "bg-white-50 border border-black-50 hover:bg-white-100 text-black-500"
+                ? "bg-blue-500 text-white-50 shadow-none hover:bg-blue-600 border-0"
+                : "bg-white-50 border border-black-50 shadow-none hover:bg-white-100 text-black-500"
             }`}
           >
             {statusInfo.buttonText}
