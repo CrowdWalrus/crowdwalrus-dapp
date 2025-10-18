@@ -599,12 +599,18 @@ export default function EditCampaignPage() {
       }
 
       const sanitizedSocials = sanitizeSocialLinks(values.socials);
+      const campaignTypeValue =
+        metadataPatch.campaign_type ??
+        (values.campaignType
+          ? values.campaignType.trim().toLowerCase()
+          : campaign.campaignType ?? "");
 
       const walrusFormData = {
         name: campaign.name,
         short_description: values.description,
         subdomain_name: campaign.subdomainName,
         category: metadataPatch.category ?? campaign.category ?? "",
+        campaign_type: campaignTypeValue,
         funding_goal: campaign.fundingGoal ?? "0",
         start_date: new Date(campaign.startDateMs),
         end_date: new Date(campaign.endDateMs),
@@ -950,12 +956,18 @@ export default function EditCampaignPage() {
       }
 
       const sanitizedSocials = sanitizeSocialLinks(values.socials);
+      const campaignTypeValue =
+        metadataPatch.campaign_type ??
+        (values.campaignType
+          ? values.campaignType.trim().toLowerCase()
+          : campaignData.campaignType ?? "");
 
       const walrusFormData = {
         name: campaignData.name,
         short_description: values.description,
         subdomain_name: campaignData.subdomainName,
         category: metadataPatch.category ?? campaignData.category ?? "",
+        campaign_type: campaignTypeValue,
         funding_goal: campaignData.fundingGoal ?? "0",
         start_date: new Date(campaignData.startDateMs),
         end_date: new Date(campaignData.endDateMs),
