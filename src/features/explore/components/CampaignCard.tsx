@@ -152,24 +152,28 @@ export function CampaignCard({
               </div>
 
               {/* Funding Stats */}
-              <div className="flex items-center gap-1 text-base leading-relaxed">
-                <span className="font-semibold">
-                  ${raised.toLocaleString()} raised
-                </span>
-                <span>Goal ${fundingGoal.toLocaleString()}</span>
-                <span className="ml-auto">{fundingPercentage}% funded</span>
+              <div className="flex items-center justify-between text-base leading-relaxed">
+                <div className="flex items-center gap-1">
+                  <span className="font-semibold">
+                    ${raised.toLocaleString()} raised
+                  </span>
+                  <span>Goal ${fundingGoal.toLocaleString()}</span>
+                </div>
+                <span>{fundingPercentage}% funded</span>
               </div>
             </div>
           )}
 
           {/* No progress - just show raised amount */}
           {!statusInfo.showProgress && raised > 0 && (
-            <div className="flex items-center gap-1 text-base leading-relaxed">
-              <span className="font-semibold">
-                ${raised.toLocaleString()} raised
-              </span>
-              <span>Goal ${fundingGoal.toLocaleString()}</span>
-              <span className="ml-auto">{fundingPercentage}% funded</span>
+            <div className="flex items-center justify-between text-base leading-relaxed">
+              <div className="flex items-center gap-1">
+                <span className="font-semibold">
+                  ${raised.toLocaleString()} raised
+                </span>
+                <span>Goal ${fundingGoal.toLocaleString()}</span>
+              </div>
+              <span>{fundingPercentage}% funded</span>
             </div>
           )}
         </div>
