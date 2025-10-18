@@ -17,6 +17,7 @@ import {
 } from "@/features/campaigns/utils/socials";
 import { getContractConfig, CLOCK_OBJECT_ID } from "@/shared/config/contracts";
 import { WALRUS_EPOCH_CONFIG } from "@/shared/config/networkConfig";
+import type { SupportedNetwork } from "@/shared/types/network";
 import { formatSubdomain } from "@/shared/utils/subdomain";
 
 interface ObjectChange {
@@ -45,7 +46,7 @@ const getObjectChanges = (value: unknown): ObjectChange[] => {
 export function buildCreateCampaignTransaction(
   formData: CampaignFormData,
   walrusBlobId: string,
-  network: "devnet" | "testnet" | "mainnet",
+  network: SupportedNetwork,
   storageEpochs?: number,
 ): Transaction {
   const config = getContractConfig(network);
@@ -146,7 +147,7 @@ export function buildUpdateCampaignBasicsTransaction(
     name?: string;
     short_description?: string;
   },
-  network: "devnet" | "testnet" | "mainnet",
+  network: SupportedNetwork,
 ): Transaction {
   const config = getContractConfig(network);
   const tx = new Transaction();
@@ -182,7 +183,7 @@ export function buildUpdateCampaignMetadataTransaction(
   campaignId: string,
   ownerCapId: string,
   patch: MetadataPatch,
-  network: "devnet" | "testnet" | "mainnet",
+  network: SupportedNetwork,
 ): Transaction {
   const config = getContractConfig(network);
   const tx = new Transaction();
@@ -269,7 +270,7 @@ export function buildAddUpdateTransaction(
   campaignId: string,
   campaignOwnerCapId: string,
   metadata: Record<string, string>,
-  network: "devnet" | "testnet" | "mainnet",
+  network: SupportedNetwork,
 ): Transaction {
   const config = getContractConfig(network);
   const tx = new Transaction();
@@ -308,7 +309,7 @@ export function buildToggleActiveTransaction(
   campaignId: string,
   campaignOwnerCapId: string,
   newStatus: boolean,
-  network: "devnet" | "testnet" | "mainnet",
+  network: SupportedNetwork,
 ): Transaction {
   const config = getContractConfig(network);
   const tx = new Transaction();
@@ -339,7 +340,7 @@ export function buildToggleActiveTransaction(
 export function buildDeleteCampaignTransaction(
   campaignId: string,
   campaignOwnerCapId: string,
-  network: "devnet" | "testnet" | "mainnet",
+  network: SupportedNetwork,
 ): Transaction {
   const config = getContractConfig(network);
   const tx = new Transaction();
@@ -364,6 +365,75 @@ export function buildDeleteCampaignTransaction(
 
       // Clock object for timestamping
       tx.object(CLOCK_OBJECT_ID),
+    ],
+  });
+
+  return tx;
+}
+
+/**
+ * Build a transaction to verify a campaign using a VerifyCap.
+ */
+export function buildVerifyCampaignTransaction(
+  campaignId: string,
+  verifyCapId: string,
+  network: SupportedNetwork,
+): Transaction {
+  const config = getContractConfig(network);
+  const tx = new Transaction();
+
+  tx.moveCall({
+    target: `${config.contracts.packageId}::crowd_walrus::verify_campaign`,
+    arguments: [
+      tx.object(config.contracts.crowdWalrusObjectId),
+      tx.object(verifyCapId),
+      tx.object(campaignId),
+    ],
+  });
+
+  return tx;
+}
+
+/**
+ * Build a transaction to unverify a campaign using a VerifyCap.
+ */
+export function buildUnverifyCampaignTransaction(
+  campaignId: string,
+  verifyCapId: string,
+  network: SupportedNetwork,
+): Transaction {
+  const config = getContractConfig(network);
+  const tx = new Transaction();
+
+  tx.moveCall({
+    target: `${config.contracts.packageId}::crowd_walrus::unverify_campaign`,
+    arguments: [
+      tx.object(config.contracts.crowdWalrusObjectId),
+      tx.object(verifyCapId),
+      tx.object(campaignId),
+    ],
+  });
+
+  return tx;
+}
+
+/**
+ * Build a transaction to create a new VerifyCap for a given address.
+ */
+export function buildCreateVerifyCapTransaction(
+  adminCapId: string,
+  newVerifierAddress: string,
+  network: SupportedNetwork,
+): Transaction {
+  const config = getContractConfig(network);
+  const tx = new Transaction();
+
+  tx.moveCall({
+    target: `${config.contracts.packageId}::crowd_walrus::create_verify_cap`,
+    arguments: [
+      tx.object(config.contracts.crowdWalrusObjectId),
+      tx.object(adminCapId),
+      tx.pure.address(newVerifierAddress),
     ],
   });
 

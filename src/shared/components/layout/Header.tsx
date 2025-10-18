@@ -3,7 +3,7 @@ import {
   ConnectButton,
   useDisconnectWallet,
 } from "@mysten/dapp-kit";
-import { Link } from "react-router-dom";
+import { Link, useLocation } from "react-router-dom";
 import { Button } from "@/shared/components/ui/button";
 import {
   Sheet,
@@ -22,6 +22,7 @@ export function Header() {
   const connectButtonRef = useRef<HTMLDivElement>(null);
   const { mutate: disconnect } = useDisconnectWallet();
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
+  const location = useLocation();
 
   const formatAddress = (address: string) => {
     return `${address.slice(0, 4)}...${address.slice(-4)}`;
@@ -32,11 +33,22 @@ export function Header() {
   };
 
   const navLinks = [
-    { to: "/", label: "Home" },
+    { to: ROUTES.HOME, label: "Home" },
+    { to: ROUTES.EXPLORE, label: "Campaigns" },
     { to: "/about", label: "About" },
-    { to: "/campaigns", label: "Campaigns" },
     { to: "/contact", label: "Contact Us" },
   ];
+
+  const getNavLinkClassName = (linkTo: string) => {
+    const baseClassName =
+      "font-medium text-lg hover:text-primary transition-colors";
+    const isExploreLink = linkTo === ROUTES.EXPLORE;
+    const isActive = isExploreLink
+      ? location.pathname.startsWith(ROUTES.EXPLORE)
+      : location.pathname === linkTo;
+
+    return isActive ? `${baseClassName} text-primary` : baseClassName;
+  };
 
   return (
     <header className="border-b shadow-sm">
@@ -58,7 +70,7 @@ export function Header() {
                 <Link
                   key={link.to}
                   to={link.to}
-                  className="font-medium text-lg hover:text-primary transition-colors"
+                  className={getNavLinkClassName(link.to)}
                 >
                   {link.label}
                 </Link>
@@ -127,7 +139,7 @@ export function Header() {
                       <Link
                         key={link.to}
                         to={link.to}
-                        className="font-medium text-lg hover:text-primary transition-colors"
+                        className={getNavLinkClassName(link.to)}
                         onClick={() => setMobileMenuOpen(false)}
                       >
                         {link.label}

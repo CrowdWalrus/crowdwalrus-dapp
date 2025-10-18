@@ -1,0 +1,301 @@
+import { useState, useMemo } from "react";
+import { ConnectButton } from "@mysten/dapp-kit";
+import { Tabs, TabsList, TabsTrigger } from "@/shared/components/ui/tabs";
+import { Button } from "@/shared/components/ui/button";
+import {
+  Alert,
+  AlertDescription,
+  AlertTitle,
+} from "@/shared/components/ui/alert";
+import { Filter, AlertCircle, Loader2 } from "lucide-react";
+import {
+  useCrowdWalrusAdminCaps,
+  useCrowdWalrusAdminState,
+  useVerifyCampaign,
+  useUnverifyCampaign,
+  useCreateVerifyCap,
+} from "@/features/admin";
+import { useAllCampaigns } from "@/features/campaigns/hooks/useAllCampaigns";
+import type { CampaignData } from "@/features/campaigns/hooks/useAllCampaigns";
+import { CampaignCard } from "@/features/admin/components/CampaignCard";
+import { VerifierManagementPanel } from "@/features/admin/components/VerifierManagementPanel";
+
+type TabValue = "all" | "verified" | "unverified";
+
+export function AdminPage() {
+  const [activeTab, setActiveTab] = useState<TabValue>("all");
+
+  // Fetch admin capabilities
+  const {
+    adminCapId,
+    primaryVerifyCapId,
+    hasAdminCap,
+    hasVerifierAccess,
+    accountAddress,
+    isLoading: isCapsLoading,
+    error: capsError,
+    refetch: refetchCaps,
+  } = useCrowdWalrusAdminCaps();
+
+  // Fetch CrowdWalrus state (verified campaign list)
+  const {
+    verifiedCampaignIdSet,
+    isLoading: isStateLoading,
+    error: stateError,
+    refetch: refetchState,
+  } = useCrowdWalrusAdminState();
+
+  // Fetch all campaigns
+  const {
+    campaigns,
+    isPending: isCampaignsLoading,
+    error: campaignsError,
+    refetch: refetchCampaigns,
+  } = useAllCampaigns();
+
+  // Create verifier hook (for admin panel)
+  const { createVerifyCap, isProcessing: isCreatingCap } = useCreateVerifyCap({
+    adminCapId,
+    accountAddress,
+    onSuccess: async () => {
+      await refetchCaps();
+    },
+  });
+
+  // Filter campaigns based on active tab
+  const filteredCampaigns = useMemo(() => {
+    if (activeTab === "verified") {
+      return campaigns.filter((c) =>
+        verifiedCampaignIdSet.has(c.id.toLowerCase()),
+      );
+    }
+    if (activeTab === "unverified") {
+      return campaigns.filter(
+        (c) => !verifiedCampaignIdSet.has(c.id.toLowerCase()),
+      );
+    }
+    return campaigns;
+  }, [campaigns, verifiedCampaignIdSet, activeTab]);
+
+  // Loading state
+  const isLoading = isCapsLoading || isStateLoading || isCampaignsLoading;
+
+  // Error state
+  const error = capsError || stateError || campaignsError;
+
+  // Wallet not connected
+  if (!accountAddress) {
+    return (
+      <div className="container mx-auto px-4 py-12">
+        <Alert className="border-orange-500 bg-orange-50">
+          <AlertCircle className="h-4 w-4 text-orange-600" />
+          <AlertTitle className="text-orange-900 font-semibold">
+            Wallet Connection Required
+          </AlertTitle>
+          <AlertDescription className="text-orange-800">
+            Please connect your wallet to access the admin dashboard.
+          </AlertDescription>
+          <div className="mt-4">
+            <ConnectButton />
+          </div>
+        </Alert>
+      </div>
+    );
+  }
+
+  // No verifier access
+  if (!isLoading && !hasVerifierAccess) {
+    return (
+      <div className="container mx-auto px-4 py-12">
+        <Alert className="border-destructive bg-destructive/10">
+          <AlertCircle className="h-4 w-4 text-destructive" />
+          <AlertTitle className="text-destructive font-semibold">
+            Access Denied
+          </AlertTitle>
+          <AlertDescription className="text-destructive/90">
+            You don't have verifier access. Please contact an admin to receive a
+            VerifyCap for this wallet address.
+          </AlertDescription>
+          <p className="mt-2 text-sm text-muted-foreground">
+            Your address: {accountAddress}
+          </p>
+        </Alert>
+      </div>
+    );
+  }
+
+  // Show error
+  if (error) {
+    return (
+      <div className="container mx-auto px-4 py-12">
+        <Alert className="border-destructive bg-destructive/10">
+          <AlertCircle className="h-4 w-4 text-destructive" />
+          <AlertTitle className="text-destructive font-semibold">
+            Error Loading Data
+          </AlertTitle>
+          <AlertDescription className="text-destructive/90">
+            {error.message || "An unexpected error occurred."}
+          </AlertDescription>
+        </Alert>
+      </div>
+    );
+  }
+
+  return (
+    <div className="container mx-auto px-4 py-12">
+      <div className="flex flex-col gap-4">
+        {/* Header */}
+        <div className="flex flex-col gap-4">
+          <h1 className="font-bold text-[40px] leading-tight tracking-[0.4px] text-black-500">
+            Hey! Admin 👋🏻
+          </h1>
+          <p className="text-base text-black-400 leading-relaxed">
+            Check published campaigns and verify them to get listed on
+            CrowdWalrus.
+          </p>
+        </div>
+
+        {/* Tabs and Filters */}
+        <div className="flex items-center justify-between gap-4">
+          <Tabs
+            value={activeTab}
+            onValueChange={(value) => setActiveTab(value as TabValue)}
+            className="w-auto"
+          >
+            <TabsList className="bg-white-500 p-1 rounded-xl gap-2">
+              <TabsTrigger
+                value="all"
+                className="rounded-[10px] px-2.5 py-1.5 text-sm font-medium data-[state=active]:bg-white-50 data-[state=active]:shadow-sm"
+              >
+                All
+              </TabsTrigger>
+              <TabsTrigger
+                value="verified"
+                className="rounded-[10px] px-2.5 py-1.5 text-sm font-medium data-[state=active]:bg-white-50 data-[state=active]:shadow-sm"
+              >
+                Verified
+              </TabsTrigger>
+              <TabsTrigger
+                value="unverified"
+                className="rounded-[10px] px-2.5 py-1.5 text-sm font-medium data-[state=active]:bg-white-50 data-[state=active]:shadow-sm"
+              >
+                Unverified
+              </TabsTrigger>
+            </TabsList>
+          </Tabs>
+
+          <Button
+            variant="outline"
+            className="bg-white-50 border-black-50 rounded-lg px-6 py-2.5 gap-2 min-h-[40px]"
+          >
+            <Filter className="w-3.5 h-3.5" />
+            Filters
+          </Button>
+        </div>
+
+        {/* Loading state */}
+        {isLoading && (
+          <div className="flex items-center justify-center py-12">
+            <Loader2 className="w-8 h-8 animate-spin text-blue-500" />
+          </div>
+        )}
+
+        {/* Campaign Grid */}
+        {!isLoading && (
+          <>
+            {filteredCampaigns.length === 0 ? (
+              <div className="text-center py-12">
+                <p className="text-black-400 text-base">
+                  No {activeTab !== "all" ? activeTab : ""} campaigns found.
+                </p>
+              </div>
+            ) : (
+              <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+                {filteredCampaigns.map((campaign) => {
+                  const isVerified = verifiedCampaignIdSet.has(
+                    campaign.id.toLowerCase(),
+                  );
+
+                  return (
+                    <CampaignCardWithActions
+                      key={campaign.id}
+                      campaign={campaign}
+                      isVerified={isVerified}
+                      primaryVerifyCapId={primaryVerifyCapId}
+                      accountAddress={accountAddress}
+                      onRefetch={async () => {
+                        await Promise.all([
+                          refetchState(),
+                          refetchCaps(),
+                          refetchCampaigns(),
+                        ]);
+                      }}
+                    />
+                  );
+                })}
+              </div>
+            )}
+          </>
+        )}
+
+        {/* Verifier Management Panel (Admin Only) */}
+        {hasAdminCap && !isLoading && (
+          <div className="mt-8">
+            <VerifierManagementPanel
+              onGrantAccess={async (address: string) => {
+                await createVerifyCap(address);
+              }}
+              isProcessing={isCreatingCap}
+            />
+          </div>
+        )}
+      </div>
+    </div>
+  );
+}
+
+// Separate component to handle verify/unverify actions per campaign
+interface CampaignCardWithActionsProps {
+  campaign: CampaignData;
+  isVerified: boolean;
+  primaryVerifyCapId: string | null;
+  accountAddress: string | null;
+  onRefetch: () => Promise<void>;
+}
+
+function CampaignCardWithActions({
+  campaign,
+  isVerified,
+  primaryVerifyCapId,
+  accountAddress,
+  onRefetch,
+}: CampaignCardWithActionsProps) {
+  const { verifyCampaign, isProcessing: isVerifying } = useVerifyCampaign({
+    campaignId: campaign.id,
+    verifyCapId: primaryVerifyCapId,
+    accountAddress,
+    isVerified,
+    onSuccess: onRefetch,
+  });
+
+  const { unverifyCampaign, isProcessing: isUnverifying } = useUnverifyCampaign(
+    {
+      campaignId: campaign.id,
+      verifyCapId: primaryVerifyCapId,
+      accountAddress,
+      isVerified,
+      onSuccess: onRefetch,
+    },
+  );
+
+  return (
+    <CampaignCard
+      campaign={campaign}
+      isVerified={isVerified}
+      isProcessing={isVerifying || isUnverifying}
+      onVerify={verifyCampaign}
+      onUnverify={unverifyCampaign}
+      canTakeAction={Boolean(primaryVerifyCapId)}
+    />
+  );
+}

@@ -397,7 +397,7 @@ export function CampaignPage() {
                 endDateMs={campaign.endDateMs}
                 category={campaign.category}
                 contributorsCount={contributorsCount}
-                publisherAddress={campaign.adminId}
+                publisherAddress={campaign.creatorAddress}
                 socialLinks={campaign.socialLinks}
               />
 

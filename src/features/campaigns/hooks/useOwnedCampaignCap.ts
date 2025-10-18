@@ -3,6 +3,7 @@ import { useCurrentAccount, useSuiClientQuery } from "@mysten/dapp-kit";
 
 import { getContractConfig } from "@/shared/config/contracts";
 import { DEFAULT_NETWORK } from "@/shared/config/networkConfig";
+import type { SupportedNetwork } from "@/shared/types/network";
 
 interface UseOwnedCampaignCapResult {
   ownerCapId: string | null;
@@ -26,7 +27,7 @@ const isCampaignOwnerCapContent = (
 
 export function useOwnedCampaignCap(
   campaignId: string,
-  network: "devnet" | "testnet" | "mainnet" = DEFAULT_NETWORK,
+  network: SupportedNetwork = DEFAULT_NETWORK,
 ): UseOwnedCampaignCapResult {
   const account = useCurrentAccount();
   const config = getContractConfig(network);

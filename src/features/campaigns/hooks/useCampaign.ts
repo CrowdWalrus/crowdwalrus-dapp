@@ -12,8 +12,10 @@ import { useMemo } from "react";
 import { useSuiClientQuery } from "@mysten/dapp-kit";
 import { parseSocialLinksFromMetadata } from "@/features/campaigns/utils/socials";
 import { DEFAULT_NETWORK } from "@/shared/config/networkConfig";
+import type { SupportedNetwork } from "@/shared/types/network";
 import { getWalrusUrl } from "@/services/walrus";
-import type { CampaignData } from "./useMyCampaigns";
+import type { CampaignData } from "./useAllCampaigns";
+import { useCampaignCreator } from "./useCampaignCreator";
 import {
   parseOptionalTimestampFromMove,
   parseTimestampFromMove,
@@ -98,13 +100,13 @@ const normalizeCampaignType = (value: string | undefined): string => {
 
 export function useCampaign(
   campaignId: string,
-  network: "devnet" | "testnet" | "mainnet" = DEFAULT_NETWORK,
+  network: SupportedNetwork = DEFAULT_NETWORK,
 ) {
   // Fetch single campaign object
   const {
     data: campaignObject,
-    isPending,
-    error,
+    isPending: isCampaignPending,
+    error: campaignError,
     refetch,
   } = useSuiClientQuery(
     "getObject",
@@ -119,6 +121,13 @@ export function useCampaign(
       enabled: !!campaignId,
     },
   );
+
+  // Get creator address from CampaignCreated event
+  const {
+    creatorAddress,
+    isLoading: isCreatorLoading,
+    error: creatorError,
+  } = useCampaignCreator(campaignId, network);
 
   // Process campaign data
   const campaign = useMemo(() => {
@@ -142,9 +151,6 @@ export function useCampaign(
 
       const walrusQuiltId = metadataMap["walrus_quilt_id"] || "";
 
-      console.log(`Campaign "${fields.name}" metadata:`, metadataMap);
-      console.log(`Walrus Quilt ID:`, walrusQuiltId);
-
       const socialLinks = parseSocialLinksFromMetadata(metadataMap);
 
       const rawCampaignType = normalizeCampaignType(
@@ -156,6 +162,7 @@ export function useCampaign(
       const campaignData: CampaignData = {
         id: fields.id?.id || campaignObject.data.objectId || "",
         adminId: fields.admin_id ?? "",
+        creatorAddress: creatorAddress ?? "",
         name: fields.name ?? "",
         shortDescription: fields.short_description ?? "",
         subdomainName: fields.subdomain_name ?? "",
@@ -195,17 +202,15 @@ export function useCampaign(
           : "",
       };
 
-      console.log("Generated URLs:", {
-        coverImageUrl: campaignData.coverImageUrl,
-        descriptionUrl: campaignData.descriptionUrl,
-      });
-
       return campaignData;
     } catch (err) {
       console.error("Error parsing campaign object:", err);
       return null;
     }
-  }, [campaignObject, network]);
+  }, [campaignObject, network, creatorAddress]);
+
+  const isPending = isCampaignPending || isCreatorLoading;
+  const error = campaignError || creatorError;
 
   return {
     campaign,

@@ -15,7 +15,7 @@ import { Transaction } from "@mysten/sui/transactions";
 import { toast } from "sonner";
 
 import { useCampaign } from "@/features/campaigns/hooks/useCampaign";
-import type { CampaignData } from "@/features/campaigns/hooks/useMyCampaigns";
+import type { CampaignData } from "@/features/campaigns/hooks/useAllCampaigns";
 import { useOwnedCampaignCap } from "@/features/campaigns/hooks/useOwnedCampaignCap";
 import {
   useWalrusUpload,
@@ -85,6 +85,7 @@ import {
 } from "lucide-react";
 import { Label } from "@/shared/components/ui/label";
 import { useWalBalance } from "@/shared/hooks/useWalBalance";
+import { useDebounce } from "@/shared/hooks/useDebounce";
 import { useEstimateStorageCost } from "@/features/campaigns/hooks/useCreateCampaign";
 import { WizardStep } from "@/features/campaigns/types/campaign";
 import { normalizeSerializedEditorStateString } from "@/shared/components/editor/utils/normalizeSerializedState";
@@ -101,6 +102,7 @@ const DEFAULT_FORM_VALUES: EditCampaignFormData = {
 };
 
 const SAVE_STATUS_TIMEOUT = 4000;
+const AUTO_CALCULATING_LABEL = "Calculating...";
 
 type SectionKey =
   | "campaignName"
@@ -243,6 +245,8 @@ export default function EditCampaignPage() {
     string | null
   >(null);
   const walrusBaselineRef = useRef<WalrusSnapshot | null>(null);
+  const coverImageFileRef = useRef<File | null>(null);
+  const coverImageFilePromiseRef = useRef<Promise<File> | null>(null);
   const [descriptionInstanceKey, setDescriptionInstanceKey] = useState(0);
 
   const resetWalrusState = useCallback(() => {
@@ -455,6 +459,66 @@ export default function EditCampaignPage() {
     watchCampaignDetails,
     watchCoverImage,
   ]);
+  const debouncedWalrusSnapshot = useDebounce(currentWalrusSnapshot, 800);
+
+  useEffect(() => {
+    if (watchCoverImage instanceof File) {
+      coverImageFileRef.current = watchCoverImage;
+      coverImageFilePromiseRef.current = null;
+    }
+  }, [watchCoverImage]);
+
+  useEffect(() => {
+    coverImageFileRef.current = null;
+    coverImageFilePromiseRef.current = null;
+  }, [campaign?.coverImageUrl]);
+
+  const ensureCoverImageFile = useCallback(async (): Promise<File | null> => {
+    if (coverImageFileRef.current) {
+      return coverImageFileRef.current;
+    }
+
+    if (!campaign?.coverImageUrl) {
+      return null;
+    }
+
+    if (!coverImageFilePromiseRef.current) {
+      coverImageFilePromiseRef.current = fetchCoverImageFile(
+        campaign.coverImageUrl,
+      )
+        .then((file) => {
+          coverImageFileRef.current = file;
+          return file;
+        })
+        .catch((error) => {
+          console.error(
+            "Failed to fetch existing cover image for Walrus estimation:",
+            error,
+          );
+          coverImageFilePromiseRef.current = null;
+          throw error;
+        });
+    }
+
+    try {
+      return await coverImageFilePromiseRef.current;
+    } catch {
+      return null;
+    }
+  }, [campaign?.coverImageUrl]);
+
+  const transformPreviewResult = campaign
+    ? transformEditCampaignFormData({
+        values: currentFormValues,
+        dirtyFields,
+        campaign,
+        initialDescription,
+      })
+    : null;
+
+  const walrusChangesDetected = Boolean(
+    transformPreviewResult?.shouldUploadWalrus,
+  );
 
   useEffect(() => {
     if (!initialized || !currentWalrusSnapshot) {
@@ -481,6 +545,104 @@ export default function EditCampaignPage() {
     resetWalrusState,
     resetStorageEstimate,
     walrusStatus,
+  ]);
+
+  useEffect(() => {
+    if (!initialized) {
+      return;
+    }
+    if (!campaign) {
+      return;
+    }
+    if (!walrusChangesDetected) {
+      resetStorageEstimate();
+      return;
+    }
+    if (!debouncedWalrusSnapshot) {
+      return;
+    }
+
+    const epochsToUse =
+      typeof debouncedWalrusSnapshot.storageEpochs === "number"
+        ? debouncedWalrusSnapshot.storageEpochs
+        : typeof selectedEpochs === "number"
+          ? selectedEpochs
+          : campaign.walrusStorageEpochs
+            ? Number(campaign.walrusStorageEpochs)
+            : undefined;
+
+    if (!epochsToUse || epochsToUse <= 0) {
+      return;
+    }
+
+    let cancelled = false;
+
+    const runEstimation = async () => {
+      const values = form.getValues();
+
+      const { metadataPatch } = transformEditCampaignFormData({
+        values,
+        dirtyFields,
+        campaign,
+        initialDescription,
+      });
+
+      let coverImageFile: File | null = null;
+      if (values.coverImage instanceof File) {
+        coverImageFile = values.coverImage;
+      } else {
+        coverImageFile = await ensureCoverImageFile();
+      }
+
+      if (!coverImageFile || cancelled) {
+        return;
+      }
+
+      const sanitizedSocials = sanitizeSocialLinks(values.socials);
+
+      const walrusFormData = {
+        name: campaign.name,
+        short_description: values.description,
+        subdomain_name: campaign.subdomainName,
+        category: metadataPatch.category ?? campaign.category ?? "",
+        funding_goal: campaign.fundingGoal ?? "0",
+        start_date: new Date(campaign.startDateMs),
+        end_date: new Date(campaign.endDateMs),
+        recipient_address: campaign.recipientAddress,
+        full_description: values.campaignDetails ?? "",
+        cover_image: coverImageFile,
+        socials: sanitizedSocials,
+      };
+
+      try {
+        await estimateStorageCost({
+          formData: walrusFormData,
+          epochs: epochsToUse,
+        });
+      } catch (error) {
+        if (!cancelled) {
+          console.error("Failed to auto-estimate Walrus storage cost:", error);
+        }
+      }
+    };
+
+    runEstimation();
+
+    return () => {
+      cancelled = true;
+    };
+  }, [
+    campaign,
+    debouncedWalrusSnapshot,
+    dirtyFields,
+    ensureCoverImageFile,
+    estimateStorageCost,
+    form,
+    initialDescription,
+    initialized,
+    resetStorageEstimate,
+    selectedEpochs,
+    walrusChangesDetected,
   ]);
 
   const storageRegistrationComplete =
@@ -634,19 +796,6 @@ export default function EditCampaignPage() {
       </div>
     );
   }
-
-  const transformPreviewResult = campaign
-    ? transformEditCampaignFormData({
-        values: currentFormValues,
-        dirtyFields,
-        campaign,
-        initialDescription,
-      })
-    : null;
-
-  const walrusChangesDetected = Boolean(
-    transformPreviewResult?.shouldUploadWalrus,
-  );
 
   const requireWalrusRegistration =
     walrusChangesDetected && !storageRegistrationComplete;
@@ -1263,10 +1412,10 @@ export default function EditCampaignPage() {
       ]
     : walrusChangesDetected
       ? [
-          { label: "Campaign metadata", amount: "Calculate first" },
-          { label: "Cover image", amount: "Calculate first" },
-          { label: "Campaign description", amount: "Calculate first" },
-          { label: "Storage epoch", amount: "Calculate first" },
+          { label: "Campaign metadata", amount: AUTO_CALCULATING_LABEL },
+          { label: "Cover image", amount: AUTO_CALCULATING_LABEL },
+          { label: "Campaign description", amount: AUTO_CALCULATING_LABEL },
+          { label: "Storage epoch", amount: AUTO_CALCULATING_LABEL },
         ]
       : [
           {
@@ -1280,7 +1429,7 @@ export default function EditCampaignPage() {
     : storageRegistrationComplete
       ? "Registered"
       : walrusChangesDetected
-        ? "Calculate first"
+        ? AUTO_CALCULATING_LABEL
         : "—";
 
   const canInteractWithWalrusSection =

@@ -1,0 +1,7 @@
+# Required headers for WebAssembly (Walrus WASM)
+# These headers enable SharedArrayBuffer and cross-origin isolation
+# which are required by @mysten/walrus-wasm
+
+/*
+  Cross-Origin-Opener-Policy: same-origin
+  Cross-Origin-Embedder-Policy: require-corp

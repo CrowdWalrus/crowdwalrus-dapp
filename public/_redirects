@@ -1,0 +1,5 @@
+# SPA routing - redirect all requests to index.html
+# This ensures client-side routes work correctly when accessing URLs directly
+# or refreshing the page
+
+/*    /index.html   200

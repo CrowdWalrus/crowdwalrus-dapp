@@ -7,22 +7,22 @@ import { toast } from "sonner";
 
 import { DEFAULT_NETWORK } from "@/shared/config/networkConfig";
 import type { SupportedNetwork } from "@/shared/types/network";
-import { buildToggleActiveTransaction } from "@/services/campaign-transaction";
+import { buildVerifyCampaignTransaction } from "@/services/campaign-transaction";
 
-export type DeactivateCampaignResult =
+export type VerifyCampaignResult =
   | "success"
-  | "already_inactive"
+  | "already_verified"
   | "missing_campaign"
   | "missing_wallet"
-  | "missing_owner_cap"
+  | "missing_verify_cap"
   | "user_rejected"
   | "error";
 
-export interface UseDeactivateCampaignOptions {
+export interface UseVerifyCampaignOptions {
   campaignId?: string | null;
-  ownerCapId?: string | null;
-  isActive?: boolean;
+  verifyCapId?: string | null;
   accountAddress?: string | null;
+  isVerified?: boolean;
   network?: SupportedNetwork;
   onSuccess?: () => Promise<void> | void;
   onError?: (error: Error) => void;
@@ -43,15 +43,15 @@ const isUserRejectedError = (error: unknown) => {
   );
 };
 
-export function useDeactivateCampaign({
+export function useVerifyCampaign({
   campaignId,
-  ownerCapId,
-  isActive,
+  verifyCapId,
   accountAddress,
+  isVerified,
   network = DEFAULT_NETWORK,
   onSuccess,
   onError,
-}: UseDeactivateCampaignOptions) {
+}: UseVerifyCampaignOptions) {
   const suiClient = useSuiClient();
   const [isProcessing, setIsProcessing] = useState(false);
 
@@ -69,36 +69,33 @@ export function useDeactivateCampaign({
         }),
     });
 
-  const deactivateCampaign = useCallback(async (): Promise<DeactivateCampaignResult> => {
+  const verifyCampaign = useCallback(async (): Promise<VerifyCampaignResult> => {
     if (!campaignId) {
-      toast.error("Campaign ID is required to deactivate.");
+      toast.error("Campaign ID is required to verify.");
       return "missing_campaign";
     }
 
-    if (!isActive) {
-      toast.info("This campaign is already deactivated.");
-      return "already_inactive";
-    }
-
     if (!accountAddress) {
-      toast.error("Connect your wallet to deactivate this campaign.");
+      toast.error("Connect your wallet to verify campaigns.");
       return "missing_wallet";
     }
 
-    if (!ownerCapId) {
-      toast.error(
-        "Unable to locate the campaign ownership capability for this account.",
-      );
-      return "missing_owner_cap";
+    if (!verifyCapId) {
+      toast.error("This wallet is missing a CrowdWalrus VerifyCap.");
+      return "missing_verify_cap";
+    }
+
+    if (isVerified) {
+      toast.info("Campaign is already verified.");
+      return "already_verified";
     }
 
     setIsProcessing(true);
 
     try {
-      const transaction = buildToggleActiveTransaction(
+      const transaction = buildVerifyCampaignTransaction(
         campaignId,
-        ownerCapId,
-        false,
+        verifyCapId,
         network,
       );
 
@@ -107,22 +104,22 @@ export function useDeactivateCampaign({
         chain: `sui:${network}`,
       });
 
-      toast.success("Campaign deactivated successfully.");
+      toast.success("Campaign verified successfully.");
       await onSuccess?.();
 
       return "success";
     } catch (error) {
-      console.error("Failed to deactivate campaign:", error);
+      console.error("Failed to verify campaign:", error);
 
       if (isUserRejectedError(error)) {
-        toast.info("Transaction cancelled. Campaign remains active.");
+        toast.info("Transaction cancelled. Campaign remains unverified.");
         return "user_rejected";
       }
 
       const err =
         error instanceof Error
           ? error
-          : new Error("Failed to deactivate campaign.");
+          : new Error("Failed to verify campaign.");
 
       toast.error(err.message);
       onError?.(err);
@@ -133,9 +130,9 @@ export function useDeactivateCampaign({
     }
   }, [
     campaignId,
-    isActive,
     accountAddress,
-    ownerCapId,
+    verifyCapId,
+    isVerified,
     network,
     signAndExecuteTransaction,
     onSuccess,
@@ -143,7 +140,7 @@ export function useDeactivateCampaign({
   ]);
 
   return {
-    deactivateCampaign,
+    verifyCampaign,
     isProcessing,
   };
 }

@@ -16,6 +16,7 @@ import {
 import type { CampaignUpdateStorageData } from "@/features/campaigns/types/campaignUpdate";
 import { getContractConfig } from "@/shared/config/contracts";
 import { WALRUS_EPOCH_CONFIG } from "@/shared/config/networkConfig";
+import type { SupportedNetwork } from "@/shared/types/network";
 import { lexicalToPlainText } from "@/shared/utils/lexical";
 import {
   calculateCampaignStorageCost,
@@ -29,7 +30,7 @@ import walrusWasmUrl from "@mysten/walrus-wasm/web/walrus_wasm_bg.wasm?url";
  */
 export function createWalrusClient(
   suiClient: SuiClient,
-  network: "devnet" | "testnet" | "mainnet",
+  network: SupportedNetwork,
 ): WalrusClient {
   const config = getContractConfig(network);
 
@@ -282,7 +283,7 @@ export async function getUploadedFilesInfo(
  */
 export async function calculateStorageCost(
   suiClient: SuiClient,
-  network: "devnet" | "testnet" | "mainnet",
+  network: SupportedNetwork,
   formData: CampaignFormData,
   epochs?: number,
 ): Promise<StorageCostEstimate> {
@@ -341,7 +342,7 @@ export async function calculateStorageCost(
  */
 export async function calculateUpdateStorageCost(
   suiClient: SuiClient,
-  network: "devnet" | "testnet" | "mainnet",
+  network: SupportedNetwork,
   data: CampaignUpdateStorageData,
   epochs?: number,
 ): Promise<StorageCostEstimate> {
@@ -423,7 +424,7 @@ function estimateStorageCostSimple(rawSize: number, epochs: number): string {
  */
 export function getWalrusUrl(
   blobId: string,
-  network: "devnet" | "testnet" | "mainnet",
+  network: SupportedNetwork,
   fileName: string,
 ): string {
   const config = getContractConfig(network);

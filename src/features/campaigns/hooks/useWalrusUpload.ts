@@ -26,6 +26,7 @@ import {
 import type { CampaignFormData } from "@/features/campaigns/types/campaign";
 import type { CampaignUpdateStorageData } from "@/features/campaigns/types/campaignUpdate";
 import { DEFAULT_NETWORK, WALRUS_EPOCH_CONFIG } from "@/shared/config/networkConfig";
+import type { SupportedNetwork } from "@/shared/types/network";
 
 /**
  * Walrus flow state that's passed between steps
@@ -37,7 +38,7 @@ export interface WalrusFlowState {
   flow: WriteFilesFlow;
   files: WalrusFile[];
   storageEpochs: number;
-  network: "devnet" | "testnet" | "mainnet";
+  network: SupportedNetwork;
   purpose: "campaign" | "campaign-update";
 }
 
@@ -74,14 +75,14 @@ export function useWalrusUpload() {
         purpose?: "campaign";
         formData: CampaignFormData;
         update?: undefined;
-        network?: "devnet" | "testnet" | "mainnet";
+        network?: SupportedNetwork;
         storageEpochs?: number;
       }
     | {
         purpose: "campaign-update";
         update: CampaignUpdateStorageData;
         formData?: undefined;
-        network?: "devnet" | "testnet" | "mainnet";
+        network?: SupportedNetwork;
         storageEpochs?: number;
       };
 

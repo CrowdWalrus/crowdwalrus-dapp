@@ -1,6 +1,7 @@
 export const ROUTES = {
   HOME: "/",
   EXPLORE: "/explore",
+  ADMIN: "/admin",
   CAMPAIGNS_NEW: "/campaigns/new",
   CAMPAIGNS_DETAIL: "/campaigns/:id",
   CAMPAIGNS_EDIT: "/campaigns/:id/edit",

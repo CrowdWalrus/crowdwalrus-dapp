@@ -1,7 +1,7 @@
 import type { FieldNamesMarkedBoolean } from "react-hook-form";
 
 import type { EditCampaignFormData } from "../schemas/editCampaignSchema";
-import type { CampaignData } from "../hooks/useMyCampaigns";
+import type { CampaignData } from "../hooks/useAllCampaigns";
 import type { CampaignSocialLink, MetadataPatch } from "../types/campaign";
 import { sanitizeSocialLinks, serializeSocialLinks } from "./socials";
 
@@ -27,11 +27,9 @@ export interface TransformEditCampaignResult {
   hasMetadataChanges: boolean;
 }
 
-const normalize = (value: string | undefined | null) =>
-  (value ?? "").trim();
+const normalize = (value: string | undefined | null) => (value ?? "").trim();
 
-const normalizeDescription = (value: string | undefined | null) =>
-  value ?? "";
+const normalizeDescription = (value: string | undefined | null) => value ?? "";
 
 const areSocialArraysEqual = (
   a: CampaignSocialLink[],

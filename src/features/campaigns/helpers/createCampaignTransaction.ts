@@ -6,8 +6,10 @@
  * and make it easier to test and reason about.
  */
 
-import { buildCreateCampaignTransaction } from "@/services/campaign-transaction";
 import type { CampaignFormData } from "@/features/campaigns/types/campaign";
+import { DEFAULT_NETWORK } from "@/shared/config/networkConfig";
+import type { SupportedNetwork } from "@/shared/types/network";
+import { buildCreateCampaignTransaction } from "@/services/campaign-transaction";
 
 /**
  * Creates a Sui transaction for campaign creation
@@ -21,7 +23,7 @@ import type { CampaignFormData } from "@/features/campaigns/types/campaign";
 export const createCampaignTransaction = (
   formData: CampaignFormData,
   walrusBlobId: string,
-  network: "devnet" | "testnet" | "mainnet" = "testnet",
+  network: SupportedNetwork = DEFAULT_NETWORK,
   storageEpochs?: number,
 ) => {
   return buildCreateCampaignTransaction(formData, walrusBlobId, network, storageEpochs);

@@ -1,4 +1,4 @@
-import { useEffect } from "react";
+import { useEffect, useState } from "react";
 import { useQuery, type UseQueryResult } from "@tanstack/react-query";
 
 const STALE_TIME_MS = 5 * 60 * 1000;
@@ -10,7 +10,7 @@ const GC_TIME_MS = 10 * 60 * 1000;
 export function useWalrusImage(
   imageUrl: string | null | undefined,
 ): UseQueryResult<string | null, Error> {
-  const query = useQuery<string | null, Error>({
+  const query = useQuery<Blob | null, Error>({
     queryKey: ["walrus-image", imageUrl],
     queryFn: async () => {
       if (!imageUrl) {
@@ -23,7 +23,7 @@ export function useWalrusImage(
       }
 
       const blob = await response.blob();
-      return URL.createObjectURL(blob);
+      return blob;
     },
     enabled: Boolean(imageUrl),
     staleTime: STALE_TIME_MS,
@@ -31,14 +31,27 @@ export function useWalrusImage(
     placeholderData: null,
   });
 
+  const [objectUrl, setObjectUrl] = useState<string | null>(null);
+
+  // Convert cached Blob into an object URL scoped to this hook instance.
   useEffect(() => {
-    const objectUrl = query.data;
+    const blob = query.data;
+
+    if (!blob) {
+      setObjectUrl(null);
+      return;
+    }
+
+    const url = URL.createObjectURL(blob);
+    setObjectUrl(url);
+
     return () => {
-      if (objectUrl) {
-        URL.revokeObjectURL(objectUrl);
-      }
+      URL.revokeObjectURL(url);
     };
   }, [query.data]);
 
-  return query;
+  return {
+    ...query,
+    data: objectUrl,
+  } as UseQueryResult<string | null, Error>;
 }

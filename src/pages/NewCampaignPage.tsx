@@ -103,6 +103,8 @@ const TEST_DEFAULTS: Partial<NewCampaignFormData> = {
 };
 // ============================================================================
 
+const AUTO_CALCULATING_LABEL = "Calculating...";
+
 export default function NewCampaignPage() {
   const currentAccount = useCurrentAccount();
   const suiClient = useSuiClient();
@@ -738,15 +740,15 @@ export default function NewCampaignPage() {
           : []),
       ]
     : [
-        { label: "Campaign metadata", amount: "Calculate first" },
-        { label: "Cover image", amount: "Calculate first" },
-        { label: "Campaign description", amount: "Calculate first" },
-        { label: "Storage epoch", amount: "Calculate first" },
+        { label: "Campaign metadata", amount: AUTO_CALCULATING_LABEL },
+        { label: "Cover image", amount: AUTO_CALCULATING_LABEL },
+        { label: "Campaign description", amount: AUTO_CALCULATING_LABEL },
+        { label: "Storage epoch", amount: AUTO_CALCULATING_LABEL },
       ];
 
   const totalCost = costEstimate
     ? `${costEstimate.subsidizedTotalCost.toFixed(6)} WAL`
-    : "Calculate first";
+    : AUTO_CALCULATING_LABEL;
 
   // Unified retry handler for the modal
   const handleRetry = () => {
