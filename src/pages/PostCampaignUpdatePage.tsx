@@ -9,7 +9,6 @@ import {
   useSuiClient,
 } from "@mysten/dapp-kit";
 import { AlertCircleIcon } from "lucide-react";
-
 import {
   Breadcrumb,
   BreadcrumbItem,
@@ -36,6 +35,7 @@ import {
   type CampaignUpdateFormData,
 } from "@/features/campaigns/schemas/campaignUpdateSchema";
 import { useCampaign } from "@/features/campaigns/hooks/useCampaign";
+import { useResolvedCampaignId } from "@/features/campaigns/hooks/useResolvedCampaignId";
 import {
   useWalrusUpload,
   type WalrusFlowState,
@@ -65,6 +65,12 @@ import { getWalrusUrl } from "@/services/walrus";
 import { lexicalToPlainText } from "@/shared/utils/lexical";
 import { isUserRejectedError } from "@/shared/utils/errors";
 import { buildCampaignDetailPath } from "@/shared/utils/routes";
+import {
+  CampaignResolutionError,
+  CampaignResolutionLoading,
+  CampaignResolutionMissing,
+  CampaignResolutionNotFound,
+} from "@/features/campaigns/components/CampaignResolutionStates";
 
 const DEFAULT_FORM_VALUES: CampaignUpdateFormData = {
   updateContent: "",
@@ -72,7 +78,14 @@ const DEFAULT_FORM_VALUES: CampaignUpdateFormData = {
 
 export default function PostCampaignUpdatePage() {
   const { id: campaignIdParam } = useParams<{ id: string }>();
-  const campaignId = campaignIdParam ?? "";
+  const rawIdentifier = campaignIdParam ?? "";
+  const {
+    campaignId: resolvedCampaignId,
+    isLoading: isResolvingIdentifier,
+    notFound: isIdentifierNotFound,
+    error: identifierError,
+  } = useResolvedCampaignId(rawIdentifier);
+  const campaignId = resolvedCampaignId ?? "";
   const modal = useCampaignCreationModal();
   const { openModal, closeModal } = modal;
   const [wizardStep, setWizardStep] = useState<WizardStep>(WizardStep.FORM);
@@ -138,14 +151,19 @@ export default function PostCampaignUpdatePage() {
     error: campaignError,
   } = useCampaign(campaignId, network);
 
-  const campaignDetailPath = useMemo(
-    () =>
-      buildCampaignDetailPath(campaignId, {
-        subdomainName: campaign?.subdomainName,
-        campaignDomain: config.campaignDomain,
-      }),
-    [campaignId, campaign?.subdomainName, config.campaignDomain],
-  );
+  const campaignDetailPath = useMemo(() => {
+    const fallbackId = campaign?.id || campaignId || rawIdentifier;
+    return buildCampaignDetailPath(fallbackId, {
+      subdomainName: campaign?.subdomainName,
+      campaignDomain: config.campaignDomain,
+    });
+  }, [
+    campaign?.id,
+    campaign?.subdomainName,
+    campaignId,
+    config.campaignDomain,
+    rawIdentifier,
+  ]);
 
   const form = useForm<CampaignUpdateFormData>({
     resolver: zodResolver(campaignUpdateSchema),
@@ -697,6 +715,24 @@ export default function PostCampaignUpdatePage() {
     }
   };
 
+  const identifierDisplay = rawIdentifier || campaignId || "";
+
+  if (!rawIdentifier && !campaignId) {
+    return <CampaignResolutionMissing />;
+  }
+
+  if (isResolvingIdentifier) {
+    return <CampaignResolutionLoading />;
+  }
+
+  if (identifierError) {
+    return <CampaignResolutionError error={identifierError} />;
+  }
+
+  if (isIdentifierNotFound) {
+    return <CampaignResolutionNotFound identifier={identifierDisplay} />;
+  }
+
   return (
     <FormProvider {...form}>
       <CampaignCreationModal
@@ -714,6 +750,7 @@ export default function PostCampaignUpdatePage() {
         errorTitle={errorHeading || undefined}
         error={errorBody || rawErrorMessage || undefined}
         mode="campaign-update"
+        subdomainName={campaign?.subdomainName}
       />
 
       <div className="py-8">
@@ -728,9 +765,7 @@ export default function PostCampaignUpdatePage() {
               <BreadcrumbSeparator />
               <BreadcrumbItem>
                 <BreadcrumbLink asChild>
-                  <Link to={campaignDetailPath}>
-                    Campaign
-                  </Link>
+                  <Link to={campaignDetailPath}>Campaign</Link>
                 </BreadcrumbLink>
               </BreadcrumbItem>
               <BreadcrumbSeparator />
