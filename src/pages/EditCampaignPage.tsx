@@ -42,6 +42,7 @@ import {
 import { getContractConfig, CLOCK_OBJECT_ID } from "@/shared/config/contracts";
 import { DEFAULT_NETWORK } from "@/shared/config/networkConfig";
 import { ROUTES } from "@/shared/config/routes";
+import { buildCampaignDetailPath } from "@/shared/utils/routes";
 import {
   CampaignCoverImageUpload,
   CampaignDetailsEditor,
@@ -198,6 +199,7 @@ export default function EditCampaignPage() {
   const navigate = useNavigate();
   const account = useCurrentAccount();
   const network = DEFAULT_NETWORK;
+  const config = getContractConfig(network);
 
   const [initialized, setInitialized] = useState(false);
   const [initialDescription, setInitialDescription] = useState("");
@@ -289,6 +291,15 @@ export default function EditCampaignPage() {
     error: campaignError,
     refetch: refetchCampaign,
   } = useCampaign(campaignId, network);
+
+  const campaignDetailPath = useMemo(
+    () =>
+      buildCampaignDetailPath(campaignId, {
+        subdomainName: campaign?.subdomainName,
+        campaignDomain: config.campaignDomain,
+      }),
+    [campaignId, campaign?.subdomainName, config.campaignDomain],
+  );
 
   const {
     ownerCapId,
@@ -1214,8 +1225,6 @@ export default function EditCampaignPage() {
 
       const hasMetadataPayload = metadataKeys.length > 0;
 
-      const config = getContractConfig(network);
-
       if (hasBasicsChanges && hasMetadataPayload) {
         const tx = new Transaction();
         const nameArg = basicsUpdates.name
@@ -1309,7 +1318,7 @@ export default function EditCampaignPage() {
       await refetchCampaign();
       toast.success("Campaign updated successfully.");
       setInitialized(false);
-      navigate(ROUTES.CAMPAIGNS_DETAIL.replace(":id", campaignId));
+      navigate(campaignDetailPath);
     } catch (error) {
       const abortCode = extractMoveAbortCode(error);
       if (abortCode !== null) {
@@ -1472,7 +1481,7 @@ export default function EditCampaignPage() {
               <BreadcrumbSeparator />
               <BreadcrumbItem>
                 <BreadcrumbLink asChild>
-                  <Link to={ROUTES.CAMPAIGNS_DETAIL.replace(":id", campaignId)}>
+                  <Link to={campaignDetailPath}>
                     Campaign
                   </Link>
                 </BreadcrumbLink>
