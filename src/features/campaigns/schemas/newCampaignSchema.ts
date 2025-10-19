@@ -1,11 +1,23 @@
 import { z } from "zod";
 
+import {
+  FUNDING_TARGET_DISPLAY_LOCALE,
+  MAX_FUNDING_TARGET,
+  MIN_FUNDING_TARGET,
+} from "@/features/campaigns/constants/funding";
 import { SUBDOMAIN_PATTERN } from "@/shared/utils/subdomain";
 
 export const socialSchema = z.object({
   platform: z.string(),
   url: z.union([z.string().url("Please enter a valid URL"), z.literal("")]),
 });
+
+const MIN_FUNDING_TARGET_LABEL = MIN_FUNDING_TARGET.toLocaleString(
+  FUNDING_TARGET_DISPLAY_LOCALE,
+);
+const MAX_FUNDING_TARGET_LABEL = MAX_FUNDING_TARGET.toLocaleString(
+  FUNDING_TARGET_DISPLAY_LOCALE,
+);
 
 export const newCampaignSchema = z
   .object({
@@ -46,8 +58,25 @@ export const newCampaignSchema = z
     targetAmount: z
       .string()
       .min(1, "Target amount is required")
-      .refine((val) => !isNaN(Number(val)) && Number(val) > 0, {
-        message: "Target amount must be a positive number",
+      .regex(/^\d+$/, {
+        message: "Target amount must be a whole dollar amount",
+      })
+      .superRefine((val, ctx) => {
+        const numericValue = Number(val);
+
+        if (numericValue < MIN_FUNDING_TARGET) {
+          ctx.addIssue({
+            code: "custom",
+            message: `Target amount must be at least $${MIN_FUNDING_TARGET_LABEL}`,
+          });
+        }
+
+        if (numericValue > MAX_FUNDING_TARGET) {
+          ctx.addIssue({
+            code: "custom",
+            message: `Target amount cannot exceed $${MAX_FUNDING_TARGET_LABEL}`,
+          });
+        }
       }),
     walletAddress: z
       .string()
