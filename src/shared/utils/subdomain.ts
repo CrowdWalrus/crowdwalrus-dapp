@@ -21,3 +21,44 @@ export function formatSubdomain(subdomain: string, domain: string): string {
 
   return `${normalized}.${domain}`;
 }
+
+/**
+ * Remove the configured domain suffix from a subdomain, if present.
+ * Returns the original value when inputs are empty or the suffix is missing.
+ */
+export function extractSubdomainLabel(
+  subdomain: string,
+  domain: string,
+): string {
+  const normalizedSubdomain = subdomain.trim();
+  if (!normalizedSubdomain) {
+    return "";
+  }
+
+  const normalizedDomain = domain.trim();
+  if (!normalizedDomain) {
+    return normalizedSubdomain;
+  }
+
+  const suffix = `.${normalizedDomain}`;
+  const lowerSubdomain = normalizedSubdomain.toLowerCase();
+  const lowerSuffix = suffix.toLowerCase();
+
+  if (lowerSubdomain.endsWith(lowerSuffix)) {
+    return normalizedSubdomain.slice(0, normalizedSubdomain.length - suffix.length);
+  }
+
+  return normalizedSubdomain;
+}
+
+/**
+ * Build a URL-safe slug for campaign routes by removing the domain suffix
+ * and converting the remaining label to lowercase.
+ */
+export function toCampaignSlug(subdomain: string, domain: string): string {
+  const label = extractSubdomainLabel(subdomain, domain).trim();
+  if (!label) {
+    return "";
+  }
+  return label.toLowerCase();
+}
