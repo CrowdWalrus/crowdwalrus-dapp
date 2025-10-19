@@ -128,6 +128,31 @@ export function Header() {
               </Link>
             </Button>
 
+            {/* Mobile Wallet Button - Icon Only */}
+            {account ? (
+              <Button
+                variant="outline"
+                size="icon"
+                className="size-9 p-0"
+                onClick={() => disconnect()}
+              >
+                <div className="size-6 rounded-full bg-gradient-to-br from-blue-500 to-purple-500" />
+              </Button>
+            ) : (
+              <>
+                <Button
+                  size="icon"
+                  className="size-9 bg-blue-50 text-blue-500 hover:bg-white cursor-pointer"
+                  onClick={handleConnectClick}
+                >
+                  <WalletMinimal className="size-5" />
+                </Button>
+                <div ref={connectButtonRef} className="hidden">
+                  <ConnectButton />
+                </div>
+              </>
+            )}
+
             {/* Mobile Menu Trigger */}
             <Sheet open={mobileMenuOpen} onOpenChange={setMobileMenuOpen}>
               <SheetTrigger asChild>
