@@ -4,6 +4,7 @@ import type { CreateCampaignResult } from "@/features/campaigns/types/campaign";
 import type { CampaignUpdateResult } from "@/features/campaigns/types/campaignUpdate";
 import { Button } from "@/shared/components/ui/button";
 import { useNetworkVariable } from "@/shared/config/networkConfig";
+import { buildCampaignDetailPath } from "@/shared/utils/routes";
 
 export interface SuccessStateProps {
   /** Campaign creation result data */
@@ -41,11 +42,12 @@ export const SuccessState = ({
       ? `${campaignResult.subdomain}.${campaignDomain}`
       : "";
 
-  // Generate local campaign page URL
-  const getCampaignUrl = () => {
-    if (!effectiveCampaignId) return "/";
-    return `/campaigns/${effectiveCampaignId}`;
-  };
+  const campaignDetailPath = effectiveCampaignId
+    ? buildCampaignDetailPath(effectiveCampaignId, {
+        subdomainName: campaignResult?.subdomain,
+        campaignDomain,
+      })
+    : "/";
 
   // Handle copy to clipboard
   const handleCopy = async () => {
@@ -62,7 +64,7 @@ export const SuccessState = ({
 
   const handleViewCampaign = () => {
     onClose?.();
-    window.location.href = getCampaignUrl();
+    window.location.href = campaignDetailPath;
   };
 
   return (
