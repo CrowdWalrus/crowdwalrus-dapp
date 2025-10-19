@@ -57,7 +57,7 @@ export function CampaignTypeSelector({
               Non-Profit
             </span>
             <span className="text-xs leading-[1.5] font-normal text-[#737373] tracking-[0.18px]">
-              100% of donations go to your cause.
+              100% of payments go directly to your cause.
             </span>
           </div>
         </label>
@@ -74,7 +74,7 @@ export function CampaignTypeSelector({
               Commercial
             </span>
             <span className="text-xs leading-[1.5] font-normal text-[#737373] tracking-[0.18px]">
-              You'll be charged a 5% platform fee on funds raised.
+              A 5% platform fee applies to funds raised.
             </span>
           </div>
         </label>

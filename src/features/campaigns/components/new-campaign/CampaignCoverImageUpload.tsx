@@ -262,8 +262,7 @@ export function CampaignCoverImageUpload({
             onChange={(e) => handleImageChange(e, onChange)}
           />
           <p className="text-sm text-muted-foreground pt-2 pb-3">
-            Upload an image minimum 946x432px resolution. JPEG and PNG format.
-            Max up to 5MB.
+            Upload an image (min 946×432 px, JPEG or PNG, up to 5 MB).
           </p>
           <div
             className={`relative w-full h-[360px] rounded-3xl border-2 border-dashed flex items-center justify-center overflow-hidden transition-colors ${

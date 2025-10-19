@@ -90,7 +90,7 @@ export function Header() {
             <Button asChild>
               <Link to={ROUTES.CAMPAIGNS_NEW}>
                 <PlusIcon />
-                Launch Campaign
+                Launch Your Campaign
               </Link>
             </Button>
 
@@ -121,7 +121,7 @@ export function Header() {
 
           {/* Mobile Menu */}
           <div className="flex lg:hidden gap-2 items-center">
-            {/* Mobile Launch Campaign Button - Icon Only */}
+            {/* Mobile Launch Your Campaign Button - Icon Only */}
             <Button asChild size="icon" className="size-9">
               <Link to={ROUTES.CAMPAIGNS_NEW}>
                 <PlusIcon className="size-5" />

@@ -1668,13 +1668,13 @@ export default function EditCampaignPage() {
                 <section className="flex flex-col gap-6">
                   <div className="flex items-center justify-between">
                     <h2 className="text-2xl font-semibold">
-                      Campaign Timeline
+                      Funding Duration
                     </h2>
                     <FieldStatusBadge status="Can't Edit" />
                   </div>
                   <p className="text-sm text-muted-foreground">
-                    Timeline cannot be edited after launch. These dates were set
-                    when the campaign was created.
+                    Funding duration cannot be edited after launch. These dates
+                    were set when the campaign was created.
                   </p>
                   <div className="grid gap-6 sm:grid-cols-2">
                     <div className="flex flex-col gap-2">
@@ -1708,7 +1708,7 @@ export default function EditCampaignPage() {
                   <div className="flex flex-col gap-8">
                     <div className="flex flex-col gap-2">
                       <Label className="font-medium text-base">
-                        Add a max funding amount for your campaign
+                        Enter your campaign's goal amount
                       </Label>
                       <div className="relative">
                         <DollarSign className="absolute left-4 top-1/2 -translate-y-1/2 size-5 text-[#737373]" />
@@ -1732,7 +1732,7 @@ export default function EditCampaignPage() {
                         placeholder="0x8894E0a0c962CB723c1976a4421c95949bE2D4E3"
                       />
                       <p className="font-normal text-xs text-black-200">
-                        This is the wallet that will receive all donation funds
+                        This is the address that will receive all the payments.
                       </p>
                     </div>
                   </div>

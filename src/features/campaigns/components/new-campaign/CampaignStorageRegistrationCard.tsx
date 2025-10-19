@@ -113,8 +113,8 @@ export function CampaignStorageRegistrationCard({
       <div className="flex flex-col gap-2">
         <h2 className="text-2xl font-bold">Storage registration</h2>
         <p className="text-base font-medium text-black-500">
-          Review your storage costs, which are based on the files and content
-          occupying space.
+          Review your storage costs — they depend on the size of your uploaded
+          files and content.
         </p>
       </div>
 

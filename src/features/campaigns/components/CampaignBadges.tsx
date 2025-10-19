@@ -47,7 +47,7 @@ const CATEGORY_BADGE_CONFIG: Record<
   education: { Icon: GraduationCap, label: "Education" },
   environment: { Icon: Leaf, label: "Environment & Energy" },
   health: { Icon: HeartPulse, label: "Health & Wellness" },
-  ngo: { Icon: Building2, label: "NGO / NonProfits" },
+  ngo: { Icon: Building2, label: "NGO / Nonprofits" },
   tech: { Icon: Cpu, label: "Technology" },
   other: { Icon: Sparkles, label: "Others" },
 };

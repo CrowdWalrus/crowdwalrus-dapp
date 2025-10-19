@@ -127,7 +127,7 @@ export function CampaignFundingTargetSection({
           render={({ field }) => (
             <FormItem className="flex flex-col gap-4">
               <FormLabel className="font-medium text-base">
-                Add a max funding amount for your campaign
+                Enter your campaign's goal amount
               </FormLabel>
               <FormControl>
                 <div className="relative">
@@ -171,7 +171,7 @@ export function CampaignFundingTargetSection({
                 />
               </FormControl>
               <p className="font-normal text-xs text-black-200">
-                This is the wallet that will receive all donation funds
+                This is the address that will receive all the payments.
               </p>
               <FormMessage />
             </FormItem>

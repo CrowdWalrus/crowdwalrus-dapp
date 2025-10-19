@@ -50,8 +50,8 @@ export function CampaignCategorySelector({
           </div>
           <div className="flex flex-col gap-4">
             <p className="font-medium text-base leading-[1.6]">
-              Pick a category that best describes your campaign. You can select
-              multiple category options.
+              Pick a category that best describes your campaign. You can choose
+              multiple options.
             </p>
             <div className="flex gap-6">
           <div className="flex flex-col gap-6">
@@ -150,7 +150,7 @@ export function CampaignCategorySelector({
                 htmlFor="ngo"
                 className="cursor-pointer font-normal text-sm leading-[1.5] text-neutral-700 tracking-[0.07px]"
               >
-                NGO / NonProfits
+                NGO / Nonprofits
               </Label>
             </div>
             <div className="flex gap-2 h-6 items-center w-60">

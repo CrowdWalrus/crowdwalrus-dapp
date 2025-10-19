@@ -34,7 +34,7 @@ function ReadOnlyCampaignTimeline({
   return (
     <section className="flex flex-col gap-4">
       <div className="flex flex-wrap items-center justify-between gap-3">
-        <h2 className="text-2xl font-bold leading-[1.6]">Campaign Timeline</h2>
+        <h2 className="text-2xl font-bold leading-[1.6]">Funding Duration</h2>
         {(headerAction || headerStatus) && (
           <div className="flex items-center gap-3">
             {headerStatus}
@@ -43,8 +43,8 @@ function ReadOnlyCampaignTimeline({
         )}
       </div>
       <p className="text-sm text-muted-foreground">
-        Timeline cannot be edited after launch. These dates were set when the
-        campaign was created.
+        Funding duration cannot be edited after launch. These dates were set
+        when the campaign was created.
       </p>
       <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
         <div className="rounded-lg border border-border bg-muted/20 p-4">
@@ -128,7 +128,7 @@ function EditableCampaignTimeline({
     <section className="flex flex-col gap-8">
       <div className="flex flex-wrap items-center justify-between gap-3">
         <h2 className="text-2xl font-bold leading-[1.6]">
-          Campaign Timeline <span className="text-red-300">*</span>
+          Funding Duration <span className="text-red-300">*</span>
         </h2>
         {(headerAction || headerStatus) && (
           <div className="flex items-center gap-3">
@@ -139,7 +139,9 @@ function EditableCampaignTimeline({
       </div>
       <div className="flex flex-col gap-4">
         <p className="text-base font-medium">
-          Set a timeline for your campaign to start and end
+          Choose when your campaign can receive payments— from start to end
+          date. Before that, it’s Coming Soon; after that, funding closes
+          automatically.
         </p>
         <div className="flex gap-6 items-start">
           <div className="flex flex-col gap-2">

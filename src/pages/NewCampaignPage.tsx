@@ -818,7 +818,7 @@ export default function NewCampaignPage() {
               </BreadcrumbItem>
               <BreadcrumbSeparator />
               <BreadcrumbItem>
-                <BreadcrumbPage>Launch Campaign</BreadcrumbPage>
+                <BreadcrumbPage>Launch Your Campaign</BreadcrumbPage>
               </BreadcrumbItem>
             </BreadcrumbList>
           </Breadcrumb>
@@ -873,12 +873,11 @@ export default function NewCampaignPage() {
                   >
                     <div className="flex flex-col items-center text-center gap-4 mb-16">
                       <h1 className="text-4xl font-bold mb-4">
-                        Launch Campaign
+                        Launch Your Campaign
                       </h1>
                       <p className="text-muted-foreground text-base">
-                        Enter your campaign details. You can edit campaign
-                        details anytime after your publish your campaign, but
-                        the transaction will cost gas.
+                        Enter your campaign details. You can update them anytime
+                        after publishing, but each change incurs a gas fee.
                       </p>
                     </div>
 
@@ -1002,7 +1001,7 @@ export default function NewCampaignPage() {
 
                     <Separator />
 
-                    {/* Campaign Timeline Section */}
+                    {/* Funding Duration Section */}
                     <CampaignTimeline />
 
                     {/* Funding Target Section */}
@@ -1071,8 +1070,8 @@ export default function NewCampaignPage() {
                       <AlertDescription className="flex items-center gap-2">
                         <span className="flex items-center gap-2">
                           <AlertCircleIcon className="size-4" />
-                          You can publish campaign after completing the
-                          "Register Storage" step
+                          You can publish your campaign once the ‘Register
+                          Storage’ step is complete.
                         </span>
                       </AlertDescription>
                     </Alert>

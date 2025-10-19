@@ -54,7 +54,9 @@ export function CampaignSocialsSection({
   return (
     <div className="flex flex-col gap-4">
       <div className="flex flex-wrap items-center justify-between gap-3">
-        <p className="font-medium text-base leading-[1.6]">Add socials</p>
+        <p className="font-medium text-base leading-[1.6]">
+          Add your campaign's social links.
+        </p>
         {(labelAction || labelStatus) && (
           <div className="flex items-center gap-3">
             {labelStatus}
