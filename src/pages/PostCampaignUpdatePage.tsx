@@ -64,6 +64,7 @@ import {
 import { getWalrusUrl } from "@/services/walrus";
 import { lexicalToPlainText } from "@/shared/utils/lexical";
 import { isUserRejectedError } from "@/shared/utils/errors";
+import { buildCampaignDetailPath } from "@/shared/utils/routes";
 
 const DEFAULT_FORM_VALUES: CampaignUpdateFormData = {
   updateContent: "",
@@ -136,6 +137,15 @@ export default function PostCampaignUpdatePage() {
     isPending: isCampaignLoading,
     error: campaignError,
   } = useCampaign(campaignId, network);
+
+  const campaignDetailPath = useMemo(
+    () =>
+      buildCampaignDetailPath(campaignId, {
+        subdomainName: campaign?.subdomainName,
+        campaignDomain: config.campaignDomain,
+      }),
+    [campaignId, campaign?.subdomainName, config.campaignDomain],
+  );
 
   const form = useForm<CampaignUpdateFormData>({
     resolver: zodResolver(campaignUpdateSchema),
@@ -718,7 +728,7 @@ export default function PostCampaignUpdatePage() {
               <BreadcrumbSeparator />
               <BreadcrumbItem>
                 <BreadcrumbLink asChild>
-                  <Link to={ROUTES.CAMPAIGNS_DETAIL.replace(":id", campaignId)}>
+                  <Link to={campaignDetailPath}>
                     Campaign
                   </Link>
                 </BreadcrumbLink>
