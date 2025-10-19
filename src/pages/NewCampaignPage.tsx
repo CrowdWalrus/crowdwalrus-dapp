@@ -762,22 +762,25 @@ export default function NewCampaignPage() {
 
   // Close modal handler
   const handleCloseModal = () => {
-    // Only close if we're in SUCCESS or ERROR state
     if (wizardStep === WizardStep.SUCCESS) {
       closeModal();
-      // Optionally reset to form
       setWizardStep(WizardStep.FORM);
       setCertifyRejectionMessage(null);
-    } else if (wizardStep === WizardStep.ERROR) {
+      return;
+    }
+
+    if (wizardStep === WizardStep.ERROR) {
       closeModal();
       setWizardStep(WizardStep.FORM);
-      // Reset all state
-      setFormData(null);
-      setFlowState(null);
-      setRegisterResult(null);
-      setUploadCompleted(false);
-      setCertifyResult(null);
       setError(null);
+
+      if (!certifyResult) {
+        setFormData(null);
+        setFlowState(null);
+        setRegisterResult(null);
+        setUploadCompleted(false);
+      }
+
       setCertifyRejectionMessage(null);
     }
   };
@@ -991,6 +994,10 @@ export default function NewCampaignPage() {
                     isLocked={isFormLocked}
                     storageRegistered={hasCompletedStorageRegistration}
                     estimatedCost={costEstimate}
+                    hideRegisterButton={
+                      Boolean(certifyRejectionMessage) ||
+                      hasCompletedStorageRegistration
+                    }
                   />
 
                   <Separator />
