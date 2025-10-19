@@ -939,30 +939,30 @@ export default function NewCampaignPage() {
                                 <span className="text-red-300">*</span>
                               </FormLabel>
                               <div className="flex flex-col gap-2">
-                                <FormControl>
-                                  <div
-                                    className={cn(
-                                      "flex h-10 w-full rounded-lg border bg-white-50 px-4 py-[9.5px] gap-3 items-center",
-                                      subdomainFieldState.error
-                                        ? "border-red-500"
-                                        : "border-input",
-                                    )}
-                                  >
-                                    {isCheckingSubname && (
-                                      <Loader2 className="size-[18px] animate-spin text-black-300" />
-                                    )}
+                                <div
+                                  className={cn(
+                                    "flex h-10 w-full rounded-lg border bg-white-50 px-4 py-[9.5px] gap-3 items-center",
+                                    subdomainFieldState.error
+                                      ? "border-red-500"
+                                      : "border-input",
+                                  )}
+                                >
+                                  {isCheckingSubname && (
+                                    <Loader2 className="size-[18px] animate-spin text-black-300" />
+                                  )}
+                                  <FormControl>
                                     <input
                                       {...field}
                                       placeholder="campaign-name"
                                       className="flex-1 bg-transparent text-sm outline-none placeholder:text-black-300"
                                     />
-                                    {campaignDomain && (
-                                      <span className="text-sm text-black-300 whitespace-nowrap">
-                                        .{campaignDomain}
-                                      </span>
-                                    )}
-                                  </div>
-                                </FormControl>
+                                  </FormControl>
+                                  {campaignDomain && (
+                                    <span className="text-sm text-black-300 whitespace-nowrap">
+                                      .{campaignDomain}
+                                    </span>
+                                  )}
+                                </div>
                                 {shouldShowHelperText && (
                                   <div className="flex gap-1 items-center">
                                     {subnameStatus === "available" ? (
