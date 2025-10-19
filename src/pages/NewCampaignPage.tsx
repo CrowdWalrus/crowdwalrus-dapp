@@ -801,6 +801,9 @@ export default function NewCampaignPage() {
         campaignResult={campaignResult}
         errorTitle={errorHeading || undefined}
         error={errorBody || rawErrorMessage || undefined}
+        subdomainName={
+          campaignResult?.subdomain ?? formData?.subdomain_name ?? null
+        }
       />
 
       <div className="py-8">
