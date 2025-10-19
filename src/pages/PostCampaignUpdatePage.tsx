@@ -63,6 +63,7 @@ import {
 } from "@/services/campaign-transaction";
 import { getWalrusUrl } from "@/services/walrus";
 import { lexicalToPlainText } from "@/shared/utils/lexical";
+import { isUserRejectedError } from "@/shared/utils/errors";
 
 const DEFAULT_FORM_VALUES: CampaignUpdateFormData = {
   updateContent: "",
@@ -383,21 +384,6 @@ export default function PostCampaignUpdatePage() {
       ? BigInt(Math.floor(costEstimate.subsidizedTotalCost * 10 ** 9)) >
         BigInt(walBalanceRaw ?? "0")
       : false;
-
-  const isUserRejectedError = (unknownError: unknown) => {
-    if (!(unknownError instanceof Error)) {
-      return false;
-    }
-
-    const message = unknownError.message.toLowerCase();
-    return (
-      message.includes("user rejected") ||
-      message.includes("rejected the request") ||
-      message.includes("user cancelled") ||
-      message.includes("user canceled") ||
-      message.includes("request rejected")
-    );
-  };
 
   const handleRegisterStorageClick = async () => {
     if (walrus.prepare.isPending || isRegistrationPending) {

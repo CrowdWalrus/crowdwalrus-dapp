@@ -78,6 +78,7 @@ import {
 } from "@/shared/components/ui/form";
 import { Input } from "@/shared/components/ui/input";
 import { Textarea } from "@/shared/components/ui/textarea";
+import { isUserRejectedError } from "@/shared/utils/errors";
 import {
   AlertCircle as AlertCircleIcon,
   DollarSign,
@@ -347,7 +348,8 @@ export default function EditCampaignPage() {
   const updateBasics = useUpdateCampaignBasics();
   const updateMetadata = useUpdateCampaignMetadata();
   const { mutateAsync: signAndExecuteTransaction } =
-    useSignAndExecuteTransaction();
+    useSignAndExecuteTransaction({
+    });
 
   const hasCampaign = Boolean(campaign);
   const isDeleted = campaign?.isDeleted ?? false;
@@ -829,19 +831,6 @@ export default function EditCampaignPage() {
   const formattedFundingGoal = campaignData.fundingGoal ?? "";
   const formattedRecipientAddress = campaignData.recipientAddress ?? "";
 
-  const isUserRejectedError = (error: unknown) => {
-    if (!(error instanceof Error)) {
-      return false;
-    }
-    const message = error.message.toLowerCase();
-    return (
-      message.includes("user rejected") ||
-      message.includes("rejected the request") ||
-      message.includes("user cancelled") ||
-      message.includes("user canceled") ||
-      message.includes("request rejected")
-    );
-  };
   const campaignNameDirty = isEditFieldDirty(dirtyFields, "campaignName");
   const descriptionDirty = isEditFieldDirty(dirtyFields, "description");
   const coverImageDirty = Boolean(dirtyFields.coverImage);

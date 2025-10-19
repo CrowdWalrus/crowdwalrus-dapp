@@ -8,6 +8,7 @@ import { toast } from "sonner";
 import { DEFAULT_NETWORK } from "@/shared/config/networkConfig";
 import type { SupportedNetwork } from "@/shared/types/network";
 import { buildToggleActiveTransaction } from "@/services/campaign-transaction";
+import { isUserRejectedError } from "@/shared/utils/errors";
 
 export type DeactivateCampaignResult =
   | "success"
@@ -27,21 +28,6 @@ export interface UseDeactivateCampaignOptions {
   onSuccess?: () => Promise<void> | void;
   onError?: (error: Error) => void;
 }
-
-const isUserRejectedError = (error: unknown) => {
-  if (!(error instanceof Error)) {
-    return false;
-  }
-
-  const message = error.message.toLowerCase();
-  return (
-    message.includes("user rejected") ||
-    message.includes("rejected the request") ||
-    message.includes("user cancelled") ||
-    message.includes("user canceled") ||
-    message.includes("request rejected")
-  );
-};
 
 export function useDeactivateCampaign({
   campaignId,

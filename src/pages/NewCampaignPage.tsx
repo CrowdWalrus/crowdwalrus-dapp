@@ -76,6 +76,7 @@ import {
   type NewCampaignFormData,
 } from "@/features/campaigns/schemas/newCampaignSchema";
 import { AlertCircleIcon } from "lucide-react";
+import { isUserRejectedError } from "@/shared/utils/errors";
 
 // ============================================================================
 // TEST DEFAULT VALUES - Remove this block after testing
@@ -572,21 +573,6 @@ export default function NewCampaignPage() {
           setWizardStep(WizardStep.ERROR);
         },
       },
-    );
-  };
-
-  const isUserRejectedError = (error: unknown) => {
-    if (!(error instanceof Error)) {
-      return false;
-    }
-
-    const message = error.message.toLowerCase();
-    return (
-      message.includes("user rejected") ||
-      message.includes("rejected the request") ||
-      message.includes("user cancelled") ||
-      message.includes("user canceled") ||
-      message.includes("request rejected")
     );
   };
 
