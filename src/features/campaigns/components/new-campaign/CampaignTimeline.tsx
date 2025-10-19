@@ -86,8 +86,11 @@ function EditableCampaignTimeline({
 
   const startDateObj = startDate ? new Date(startDate) : undefined;
   const endDateObj = endDate ? new Date(endDate) : undefined;
-  const today = new Date();
-  today.setHours(0, 0, 0, 0);
+  // Set minimum date to tomorrow to give users time to prepare
+  // and avoid confusion with same-day campaign starts
+  const tomorrow = new Date();
+  tomorrow.setHours(0, 0, 0, 0);
+  tomorrow.setDate(tomorrow.getDate() + 1);
 
   const handleStartDateSelect = (date: Date | undefined) => {
     const formattedDate = date
@@ -163,7 +166,7 @@ function EditableCampaignTimeline({
                   selected={startDateObj}
                   onSelect={handleStartDateSelect}
                   disabled={(date) =>
-                    date < today || (endDateObj ? date > endDateObj : false)
+                    date < tomorrow || (endDateObj ? date > endDateObj : false)
                   }
                   className="w-[250px] scale-110"
                 />
@@ -198,7 +201,7 @@ function EditableCampaignTimeline({
                   selected={endDateObj}
                   onSelect={handleEndDateSelect}
                   disabled={(date) =>
-                    date < today || (startDateObj ? date < startDateObj : false)
+                    date < tomorrow || (startDateObj ? date < startDateObj : false)
                   }
                   className="w-[250px] scale-110"
                 />
