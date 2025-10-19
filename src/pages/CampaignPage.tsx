@@ -12,7 +12,7 @@ import { useResolvedCampaignId } from "@/features/campaigns/hooks/useResolvedCam
 import { useWalrusDescription } from "@/features/campaigns/hooks/useWalrusDescription";
 import { useWalrusImage } from "@/features/campaigns/hooks/useWalrusImage";
 import { useCampaignUpdates } from "@/features/campaigns/hooks/useCampaignUpdates";
-import { DEFAULT_NETWORK } from "@/shared/config/networkConfig";
+import { DEFAULT_NETWORK, useNetworkVariable } from "@/shared/config/networkConfig";
 import { Card, CardContent } from "@/shared/components/ui/card";
 import { Button } from "@/shared/components/ui/button";
 import { Separator } from "@/shared/components/ui/separator";
@@ -46,12 +46,25 @@ import {
   SendIcon,
 } from "lucide-react";
 import { ROUTES } from "@/shared/config/routes";
+import {
+  buildCampaignAddUpdatePath,
+  buildCampaignEditPath,
+} from "@/shared/utils/routes";
+import {
+  CampaignResolutionError,
+  CampaignResolutionLoading,
+  CampaignResolutionMissing,
+  CampaignResolutionNotFound,
+} from "@/features/campaigns/components/CampaignResolutionStates";
 
 const CAMPAIGN_PLACEHOLDER_IMAGE = "/assets/images/placeholders/campaign.png";
 
 export function CampaignPage() {
   const { id } = useParams<{ id: string }>();
   const network = DEFAULT_NETWORK;
+  const campaignDomain = useNetworkVariable("campaignDomain") as
+    | string
+    | undefined;
   const rawIdentifier = id ?? "";
 
   const {
@@ -63,6 +76,11 @@ export function CampaignPage() {
     notFound: isIdentifierNotFound,
     error: identifierError,
   } = useResolvedCampaignId(rawIdentifier);
+
+  const identifierDisplay =
+    resolvedFullName ?? resolvedSlug ?? rawIdentifier ?? campaignId ?? "";
+  const identifierLabelFromSource =
+    identifierSource === "subdomain" ? "Campaign subdomain" : "Campaign ID";
 
   // Fetch campaign data
   const { campaign, isPending, error, refetch } = useCampaign(
@@ -208,64 +226,24 @@ export function CampaignPage() {
     setIsOwnerView((prev) => !prev);
   };
 
-  const identifierLabel =
-    identifierSource === "subdomain" ? "Campaign subdomain" : "Campaign ID";
-  const identifierDisplay =
-    identifierSource === "subdomain"
-      ? resolvedFullName ?? resolvedSlug ?? rawIdentifier
-      : rawIdentifier || campaignId || "";
+  if (!rawIdentifier && !campaignId) {
+    return <CampaignResolutionMissing />;
+  }
 
   if (isResolvingIdentifier) {
-    return (
-      <div className="py-8">
-        <div className="container px-4 max-w-4xl">
-          <Card>
-            <CardContent className="pt-6">
-              <p className="text-muted-foreground">
-                Resolving campaign address...
-              </p>
-            </CardContent>
-          </Card>
-        </div>
-      </div>
-    );
+    return <CampaignResolutionLoading />;
   }
 
   if (identifierError) {
-    return (
-      <div className="py-8">
-        <div className="container px-4 max-w-4xl">
-          <Card className="border-red-500">
-            <CardContent className="pt-6">
-              <p className="text-red-600 font-semibold mb-2">
-                Failed to resolve campaign address
-              </p>
-              <p className="text-sm text-muted-foreground mb-4">
-                {identifierError.message}
-              </p>
-            </CardContent>
-          </Card>
-        </div>
-      </div>
-    );
+    return <CampaignResolutionError error={identifierError} />;
   }
 
-  if (isIdentifierNotFound || (!campaignId && rawIdentifier)) {
+  if (isIdentifierNotFound) {
     return (
-      <div className="py-8">
-        <div className="container px-4 max-w-4xl">
-          <Card className="border-yellow-500">
-            <CardContent className="pt-6">
-              <p className="text-yellow-600 font-semibold">
-                Campaign not found
-              </p>
-              <p className="text-sm text-muted-foreground mt-2">
-                {identifierLabel}: {identifierDisplay}
-              </p>
-            </CardContent>
-          </Card>
-        </div>
-      </div>
+      <CampaignResolutionNotFound
+        identifier={identifierDisplay}
+        label={identifierLabelFromSource}
+      />
     );
   }
 
@@ -310,20 +288,10 @@ export function CampaignPage() {
   // Not found state
   if (!campaign) {
     return (
-      <div className="py-8">
-        <div className="container px-4 max-w-4xl">
-          <Card className="border-yellow-500">
-            <CardContent className="pt-6">
-              <p className="text-yellow-600 font-semibold">
-                Campaign not found
-              </p>
-              <p className="text-sm text-muted-foreground mt-2">
-                {identifierLabel}: {identifierDisplay}
-              </p>
-            </CardContent>
-          </Card>
-        </div>
-      </div>
+      <CampaignResolutionNotFound
+        identifier={identifierDisplay}
+        label={identifierLabelFromSource}
+      />
     );
   }
 
@@ -376,6 +344,18 @@ export function CampaignPage() {
       ? imageObjectUrl
       : CAMPAIGN_PLACEHOLDER_IMAGE;
 
+  const campaignPathOptions = {
+    subdomainName: campaign.subdomainName,
+    campaignDomain,
+  };
+  const campaignFallbackId = campaign.id || campaignId || rawIdentifier;
+  const editPath = campaignFallbackId
+    ? buildCampaignEditPath(campaignFallbackId, campaignPathOptions)
+    : null;
+  const addUpdatePath = campaignFallbackId
+    ? buildCampaignAddUpdatePath(campaignFallbackId, campaignPathOptions)
+    : null;
+
   return (
     <>
       {/* Owner View Banner - Only visible to campaign owners */}
@@ -408,46 +388,45 @@ export function CampaignPage() {
               {/* Owner Action Buttons - Top section */}
               {isOwnerView && isOwner && (
                 <div className="flex justify-end items-center gap-6 pb-10">
-                  <Button
-                    asChild={campaign.isActive}
-                    variant="outline"
-                    className="py-[9.5px]"
-                    disabled={!campaign.isActive}
-                  >
-                    {campaign.isActive ? (
-                      <Link to={`/campaigns/${campaign.id}/edit`}>
-                        <Pencil />
-                        Edit Campaign
-                      </Link>
-                    ) : (
-                      <>
-                        <Pencil />
-                        Edit Campaign
-                      </>
-                    )}
-                  </Button>
-                  <Button
-                    asChild={campaign.isActive}
-                    className="py-[9.5px]"
-                    disabled={!campaign.isActive}
-                  >
-                    {campaign.isActive ? (
-                      <Link
-                        to={ROUTES.CAMPAIGNS_ADD_UPDATE.replace(
-                          ":id",
-                          campaign.id,
-                        )}
-                      >
-                        <SendIcon />
-                        Post an Update
-                      </Link>
-                    ) : (
-                      <>
-                        <SendIcon />
-                        Post an Update
-                      </>
-                    )}
-                  </Button>
+                  {editPath && (
+                    <Button
+                      asChild={campaign.isActive}
+                      variant="outline"
+                      className="py-[9.5px]"
+                      disabled={!campaign.isActive}
+                    >
+                      {campaign.isActive ? (
+                        <Link to={editPath}>
+                          <Pencil />
+                          Edit Campaign
+                        </Link>
+                      ) : (
+                        <>
+                          <Pencil />
+                          Edit Campaign
+                        </>
+                      )}
+                    </Button>
+                  )}
+                  {addUpdatePath && (
+                    <Button
+                      asChild={campaign.isActive}
+                      className="py-[9.5px]"
+                      disabled={!campaign.isActive}
+                    >
+                      {campaign.isActive ? (
+                        <Link to={addUpdatePath}>
+                          <SendIcon />
+                          Post an Update
+                        </Link>
+                      ) : (
+                        <>
+                          <SendIcon />
+                          Post an Update
+                        </>
+                      )}
+                    </Button>
+                  )}
                   {!campaign.isActive && (
                     <Button
                       onClick={() => setIsActivateModalOpen(true)}
