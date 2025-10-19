@@ -32,19 +32,16 @@ export function useResolvedCampaignId(
 
   const normalizedInput = identifier?.trim() ?? "";
   const hasIdentifier = normalizedInput.length > 0;
-  const looksLikeObjectId = hasIdentifier && normalizedInput.startsWith("0x");
+  const looksLikeObjectId = hasIdentifier && isValidSuiObjectId(normalizedInput);
 
   const directId = useMemo(() => {
     if (!looksLikeObjectId) {
       return null;
     }
-    if (!isValidSuiObjectId(normalizedInput)) {
-      return null;
-    }
     return normalizeSuiAddress(normalizedInput);
   }, [looksLikeObjectId, normalizedInput]);
 
-  const shouldResolve = !directId && hasIdentifier && !looksLikeObjectId;
+  const shouldResolve = !directId && hasIdentifier;
 
   const { slug, fullName } = useMemo(() => {
     if (!shouldResolve) {
