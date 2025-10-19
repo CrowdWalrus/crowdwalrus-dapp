@@ -1,11 +1,12 @@
 import { Link } from "react-router-dom";
 import { useForm, FormProvider, useWatch } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import { useDebounce } from "@/shared/hooks/useDebounce";
 import { useWalBalance } from "@/shared/hooks/useWalBalance";
 import { ROUTES } from "@/shared/config/routes";
 import {
+  ConnectButton,
   useCurrentAccount,
   useSignAndExecuteTransaction,
   useSuiClient,
@@ -75,7 +76,7 @@ import {
   newCampaignSchema,
   type NewCampaignFormData,
 } from "@/features/campaigns/schemas/newCampaignSchema";
-import { AlertCircleIcon } from "lucide-react";
+import { AlertCircleIcon, WalletMinimal } from "lucide-react";
 
 // ============================================================================
 // TEST DEFAULT VALUES - Remove this block after testing
@@ -119,6 +120,11 @@ export default function NewCampaignPage() {
   // Modal state management
   const modal = useCampaignCreationModal();
   const { openModal, closeModal } = modal;
+  const connectButtonRef = useRef<HTMLDivElement>(null);
+
+  const handleConnectClick = () => {
+    connectButtonRef.current?.querySelector("button")?.click();
+  };
 
   // Wizard state management
   // TODO: TEMP - Change back to WizardStep.FORM after UI work
@@ -841,12 +847,38 @@ export default function NewCampaignPage() {
                 <div className="flex flex-col gap-16">
                   {/* Wallet Status */}
                   {!currentAccount && (
-                    <Alert className="border-yellow-500">
-                      <AlertDescription className="flex items-center gap-2">
-                        <AlertCircleIcon className="size-4" />
-                        Please connect your wallet to create a campaign
-                      </AlertDescription>
-                    </Alert>
+                    <div className="sticky top-24 z-20">
+                      <Alert className="border-blue-200 bg-blue-50/80 backdrop-blur-sm shadow-sm">
+                        <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
+                          <AlertDescription className="flex items-start gap-3 text-blue-900">
+                            <div className="mt-0.5">
+                              <AlertCircleIcon className="size-5 text-blue-500" />
+                            </div>
+                            <div>
+                              <p className="font-semibold">
+                                Wallet connection required
+                              </p>
+                              <p className="text-sm text-blue-900/80">
+                                Connect your wallet to save progress and launch your campaign when you&rsquo;re ready.
+                              </p>
+                            </div>
+                          </AlertDescription>
+                          <div className="flex flex-col gap-2 sm:flex-row sm:items-center">
+                            <Button
+                              className="bg-blue-500 text-white hover:bg-blue-600"
+                              onClick={handleConnectClick}
+                              type="button"
+                            >
+                              <WalletMinimal className="mr-2 size-4" />
+                              Connect Wallet
+                            </Button>
+                            <div ref={connectButtonRef} className="hidden">
+                              <ConnectButton />
+                            </div>
+                          </div>
+                        </div>
+                      </Alert>
+                    </div>
                   )}
 
                   <fieldset
