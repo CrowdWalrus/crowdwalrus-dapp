@@ -18,6 +18,9 @@ export interface SuccessStateProps {
 
   /** Controls copy for campaign creation vs update flow */
   mode?: "campaign" | "campaign-update";
+
+  /** Explicit subdomain to use when computing the redirect path */
+  subdomainName?: string | null;
 }
 
 export const SuccessState = ({
@@ -25,6 +28,7 @@ export const SuccessState = ({
   onClose,
   updateResult,
   mode = "campaign",
+  subdomainName,
 }: SuccessStateProps) => {
   const [copied, setCopied] = useState(false);
   const campaignDomain = useNetworkVariable("campaignDomain") as
@@ -36,6 +40,9 @@ export const SuccessState = ({
     ? updateResult?.campaignId
     : campaignResult?.campaignId;
 
+  const derivedSubdomain =
+    campaignResult?.subdomain ?? subdomainName ?? null;
+
   // Generate full campaign SuiNS address (subdomain + campaignDomain)
   const fullCampaignSuiAddress =
     campaignResult?.subdomain && campaignDomain
@@ -44,7 +51,7 @@ export const SuccessState = ({
 
   const campaignDetailPath = effectiveCampaignId
     ? buildCampaignDetailPath(effectiveCampaignId, {
-        subdomainName: campaignResult?.subdomain,
+        subdomainName: derivedSubdomain ?? undefined,
         campaignDomain,
       })
     : "/";
