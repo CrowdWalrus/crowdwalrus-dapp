@@ -8,6 +8,7 @@
 import { useEffect, useState } from "react";
 import { Link, useParams } from "react-router-dom";
 import { useCampaign } from "@/features/campaigns/hooks/useCampaign";
+import { useResolvedCampaignId } from "@/features/campaigns/hooks/useResolvedCampaignId";
 import { useWalrusDescription } from "@/features/campaigns/hooks/useWalrusDescription";
 import { useWalrusImage } from "@/features/campaigns/hooks/useWalrusImage";
 import { useCampaignUpdates } from "@/features/campaigns/hooks/useCampaignUpdates";
@@ -51,10 +52,21 @@ const CAMPAIGN_PLACEHOLDER_IMAGE = "/assets/images/placeholders/campaign.png";
 export function CampaignPage() {
   const { id } = useParams<{ id: string }>();
   const network = DEFAULT_NETWORK;
+  const rawIdentifier = id ?? "";
+
+  const {
+    campaignId,
+    source: identifierSource,
+    slug: resolvedSlug,
+    fullName: resolvedFullName,
+    isLoading: isResolvingIdentifier,
+    notFound: isIdentifierNotFound,
+    error: identifierError,
+  } = useResolvedCampaignId(rawIdentifier);
 
   // Fetch campaign data
   const { campaign, isPending, error, refetch } = useCampaign(
-    id || "",
+    campaignId ?? "",
     network,
   );
 
@@ -69,11 +81,11 @@ export function CampaignPage() {
     updates,
     isLoading: isUpdatesLoading,
     error: updatesError,
-  } = useCampaignUpdates(id, network);
+  } = useCampaignUpdates(campaignId, network);
 
   const { isOwner, accountAddress, ownerCapId, refetchOwnership } =
     useCampaignOwnership({
-      campaignId: id ?? "",
+      campaignId,
       network,
     });
 
@@ -181,20 +193,81 @@ export function CampaignPage() {
   };
 
   useEffect(() => {
-    if (!id || !accountAddress) {
+    if (!campaignId || !accountAddress) {
       return;
     }
 
     console.debug(
       `[CampaignPage] Wallet ${accountAddress} is ${
         isOwner ? "" : "not "
-      }the owner of campaign ${id}`,
+      }the owner of campaign ${campaignId}`,
     );
-  }, [id, accountAddress, isOwner]);
+  }, [campaignId, accountAddress, isOwner]);
 
   const handleToggleView = () => {
     setIsOwnerView((prev) => !prev);
   };
+
+  const identifierLabel =
+    identifierSource === "subdomain" ? "Campaign subdomain" : "Campaign ID";
+  const identifierDisplay =
+    identifierSource === "subdomain"
+      ? resolvedFullName ?? resolvedSlug ?? rawIdentifier
+      : rawIdentifier || campaignId || "";
+
+  if (isResolvingIdentifier) {
+    return (
+      <div className="py-8">
+        <div className="container px-4 max-w-4xl">
+          <Card>
+            <CardContent className="pt-6">
+              <p className="text-muted-foreground">
+                Resolving campaign address...
+              </p>
+            </CardContent>
+          </Card>
+        </div>
+      </div>
+    );
+  }
+
+  if (identifierError) {
+    return (
+      <div className="py-8">
+        <div className="container px-4 max-w-4xl">
+          <Card className="border-red-500">
+            <CardContent className="pt-6">
+              <p className="text-red-600 font-semibold mb-2">
+                Failed to resolve campaign address
+              </p>
+              <p className="text-sm text-muted-foreground mb-4">
+                {identifierError.message}
+              </p>
+            </CardContent>
+          </Card>
+        </div>
+      </div>
+    );
+  }
+
+  if (isIdentifierNotFound || (!campaignId && rawIdentifier)) {
+    return (
+      <div className="py-8">
+        <div className="container px-4 max-w-4xl">
+          <Card className="border-yellow-500">
+            <CardContent className="pt-6">
+              <p className="text-yellow-600 font-semibold">
+                Campaign not found
+              </p>
+              <p className="text-sm text-muted-foreground mt-2">
+                {identifierLabel}: {identifierDisplay}
+              </p>
+            </CardContent>
+          </Card>
+        </div>
+      </div>
+    );
+  }
 
   // Loading state
   if (isPending) {
@@ -245,7 +318,7 @@ export function CampaignPage() {
                 Campaign not found
               </p>
               <p className="text-sm text-muted-foreground mt-2">
-                Campaign ID: {id}
+                {identifierLabel}: {identifierDisplay}
               </p>
             </CardContent>
           </Card>
