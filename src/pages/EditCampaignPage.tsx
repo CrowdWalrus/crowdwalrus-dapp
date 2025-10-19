@@ -348,8 +348,7 @@ export default function EditCampaignPage() {
   const updateBasics = useUpdateCampaignBasics();
   const updateMetadata = useUpdateCampaignMetadata();
   const { mutateAsync: signAndExecuteTransaction } =
-    useSignAndExecuteTransaction({
-    });
+    useSignAndExecuteTransaction({});
 
   const hasCampaign = Boolean(campaign);
   const isDeleted = campaign?.isDeleted ?? false;
@@ -605,7 +604,7 @@ export default function EditCampaignPage() {
         metadataPatch.campaign_type ??
         (values.campaignType
           ? values.campaignType.trim().toLowerCase()
-          : campaign.campaignType ?? "");
+          : (campaign.campaignType ?? ""));
 
       const walrusFormData = {
         name: campaign.name,
@@ -949,7 +948,7 @@ export default function EditCampaignPage() {
         metadataPatch.campaign_type ??
         (values.campaignType
           ? values.campaignType.trim().toLowerCase()
-          : campaignData.campaignType ?? "");
+          : (campaignData.campaignType ?? ""));
 
       const walrusFormData = {
         name: campaignData.name,
@@ -1022,8 +1021,8 @@ export default function EditCampaignPage() {
       await startCertifyFlow(registerResult.flowState);
     } catch (error) {
       if (isUserRejectedError(error)) {
-        setCertifyRejectionMessage(
-          "Approve the storage registration transaction in your wallet to continue.",
+        toast.info(
+          "Storage registration transaction was cancelled in your wallet.",
         );
         setWizardStep(WizardStep.FORM);
         return;
@@ -1435,7 +1434,8 @@ export default function EditCampaignPage() {
 
   const canInteractWithWalrusSection =
     editingSections.details || walrusChangesDetected;
-  const shouldHideRegisterButton = !walrusChangesDetected;
+  const shouldHideRegisterButton =
+    !walrusChangesDetected || Boolean(certifyRejectionMessage);
   const isWalrusOperationPending =
     walrus.prepare.isPending ||
     walrus.register.isPending ||
