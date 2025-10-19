@@ -669,14 +669,20 @@ export default function PostCampaignUpdatePage() {
       closeModal();
       setWizardStep(WizardStep.FORM);
       setCertifyRejectionMessage(null);
-    } else if (wizardStep === WizardStep.ERROR) {
+      return;
+    }
+
+    if (wizardStep === WizardStep.ERROR) {
       closeModal();
       setWizardStep(WizardStep.FORM);
-      setFlowState(null);
-      setRegisterResult(null);
-      setUploadCompleted(false);
-      setCertifyResult(null);
       setError(null);
+
+      if (!certifyResult) {
+        setFlowState(null);
+        setRegisterResult(null);
+        setUploadCompleted(false);
+      }
+
       setCertifyRejectionMessage(null);
     }
   };
@@ -824,6 +830,10 @@ export default function PostCampaignUpdatePage() {
                     onRetryCertify={handleRetryCertify}
                     isRetryingCertify={walrus.certify.isPending}
                     storageRegistered={hasCompletedStorageRegistration}
+                    hideRegisterButton={
+                      Boolean(certifyRejectionMessage) ||
+                      hasCompletedStorageRegistration
+                    }
                   />
 
                   <Separator />
