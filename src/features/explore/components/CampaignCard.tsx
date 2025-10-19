@@ -5,9 +5,9 @@
  * Matches Figma design exactly
  */
 
+import { useMemo } from "react";
 import { Link } from "react-router-dom";
 import { Button } from "@/shared/components/ui/button";
-import { ROUTES } from "@/shared/config/routes";
 import type { CampaignData } from "@/features/campaigns/hooks/useAllCampaigns";
 import { useWalrusImage } from "@/features/campaigns/hooks/useWalrusImage";
 import {
@@ -17,6 +17,8 @@ import {
   ContributorsBadge,
 } from "@/features/campaigns/components/CampaignBadges";
 import { getCampaignStatusInfo } from "@/features/campaigns/utils/campaignStatus";
+import { useNetworkVariable } from "@/shared/config/networkConfig";
+import { buildCampaignDetailPath } from "@/shared/utils/routes";
 
 interface CampaignCardProps {
   campaign: CampaignData;
@@ -48,6 +50,9 @@ export function CampaignCard({
   raised = 0,
   supporters = 0,
 }: CampaignCardProps) {
+  const campaignDomain = useNetworkVariable("campaignDomain") as
+    | string
+    | undefined;
   const { data: coverImageObjectUrl, isPending: isCoverImagePending } =
     useWalrusImage(campaign.coverImageUrl);
 
@@ -66,6 +71,14 @@ export function CampaignCard({
   const displayCoverImageUrl = hasCoverImage
     ? coverImageObjectUrl
     : CAMPAIGN_PLACEHOLDER_IMAGE;
+  const detailPath = useMemo(
+    () =>
+      buildCampaignDetailPath(campaign.id, {
+        subdomainName: campaign.subdomainName,
+        campaignDomain,
+      }),
+    [campaign.id, campaign.subdomainName, campaignDomain],
+  );
 
   return (
     <div className="flex flex-col overflow-hidden rounded-[24px] relative">
@@ -179,10 +192,7 @@ export function CampaignCard({
         </div>
 
         {/* Action Button Section - Always at Bottom */}
-        <Link
-          to={ROUTES.CAMPAIGNS_DETAIL.replace(":id", campaign.id)}
-          className="w-full pt-4"
-        >
+        <Link to={detailPath} className="w-full pt-4">
           <Button
             className={`w-full min-h-10 ${
               statusInfo.buttonVariant === "primary"
