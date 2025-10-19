@@ -1,10 +1,32 @@
-import { ROUTES } from "@/shared/config/routes";
 import { toCampaignSlug } from "@/shared/utils/subdomain";
 
 interface BuildCampaignDetailPathOptions {
   subdomainName?: string | null;
   campaignDomain?: string | null;
 }
+
+const CAMPAIGNS_PREFIX = "/campaigns";
+
+const sanitizeSegment = (segment: string | null | undefined): string => {
+  if (!segment) {
+    return "";
+  }
+  return encodeURIComponent(segment.trim());
+};
+
+const resolveCampaignSegment = (
+  campaignId: string,
+  { subdomainName, campaignDomain }: BuildCampaignDetailPathOptions = {},
+): string => {
+  if (subdomainName && campaignDomain) {
+    const slug = toCampaignSlug(subdomainName, campaignDomain);
+    if (slug) {
+      return sanitizeSegment(slug);
+    }
+  }
+
+  return sanitizeSegment(campaignId);
+};
 
 /**
  * Build the local app route for displaying a campaign. Prefers the campaign's
@@ -13,22 +35,24 @@ interface BuildCampaignDetailPathOptions {
  */
 export function buildCampaignDetailPath(
   campaignId: string,
-  { subdomainName, campaignDomain }: BuildCampaignDetailPathOptions = {},
+  options: BuildCampaignDetailPathOptions = {},
 ): string {
-  const fallbackId = campaignId?.trim();
-  const fallbackPath = ROUTES.CAMPAIGNS_DETAIL.replace(
-    ":id",
-    fallbackId || "",
-  );
+  const segment = resolveCampaignSegment(campaignId, options);
+  return `${CAMPAIGNS_PREFIX}/${segment}`;
+}
 
-  if (!subdomainName || !campaignDomain) {
-    return fallbackPath;
-  }
+export function buildCampaignEditPath(
+  campaignId: string,
+  options: BuildCampaignDetailPathOptions = {},
+): string {
+  const segment = resolveCampaignSegment(campaignId, options);
+  return `${CAMPAIGNS_PREFIX}/${segment}/edit`;
+}
 
-  const slug = toCampaignSlug(subdomainName, campaignDomain);
-  if (!slug) {
-    return fallbackPath;
-  }
-
-  return ROUTES.CAMPAIGNS_DETAIL.replace(":id", encodeURIComponent(slug));
+export function buildCampaignAddUpdatePath(
+  campaignId: string,
+  options: BuildCampaignDetailPathOptions = {},
+): string {
+  const segment = resolveCampaignSegment(campaignId, options);
+  return `${CAMPAIGNS_PREFIX}/${segment}/add-update`;
 }
