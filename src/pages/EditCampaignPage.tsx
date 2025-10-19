@@ -15,6 +15,7 @@ import { Transaction } from "@mysten/sui/transactions";
 import { toast } from "sonner";
 
 import { useCampaign } from "@/features/campaigns/hooks/useCampaign";
+import { useResolvedCampaignId } from "@/features/campaigns/hooks/useResolvedCampaignId";
 import type { CampaignData } from "@/features/campaigns/hooks/useAllCampaigns";
 import { useOwnedCampaignCap } from "@/features/campaigns/hooks/useOwnedCampaignCap";
 import {
@@ -43,6 +44,12 @@ import { getContractConfig, CLOCK_OBJECT_ID } from "@/shared/config/contracts";
 import { DEFAULT_NETWORK } from "@/shared/config/networkConfig";
 import { ROUTES } from "@/shared/config/routes";
 import { buildCampaignDetailPath } from "@/shared/utils/routes";
+import {
+  CampaignResolutionError,
+  CampaignResolutionLoading,
+  CampaignResolutionMissing,
+  CampaignResolutionNotFound,
+} from "@/features/campaigns/components/CampaignResolutionStates";
 import {
   CampaignCoverImageUpload,
   CampaignDetailsEditor,
@@ -195,7 +202,14 @@ const areSnapshotsEqual = (
 
 export default function EditCampaignPage() {
   const { id: campaignIdParam } = useParams<{ id: string }>();
-  const campaignId = campaignIdParam ?? "";
+  const rawIdentifier = campaignIdParam ?? "";
+  const {
+    campaignId: resolvedCampaignId,
+    isLoading: isResolvingIdentifier,
+    notFound: isIdentifierNotFound,
+    error: identifierError,
+  } = useResolvedCampaignId(rawIdentifier);
+  const campaignId = resolvedCampaignId ?? "";
   const navigate = useNavigate();
   const account = useCurrentAccount();
   const network = DEFAULT_NETWORK;
@@ -292,14 +306,19 @@ export default function EditCampaignPage() {
     refetch: refetchCampaign,
   } = useCampaign(campaignId, network);
 
-  const campaignDetailPath = useMemo(
-    () =>
-      buildCampaignDetailPath(campaignId, {
-        subdomainName: campaign?.subdomainName,
-        campaignDomain: config.campaignDomain,
-      }),
-    [campaignId, campaign?.subdomainName, config.campaignDomain],
-  );
+  const campaignDetailPath = useMemo(() => {
+    const fallbackId = campaign?.id || campaignId || rawIdentifier;
+    return buildCampaignDetailPath(fallbackId, {
+      subdomainName: campaign?.subdomainName,
+      campaignDomain: config.campaignDomain,
+    });
+  }, [
+    campaign?.id,
+    campaign?.subdomainName,
+    campaignId,
+    config.campaignDomain,
+    rawIdentifier,
+  ]);
 
   const {
     ownerCapId,
@@ -674,23 +693,22 @@ export default function EditCampaignPage() {
     isCapLoading ||
     (!initialized && isWalrusLoading && !isWalrusError);
 
-  if (!campaignId) {
-    return (
-      <div className="py-8">
-        <div className="container px-4 max-w-4xl">
-          <Card className="border-red-500">
-            <CardContent className="pt-6">
-              <p className="text-red-600 font-semibold mb-2">
-                Campaign ID missing
-              </p>
-              <p className="text-sm text-muted-foreground">
-                Please navigate to this page with a valid campaign identifier.
-              </p>
-            </CardContent>
-          </Card>
-        </div>
-      </div>
-    );
+  const identifierDisplay = rawIdentifier || campaignId || "";
+
+  if (!rawIdentifier && !campaignId) {
+    return <CampaignResolutionMissing />;
+  }
+
+  if (isResolvingIdentifier) {
+    return <CampaignResolutionLoading />;
+  }
+
+  if (identifierError) {
+    return <CampaignResolutionError error={identifierError} />;
+  }
+
+  if (isIdentifierNotFound) {
+    return <CampaignResolutionNotFound identifier={identifierDisplay} />;
   }
 
   if (loading) {
