@@ -61,3 +61,5 @@ export type SocialPlatform = keyof typeof SOCIAL_PLATFORM_CONFIG;
 export const SOCIAL_PLATFORM_KEYS = Object.keys(
   SOCIAL_PLATFORM_CONFIG,
 ) as SocialPlatform[];
+
+export const MAX_SOCIAL_LINKS = 5;
