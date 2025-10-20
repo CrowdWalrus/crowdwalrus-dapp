@@ -1,7 +1,15 @@
-import { useFormContext, useFieldArray, Controller, type FieldError } from "react-hook-form";
+import {
+  useFormContext,
+  useFieldArray,
+  Controller,
+  type FieldError,
+} from "react-hook-form";
 import type { ReactNode } from "react";
 import { Plus, X } from "lucide-react";
-import { SOCIAL_PLATFORM_CONFIG } from "@/features/campaigns/constants/socialPlatforms";
+import {
+  MAX_SOCIAL_LINKS,
+  SOCIAL_PLATFORM_CONFIG,
+} from "@/features/campaigns/constants/socialPlatforms";
 import { Button } from "@/shared/components/ui/button";
 import { Input } from "@/shared/components/ui/input";
 import {
@@ -16,6 +24,7 @@ interface CampaignSocialsSectionProps {
   disabled?: boolean;
   labelAction?: ReactNode;
   labelStatus?: ReactNode;
+  maxSocials?: number;
 }
 
 type SocialField = {
@@ -31,6 +40,7 @@ export function CampaignSocialsSection({
   disabled = false,
   labelAction,
   labelStatus,
+  maxSocials = MAX_SOCIAL_LINKS,
 }: CampaignSocialsSectionProps) {
   const {
     control,
@@ -42,14 +52,16 @@ export function CampaignSocialsSection({
     name: "socials",
   });
 
+  const socials = watch("socials");
+  const socialCount = socials?.length ?? 0;
+  const isAtLimit = socialCount >= maxSocials;
+
   const handleAddMore = () => {
-    if (disabled) {
+    if (disabled || isAtLimit) {
       return;
     }
     append({ platform: "website", url: "" });
   };
-
-  const socials = watch("socials");
 
   return (
     <div className="flex flex-col gap-4">
@@ -68,9 +80,13 @@ export function CampaignSocialsSection({
         {fields.map((field, index) => {
           const platformValue = socials?.[index]?.platform || "website";
           const config =
-            SOCIAL_PLATFORM_CONFIG[platformValue as keyof typeof SOCIAL_PLATFORM_CONFIG];
+            SOCIAL_PLATFORM_CONFIG[
+              platformValue as keyof typeof SOCIAL_PLATFORM_CONFIG
+            ];
 
-          const urlError = errors.socials?.[index]?.url as FieldError | undefined;
+          const urlError = errors.socials?.[index]?.url as
+            | FieldError
+            | undefined;
 
           return (
             <div key={field.id} className="flex flex-col gap-2 w-full">
@@ -146,12 +162,17 @@ export function CampaignSocialsSection({
           size="sm"
           className="w-40"
           onClick={handleAddMore}
-          disabled={disabled}
+          disabled={disabled || isAtLimit}
           type="button"
         >
           <Plus className="size-[13.25px]" />
           Add more
         </Button>
+        <p className="text-xs text-muted-foreground">
+          {isAtLimit
+            ? `You have added the maximum of ${maxSocials} social links.`
+            : `You can add up to ${maxSocials} social links (${socialCount}/${maxSocials}).`}
+        </p>
       </div>
     </div>
   );
