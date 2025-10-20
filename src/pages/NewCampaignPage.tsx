@@ -85,33 +85,23 @@ import {
   Info,
 } from "lucide-react";
 
-// ============================================================================
-// TEST DEFAULT VALUES - Remove this block after testing
-// ============================================================================
-const TEST_DEFAULTS: Partial<NewCampaignFormData> = {
-  campaignName: "Test Campaign for Ocean Cleanup",
-  description:
-    "A revolutionary project to clean our oceans using AI-powered drones and sustainable practices.",
-  subdomain: "ocean-cleanup-2025",
+const AUTO_CALCULATING_LABEL = "Calculating...";
+
+const EMPTY_FORM_DEFAULTS: Partial<NewCampaignFormData> = {
+  campaignName: "",
+  description: "",
+  subdomain: "",
   coverImage: undefined,
-  campaignType: "donation",
-  categories: ["environment", "tech"],
-  startDate: "2025-11-01",
-  endDate: "2025-12-31",
-  targetAmount: "50000",
-  walletAddress:
-    "0x4003168c48cb1ccb974723839b65f516d52ea646eee25f921617496e10df5761",
-  socials: [
-    { platform: "website", url: "https://example.com" },
-    { platform: "twitter", url: "https://twitter.com/oceancleanup" },
-    { platform: "instagram", url: "https://instagram.com/oceancleanup" },
-  ],
-  campaignDetails: "", // Leave empty - fill manually in the rich text editor
+  campaignType: "",
+  categories: [],
+  startDate: "",
+  endDate: "",
+  targetAmount: "",
+  walletAddress: "",
+  socials: [],
+  campaignDetails: "",
   termsAccepted: false,
 };
-// ============================================================================
-
-const AUTO_CALCULATING_LABEL = "Calculating...";
 
 export default function NewCampaignPage() {
   const currentAccount = useCurrentAccount();
@@ -188,8 +178,28 @@ export default function NewCampaignPage() {
   const form = useForm<NewCampaignFormData>({
     resolver: zodResolver(newCampaignSchema),
     mode: "onChange", // Revalidate on every change after first validation
-    defaultValues: TEST_DEFAULTS, // Change to empty object {} when done testing
+    defaultValues: {
+      ...EMPTY_FORM_DEFAULTS,
+      walletAddress: currentAccount?.address ?? "",
+    },
   });
+
+  useEffect(() => {
+    const connectedAddress = currentAccount?.address ?? "";
+    const walletFieldState = form.getFieldState("walletAddress");
+    const currentValue = form.getValues("walletAddress") ?? "";
+
+    if (!connectedAddress) {
+      if (currentValue !== "") {
+        form.resetField("walletAddress", { defaultValue: "" });
+      }
+      return;
+    }
+
+    if (!walletFieldState.isDirty && currentValue !== connectedAddress) {
+      form.resetField("walletAddress", { defaultValue: connectedAddress });
+    }
+  }, [currentAccount?.address, form]);
 
   const subdomainValue = useWatch({ control: form.control, name: "subdomain" });
   const rawSubdomain = (subdomainValue ?? "").trim();
