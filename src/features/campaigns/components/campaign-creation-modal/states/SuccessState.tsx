@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useMemo, useState } from "react";
 import { Copy, Check } from "lucide-react";
 import type { CreateCampaignResult } from "@/features/campaigns/types/campaign";
 import type { CampaignUpdateResult } from "@/features/campaigns/types/campaignUpdate";
@@ -56,12 +56,39 @@ export const SuccessState = ({
       })
     : "/";
 
-  // Handle copy to clipboard
-  const handleCopy = async () => {
-    if (!fullCampaignSuiAddress) return;
+  const shareableCampaignUrl = useMemo(() => {
+    if (!effectiveCampaignId || !campaignDetailPath || campaignDetailPath === "/") {
+      return "";
+    }
+
+    if (campaignDetailPath.startsWith("http://") || campaignDetailPath.startsWith("https://")) {
+      return campaignDetailPath;
+    }
+
+    if (typeof window === "undefined") {
+      return campaignDetailPath;
+    }
+
+    const origin = window.location.origin ?? "";
+    if (!origin) {
+      return campaignDetailPath;
+    }
 
     try {
-      await navigator.clipboard.writeText(fullCampaignSuiAddress);
+      return new URL(campaignDetailPath, origin).toString();
+    } catch {
+      return `${origin.replace(/\/$/, "")}${campaignDetailPath}`;
+    }
+  }, [campaignDetailPath, effectiveCampaignId]);
+
+  const copyTarget = shareableCampaignUrl || fullCampaignSuiAddress;
+
+  // Handle copy to clipboard
+  const handleCopy = async () => {
+    if (!copyTarget) return;
+
+    try {
+      await navigator.clipboard.writeText(copyTarget);
       setCopied(true);
       setTimeout(() => setCopied(false), 2000);
     } catch (err) {
@@ -97,14 +124,14 @@ export const SuccessState = ({
         </p>
       </div>
 
-      {/* Campaign SuiNS Address with Copy button */}
-      {campaignResult && fullCampaignSuiAddress && (
+      {/* Campaign link with Copy button */}
+      {copyTarget && campaignDetailPath !== "/" && (
         <div className="pb-10">
           <div className="flex items-center">
             <div className="basis-0 bg-background border border-border border-r-0 grow min-h-[40px] rounded-bl-lg rounded-tl-lg">
               <div className="flex items-center gap-3 px-4 py-2.5">
                 <p className="font-normal text-sm text-foreground whitespace-nowrap overflow-hidden text-ellipsis">
-                  {fullCampaignSuiAddress}
+                  {shareableCampaignUrl || fullCampaignSuiAddress}
                 </p>
               </div>
             </div>
