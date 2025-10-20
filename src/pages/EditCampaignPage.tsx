@@ -1,6 +1,5 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { Link, useNavigate, useParams } from "react-router-dom";
-import { useQuery } from "@tanstack/react-query";
 import {
   useForm,
   useWatch,
@@ -29,6 +28,7 @@ import {
   useUpdateCampaignMetadata,
 } from "@/features/campaigns/hooks/useCampaignMutations";
 import { useWalrusDescription } from "@/features/campaigns/hooks/useWalrusDescription";
+import { useWalrusImage } from "@/features/campaigns/hooks/useWalrusImage";
 import {
   buildEditCampaignSchema,
   type EditCampaignFormData,
@@ -333,35 +333,10 @@ export default function EditCampaignPage() {
   const isWalrusError = walrusDescriptionQuery.isError;
   const refetchWalrus = walrusDescriptionQuery.refetch;
 
-  const {
-    data: walrusCoverImageUrl,
-    isError: isWalrusImageError,
-    refetch: refetchWalrusImage,
-  } = useQuery({
-    queryKey: ["walrus-cover-image", campaign?.coverImageUrl],
-    enabled: Boolean(campaign?.coverImageUrl),
-    queryFn: async () => {
-      if (!campaign?.coverImageUrl) {
-        return "";
-      }
-
-      const response = await fetch(campaign.coverImageUrl);
-      if (!response.ok) {
-        throw new Error(`Failed to fetch image: ${response.statusText}`);
-      }
-
-      const blob = await response.blob();
-      return URL.createObjectURL(blob);
-    },
-  });
-
-  useEffect(() => {
-    return () => {
-      if (walrusCoverImageUrl) {
-        URL.revokeObjectURL(walrusCoverImageUrl);
-      }
-    };
-  }, [walrusCoverImageUrl]);
+  const walrusCoverImageQuery = useWalrusImage(campaign?.coverImageUrl);
+  const walrusCoverImageUrl = walrusCoverImageQuery.data;
+  const isWalrusImageError = Boolean(walrusCoverImageQuery.error);
+  const refetchWalrusImage = walrusCoverImageQuery.refetch;
 
   const walrus = useWalrusUpload();
   const {
@@ -445,9 +420,6 @@ export default function EditCampaignPage() {
       refetchWalrus();
     }
     if (isWalrusImageError) {
-      if (walrusCoverImageUrl) {
-        URL.revokeObjectURL(walrusCoverImageUrl);
-      }
       refetchWalrusImage();
     }
     setWalrusErrorAcknowledged(false);
@@ -462,7 +434,7 @@ export default function EditCampaignPage() {
       ? Number(campaign.walrusStorageEpochs)
       : undefined);
   const coverImagePreviewUrl =
-    walrusCoverImageUrl || campaign?.coverImageUrl || null;
+    walrusCoverImageUrl ?? campaign?.coverImageUrl ?? null;
 
   const currentWalrusSnapshot = useMemo<WalrusSnapshot | null>(() => {
     if (!initialized) {
