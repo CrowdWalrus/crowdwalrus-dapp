@@ -4,7 +4,7 @@
  * Main section displaying campaigns with filters and tabs
  */
 
-import { useState } from "react";
+import { useMemo, useState } from "react";
 import { Button } from "@/shared/components/ui/button";
 import { Separator } from "@/shared/components/ui/separator";
 import {
@@ -66,9 +66,14 @@ export function ExploreCampaignsSection() {
 
   const { campaigns, isPending, error } = useAllCampaigns();
 
+  const verifiedCampaigns = useMemo(
+    () => campaigns.filter((campaign) => campaign.isVerified),
+    [campaigns],
+  );
+
   // Helper function to filter campaigns by tab
   const getFilteredCampaigns = (filter: TabFilter) => {
-    return campaigns.filter((campaign) => {
+    return verifiedCampaigns.filter((campaign) => {
       if (filter === "all") return true;
 
       const status = getCampaignStatus(

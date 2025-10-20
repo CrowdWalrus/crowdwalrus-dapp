@@ -103,6 +103,9 @@ export interface CampaignCreationModalProps {
 
   /** Controls copy for campaign creation vs campaign update flows */
   mode?: "campaign" | "campaign-update";
+
+  /** Optional subdomain used to build redirect URL in success state */
+  subdomainName?: string | null;
 }
 
 export const CampaignCreationModal = ({
@@ -122,6 +125,7 @@ export const CampaignCreationModal = ({
   errorTitle,
   processingMessage,
   mode = "campaign",
+  subdomainName,
 }: CampaignCreationModalProps) => {
   const [fakeUploadProgress, setFakeUploadProgress] = useState(0);
 
@@ -239,6 +243,7 @@ export const CampaignCreationModal = ({
             updateResult={updateResult}
             mode={mode}
             onClose={onClose}
+            subdomainName={subdomainName}
           />
         );
 

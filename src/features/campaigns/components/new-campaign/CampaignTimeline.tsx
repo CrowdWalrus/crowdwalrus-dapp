@@ -34,7 +34,7 @@ function ReadOnlyCampaignTimeline({
   return (
     <section className="flex flex-col gap-4">
       <div className="flex flex-wrap items-center justify-between gap-3">
-        <h2 className="text-2xl font-bold leading-[1.6]">Campaign Timeline</h2>
+        <h2 className="text-2xl font-bold leading-[1.6]">Funding Duration</h2>
         {(headerAction || headerStatus) && (
           <div className="flex items-center gap-3">
             {headerStatus}
@@ -43,8 +43,8 @@ function ReadOnlyCampaignTimeline({
         )}
       </div>
       <p className="text-sm text-muted-foreground">
-        Timeline cannot be edited after launch. These dates were set when the
-        campaign was created.
+        Funding duration cannot be edited after launch. These dates were set
+        when the campaign was created.
       </p>
       <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
         <div className="rounded-lg border border-border bg-muted/20 p-4">
@@ -86,8 +86,11 @@ function EditableCampaignTimeline({
 
   const startDateObj = startDate ? new Date(startDate) : undefined;
   const endDateObj = endDate ? new Date(endDate) : undefined;
-  const today = new Date();
-  today.setHours(0, 0, 0, 0);
+  // Set minimum date to tomorrow to give users time to prepare
+  // and avoid confusion with same-day campaign starts
+  const tomorrow = new Date();
+  tomorrow.setHours(0, 0, 0, 0);
+  tomorrow.setDate(tomorrow.getDate() + 1);
 
   const handleStartDateSelect = (date: Date | undefined) => {
     const formattedDate = date
@@ -125,7 +128,7 @@ function EditableCampaignTimeline({
     <section className="flex flex-col gap-8">
       <div className="flex flex-wrap items-center justify-between gap-3">
         <h2 className="text-2xl font-bold leading-[1.6]">
-          Campaign Timeline <span className="text-red-300">*</span>
+          Funding Duration <span className="text-red-300">*</span>
         </h2>
         {(headerAction || headerStatus) && (
           <div className="flex items-center gap-3">
@@ -136,7 +139,9 @@ function EditableCampaignTimeline({
       </div>
       <div className="flex flex-col gap-4">
         <p className="text-base font-medium">
-          Set a timeline for your campaign to start and end
+          Choose when your campaign can receive payments— from start to end
+          date. Before that, it’s Coming Soon; after that, funding closes
+          automatically.
         </p>
         <div className="flex gap-6 items-start">
           <div className="flex flex-col gap-2">
@@ -163,7 +168,7 @@ function EditableCampaignTimeline({
                   selected={startDateObj}
                   onSelect={handleStartDateSelect}
                   disabled={(date) =>
-                    date < today || (endDateObj ? date > endDateObj : false)
+                    date < tomorrow || (endDateObj ? date > endDateObj : false)
                   }
                   className="w-[250px] scale-110"
                 />
@@ -198,7 +203,7 @@ function EditableCampaignTimeline({
                   selected={endDateObj}
                   onSelect={handleEndDateSelect}
                   disabled={(date) =>
-                    date < today || (startDateObj ? date < startDateObj : false)
+                    date < tomorrow || (startDateObj ? date < startDateObj : false)
                   }
                   className="w-[250px] scale-110"
                 />

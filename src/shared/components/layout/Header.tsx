@@ -56,15 +56,22 @@ export function Header() {
         <div className="flex justify-between items-center pb-4 pt-6 md:pb-6 md:pt-10">
           {/* Logo */}
           <Link to="/" className="flex items-center h-[40px] md:h-[50px]">
+            {/* Logo for screens < 1280px */}
+            <img
+              src="/assets/images/brand/logo.png"
+              alt="CrowdWalrus"
+              className="h-full block xl:!hidden"
+            />
+            {/* Logotype for screens >= 1280px */}
             <img
               src="/assets/images/brand/logotype.png"
               alt="CrowdWalrus"
-              className="h-full"
+              className="h-full !hidden xl:!block"
             />
           </Link>
 
           {/* Desktop Navigation */}
-          <nav className="hidden md:block">
+          <nav className="hidden lg:block">
             <div className="flex gap-12 items-center">
               {navLinks.map((link) => (
                 <Link
@@ -79,11 +86,11 @@ export function Header() {
           </nav>
 
           {/* Desktop Actions */}
-          <div className="hidden md:flex gap-4 items-center">
+          <div className="hidden lg:flex gap-4 items-center">
             <Button asChild>
               <Link to={ROUTES.CAMPAIGNS_NEW}>
                 <PlusIcon />
-                Launch Campaign
+                Launch Your Campaign
               </Link>
             </Button>
 
@@ -113,13 +120,38 @@ export function Header() {
           </div>
 
           {/* Mobile Menu */}
-          <div className="flex md:hidden gap-2 items-center">
-            {/* Mobile Launch Campaign Button - Icon Only */}
+          <div className="flex lg:hidden gap-2 items-center">
+            {/* Mobile Launch Your Campaign Button - Icon Only */}
             <Button asChild size="icon" className="size-9">
               <Link to={ROUTES.CAMPAIGNS_NEW}>
                 <PlusIcon className="size-5" />
               </Link>
             </Button>
+
+            {/* Mobile Wallet Button - Icon Only */}
+            {account ? (
+              <Button
+                variant="outline"
+                size="icon"
+                className="size-9 p-0"
+                onClick={() => disconnect()}
+              >
+                <div className="size-6 rounded-full bg-gradient-to-br from-blue-500 to-purple-500" />
+              </Button>
+            ) : (
+              <>
+                <Button
+                  size="icon"
+                  className="size-9 bg-blue-50 text-blue-500 hover:bg-white cursor-pointer"
+                  onClick={handleConnectClick}
+                >
+                  <WalletMinimal className="size-5" />
+                </Button>
+                <div ref={connectButtonRef} className="hidden">
+                  <ConnectButton />
+                </div>
+              </>
+            )}
 
             {/* Mobile Menu Trigger */}
             <Sheet open={mobileMenuOpen} onOpenChange={setMobileMenuOpen}>

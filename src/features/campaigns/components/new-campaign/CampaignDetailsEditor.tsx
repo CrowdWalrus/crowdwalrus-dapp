@@ -64,7 +64,7 @@ export function CampaignDetailsEditor({
                 )}
               </div>
               <p className="text-sm text-muted-foreground pb-4">
-                Add a detailed campaign description, images, links, and
+                Add your full campaign story — include text, images, links, and
                 attachments.
               </p>
             </div>

@@ -9,7 +9,7 @@ import {
   useSuiClient,
 } from "@mysten/dapp-kit";
 import { AlertCircleIcon } from "lucide-react";
-
+import { useDocumentTitle } from "@/shared/hooks/useDocumentTitle";
 import {
   Breadcrumb,
   BreadcrumbItem,
@@ -36,6 +36,7 @@ import {
   type CampaignUpdateFormData,
 } from "@/features/campaigns/schemas/campaignUpdateSchema";
 import { useCampaign } from "@/features/campaigns/hooks/useCampaign";
+import { useResolvedCampaignId } from "@/features/campaigns/hooks/useResolvedCampaignId";
 import {
   useWalrusUpload,
   type WalrusFlowState,
@@ -63,14 +64,31 @@ import {
 } from "@/services/campaign-transaction";
 import { getWalrusUrl } from "@/services/walrus";
 import { lexicalToPlainText } from "@/shared/utils/lexical";
+import { isUserRejectedError } from "@/shared/utils/errors";
+import { buildCampaignDetailPath } from "@/shared/utils/routes";
+import {
+  CampaignResolutionError,
+  CampaignResolutionLoading,
+  CampaignResolutionMissing,
+  CampaignResolutionNotFound,
+} from "@/features/campaigns/components/CampaignResolutionStates";
 
 const DEFAULT_FORM_VALUES: CampaignUpdateFormData = {
   updateContent: "",
 };
 
 export default function PostCampaignUpdatePage() {
+  useDocumentTitle("Post Update");
+
   const { id: campaignIdParam } = useParams<{ id: string }>();
-  const campaignId = campaignIdParam ?? "";
+  const rawIdentifier = campaignIdParam ?? "";
+  const {
+    campaignId: resolvedCampaignId,
+    isLoading: isResolvingIdentifier,
+    notFound: isIdentifierNotFound,
+    error: identifierError,
+  } = useResolvedCampaignId(rawIdentifier);
+  const campaignId = resolvedCampaignId ?? "";
   const modal = useCampaignCreationModal();
   const { openModal, closeModal } = modal;
   const [wizardStep, setWizardStep] = useState<WizardStep>(WizardStep.FORM);
@@ -135,6 +153,20 @@ export default function PostCampaignUpdatePage() {
     isPending: isCampaignLoading,
     error: campaignError,
   } = useCampaign(campaignId, network);
+
+  const campaignDetailPath = useMemo(() => {
+    const fallbackId = campaign?.id || campaignId || rawIdentifier;
+    return buildCampaignDetailPath(fallbackId, {
+      subdomainName: campaign?.subdomainName,
+      campaignDomain: config.campaignDomain,
+    });
+  }, [
+    campaign?.id,
+    campaign?.subdomainName,
+    campaignId,
+    config.campaignDomain,
+    rawIdentifier,
+  ]);
 
   const form = useForm<CampaignUpdateFormData>({
     resolver: zodResolver(campaignUpdateSchema),
@@ -383,21 +415,6 @@ export default function PostCampaignUpdatePage() {
       ? BigInt(Math.floor(costEstimate.subsidizedTotalCost * 10 ** 9)) >
         BigInt(walBalanceRaw ?? "0")
       : false;
-
-  const isUserRejectedError = (unknownError: unknown) => {
-    if (!(unknownError instanceof Error)) {
-      return false;
-    }
-
-    const message = unknownError.message.toLowerCase();
-    return (
-      message.includes("user rejected") ||
-      message.includes("rejected the request") ||
-      message.includes("user cancelled") ||
-      message.includes("user canceled") ||
-      message.includes("request rejected")
-    );
-  };
 
   const handleRegisterStorageClick = async () => {
     if (walrus.prepare.isPending || isRegistrationPending) {
@@ -683,17 +700,41 @@ export default function PostCampaignUpdatePage() {
       closeModal();
       setWizardStep(WizardStep.FORM);
       setCertifyRejectionMessage(null);
-    } else if (wizardStep === WizardStep.ERROR) {
+      return;
+    }
+
+    if (wizardStep === WizardStep.ERROR) {
       closeModal();
       setWizardStep(WizardStep.FORM);
-      setFlowState(null);
-      setRegisterResult(null);
-      setUploadCompleted(false);
-      setCertifyResult(null);
       setError(null);
+
+      if (!certifyResult) {
+        setFlowState(null);
+        setRegisterResult(null);
+        setUploadCompleted(false);
+      }
+
       setCertifyRejectionMessage(null);
     }
   };
+
+  const identifierDisplay = rawIdentifier || campaignId || "";
+
+  if (!rawIdentifier && !campaignId) {
+    return <CampaignResolutionMissing />;
+  }
+
+  if (isResolvingIdentifier) {
+    return <CampaignResolutionLoading />;
+  }
+
+  if (identifierError) {
+    return <CampaignResolutionError error={identifierError} />;
+  }
+
+  if (isIdentifierNotFound) {
+    return <CampaignResolutionNotFound identifier={identifierDisplay} />;
+  }
 
   return (
     <FormProvider {...form}>
@@ -712,6 +753,7 @@ export default function PostCampaignUpdatePage() {
         errorTitle={errorHeading || undefined}
         error={errorBody || rawErrorMessage || undefined}
         mode="campaign-update"
+        subdomainName={campaign?.subdomainName}
       />
 
       <div className="py-8">
@@ -726,9 +768,7 @@ export default function PostCampaignUpdatePage() {
               <BreadcrumbSeparator />
               <BreadcrumbItem>
                 <BreadcrumbLink asChild>
-                  <Link to={ROUTES.CAMPAIGNS_DETAIL.replace(":id", campaignId)}>
-                    Campaign
-                  </Link>
+                  <Link to={campaignDetailPath}>Campaign</Link>
                 </BreadcrumbLink>
               </BreadcrumbItem>
               <BreadcrumbSeparator />
@@ -838,6 +878,10 @@ export default function PostCampaignUpdatePage() {
                     onRetryCertify={handleRetryCertify}
                     isRetryingCertify={walrus.certify.isPending}
                     storageRegistered={hasCompletedStorageRegistration}
+                    hideRegisterButton={
+                      Boolean(certifyRejectionMessage) ||
+                      hasCompletedStorageRegistration
+                    }
                   />
 
                   <Separator />

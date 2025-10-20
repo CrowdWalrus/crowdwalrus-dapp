@@ -23,7 +23,7 @@ export function getCampaignStatus(
   startDateMs: number,
   endDateMs: number,
   isActive: boolean,
-  isDeleted: boolean
+  isDeleted: boolean,
 ): CampaignStatus {
   const now = Date.now();
 
@@ -83,7 +83,7 @@ export function getTimeRemainingText(endDateMs: number): string {
     return "Ends today";
   } else if (days === 1) {
     return "Ends tomorrow";
-  } else if (days <= 7) {
+  } else if (days <= 10) {
     return `Ends in ${days} days`;
   } else {
     return `Ends ${formatCampaignDate(endDateMs)}`;
@@ -97,7 +97,7 @@ export function getCampaignStatusInfo(
   startDateMs: number,
   endDateMs: number,
   isActive: boolean,
-  isDeleted: boolean
+  isDeleted: boolean,
 ): CampaignStatusInfo {
   const status = getCampaignStatus(startDateMs, endDateMs, isActive, isDeleted);
 
@@ -117,9 +117,9 @@ export function getCampaignStatusInfo(
       return {
         status,
         label: "Funding",
-        dateLabel: getDaysUntil(endDateMs) <= 7 ? "Ends in" : "Ends",
+        dateLabel: getDaysUntil(endDateMs) <= 10 ? "Ends in" : "Ends",
         dateValue:
-          getDaysUntil(endDateMs) <= 7
+          getDaysUntil(endDateMs) <= 10
             ? `${getDaysUntil(endDateMs)} days`
             : formatCampaignDate(endDateMs),
         showProgress: true,

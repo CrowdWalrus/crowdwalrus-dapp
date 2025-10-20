@@ -18,8 +18,11 @@ import { ExploreHeroSection } from "@/features/explore/components/ExploreHeroSec
 import { ExploreCampaignsSection } from "@/features/explore/components/ExploreCampaignsSection";
 import { ExploreTipsSection } from "@/features/explore/components/ExploreTipsSection";
 import { ExploreManifestoSection } from "@/features/explore/components/ExploreManifestoSection";
+import { useDocumentTitle } from "@/shared/hooks/useDocumentTitle";
 
 export function ExplorePage() {
+  useDocumentTitle("Explore Campaigns");
+
   return (
     <div>
       {/* Hero Section with Background */}

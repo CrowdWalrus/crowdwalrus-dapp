@@ -1,6 +1,5 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { Link, useNavigate, useParams } from "react-router-dom";
-import { useQuery } from "@tanstack/react-query";
 import {
   useForm,
   useWatch,
@@ -14,7 +13,9 @@ import {
 import { Transaction } from "@mysten/sui/transactions";
 import { toast } from "sonner";
 
+import { useDocumentTitle } from "@/shared/hooks/useDocumentTitle";
 import { useCampaign } from "@/features/campaigns/hooks/useCampaign";
+import { useResolvedCampaignId } from "@/features/campaigns/hooks/useResolvedCampaignId";
 import type { CampaignData } from "@/features/campaigns/hooks/useAllCampaigns";
 import { useOwnedCampaignCap } from "@/features/campaigns/hooks/useOwnedCampaignCap";
 import {
@@ -28,6 +29,7 @@ import {
   useUpdateCampaignMetadata,
 } from "@/features/campaigns/hooks/useCampaignMutations";
 import { useWalrusDescription } from "@/features/campaigns/hooks/useWalrusDescription";
+import { useWalrusImage } from "@/features/campaigns/hooks/useWalrusImage";
 import {
   buildEditCampaignSchema,
   type EditCampaignFormData,
@@ -42,6 +44,13 @@ import {
 import { getContractConfig, CLOCK_OBJECT_ID } from "@/shared/config/contracts";
 import { DEFAULT_NETWORK } from "@/shared/config/networkConfig";
 import { ROUTES } from "@/shared/config/routes";
+import { buildCampaignDetailPath } from "@/shared/utils/routes";
+import {
+  CampaignResolutionError,
+  CampaignResolutionLoading,
+  CampaignResolutionMissing,
+  CampaignResolutionNotFound,
+} from "@/features/campaigns/components/CampaignResolutionStates";
 import {
   CampaignCoverImageUpload,
   CampaignDetailsEditor,
@@ -78,6 +87,7 @@ import {
 } from "@/shared/components/ui/form";
 import { Input } from "@/shared/components/ui/input";
 import { Textarea } from "@/shared/components/ui/textarea";
+import { isUserRejectedError } from "@/shared/utils/errors";
 import {
   AlertCircle as AlertCircleIcon,
   DollarSign,
@@ -192,11 +202,21 @@ const areSnapshotsEqual = (
 };
 
 export default function EditCampaignPage() {
+  useDocumentTitle("Edit Campaign");
+
   const { id: campaignIdParam } = useParams<{ id: string }>();
-  const campaignId = campaignIdParam ?? "";
+  const rawIdentifier = campaignIdParam ?? "";
+  const {
+    campaignId: resolvedCampaignId,
+    isLoading: isResolvingIdentifier,
+    notFound: isIdentifierNotFound,
+    error: identifierError,
+  } = useResolvedCampaignId(rawIdentifier);
+  const campaignId = resolvedCampaignId ?? "";
   const navigate = useNavigate();
   const account = useCurrentAccount();
   const network = DEFAULT_NETWORK;
+  const config = getContractConfig(network);
 
   const [initialized, setInitialized] = useState(false);
   const [initialDescription, setInitialDescription] = useState("");
@@ -289,6 +309,20 @@ export default function EditCampaignPage() {
     refetch: refetchCampaign,
   } = useCampaign(campaignId, network);
 
+  const campaignDetailPath = useMemo(() => {
+    const fallbackId = campaign?.id || campaignId || rawIdentifier;
+    return buildCampaignDetailPath(fallbackId, {
+      subdomainName: campaign?.subdomainName,
+      campaignDomain: config.campaignDomain,
+    });
+  }, [
+    campaign?.id,
+    campaign?.subdomainName,
+    campaignId,
+    config.campaignDomain,
+    rawIdentifier,
+  ]);
+
   const {
     ownerCapId,
     isLoading: isCapLoading,
@@ -302,35 +336,10 @@ export default function EditCampaignPage() {
   const isWalrusError = walrusDescriptionQuery.isError;
   const refetchWalrus = walrusDescriptionQuery.refetch;
 
-  const {
-    data: walrusCoverImageUrl,
-    isError: isWalrusImageError,
-    refetch: refetchWalrusImage,
-  } = useQuery({
-    queryKey: ["walrus-cover-image", campaign?.coverImageUrl],
-    enabled: Boolean(campaign?.coverImageUrl),
-    queryFn: async () => {
-      if (!campaign?.coverImageUrl) {
-        return "";
-      }
-
-      const response = await fetch(campaign.coverImageUrl);
-      if (!response.ok) {
-        throw new Error(`Failed to fetch image: ${response.statusText}`);
-      }
-
-      const blob = await response.blob();
-      return URL.createObjectURL(blob);
-    },
-  });
-
-  useEffect(() => {
-    return () => {
-      if (walrusCoverImageUrl) {
-        URL.revokeObjectURL(walrusCoverImageUrl);
-      }
-    };
-  }, [walrusCoverImageUrl]);
+  const walrusCoverImageQuery = useWalrusImage(campaign?.coverImageUrl);
+  const walrusCoverImageUrl = walrusCoverImageQuery.data;
+  const isWalrusImageError = Boolean(walrusCoverImageQuery.error);
+  const refetchWalrusImage = walrusCoverImageQuery.refetch;
 
   const walrus = useWalrusUpload();
   const {
@@ -347,7 +356,7 @@ export default function EditCampaignPage() {
   const updateBasics = useUpdateCampaignBasics();
   const updateMetadata = useUpdateCampaignMetadata();
   const { mutateAsync: signAndExecuteTransaction } =
-    useSignAndExecuteTransaction();
+    useSignAndExecuteTransaction({});
 
   const hasCampaign = Boolean(campaign);
   const isDeleted = campaign?.isDeleted ?? false;
@@ -414,9 +423,6 @@ export default function EditCampaignPage() {
       refetchWalrus();
     }
     if (isWalrusImageError) {
-      if (walrusCoverImageUrl) {
-        URL.revokeObjectURL(walrusCoverImageUrl);
-      }
       refetchWalrusImage();
     }
     setWalrusErrorAcknowledged(false);
@@ -431,7 +437,7 @@ export default function EditCampaignPage() {
       ? Number(campaign.walrusStorageEpochs)
       : undefined);
   const coverImagePreviewUrl =
-    walrusCoverImageUrl || campaign?.coverImageUrl || null;
+    walrusCoverImageUrl ?? campaign?.coverImageUrl ?? null;
 
   const currentWalrusSnapshot = useMemo<WalrusSnapshot | null>(() => {
     if (!initialized) {
@@ -599,12 +605,18 @@ export default function EditCampaignPage() {
       }
 
       const sanitizedSocials = sanitizeSocialLinks(values.socials);
+      const campaignTypeValue =
+        metadataPatch.campaign_type ??
+        (values.campaignType
+          ? values.campaignType.trim().toLowerCase()
+          : (campaign.campaignType ?? ""));
 
       const walrusFormData = {
         name: campaign.name,
         short_description: values.description,
         subdomain_name: campaign.subdomainName,
         category: metadataPatch.category ?? campaign.category ?? "",
+        campaign_type: campaignTypeValue,
         funding_goal: campaign.fundingGoal ?? "0",
         start_date: new Date(campaign.startDateMs),
         end_date: new Date(campaign.endDateMs),
@@ -656,23 +668,22 @@ export default function EditCampaignPage() {
     isCapLoading ||
     (!initialized && isWalrusLoading && !isWalrusError);
 
-  if (!campaignId) {
-    return (
-      <div className="py-8">
-        <div className="container px-4 max-w-4xl">
-          <Card className="border-red-500">
-            <CardContent className="pt-6">
-              <p className="text-red-600 font-semibold mb-2">
-                Campaign ID missing
-              </p>
-              <p className="text-sm text-muted-foreground">
-                Please navigate to this page with a valid campaign identifier.
-              </p>
-            </CardContent>
-          </Card>
-        </div>
-      </div>
-    );
+  const identifierDisplay = rawIdentifier || campaignId || "";
+
+  if (!rawIdentifier && !campaignId) {
+    return <CampaignResolutionMissing />;
+  }
+
+  if (isResolvingIdentifier) {
+    return <CampaignResolutionLoading />;
+  }
+
+  if (identifierError) {
+    return <CampaignResolutionError error={identifierError} />;
+  }
+
+  if (isIdentifierNotFound) {
+    return <CampaignResolutionNotFound identifier={identifierDisplay} />;
   }
 
   if (loading) {
@@ -823,19 +834,6 @@ export default function EditCampaignPage() {
   const formattedFundingGoal = campaignData.fundingGoal ?? "";
   const formattedRecipientAddress = campaignData.recipientAddress ?? "";
 
-  const isUserRejectedError = (error: unknown) => {
-    if (!(error instanceof Error)) {
-      return false;
-    }
-    const message = error.message.toLowerCase();
-    return (
-      message.includes("user rejected") ||
-      message.includes("rejected the request") ||
-      message.includes("user cancelled") ||
-      message.includes("user canceled") ||
-      message.includes("request rejected")
-    );
-  };
   const campaignNameDirty = isEditFieldDirty(dirtyFields, "campaignName");
   const descriptionDirty = isEditFieldDirty(dirtyFields, "description");
   const coverImageDirty = Boolean(dirtyFields.coverImage);
@@ -950,12 +948,18 @@ export default function EditCampaignPage() {
       }
 
       const sanitizedSocials = sanitizeSocialLinks(values.socials);
+      const campaignTypeValue =
+        metadataPatch.campaign_type ??
+        (values.campaignType
+          ? values.campaignType.trim().toLowerCase()
+          : (campaignData.campaignType ?? ""));
 
       const walrusFormData = {
         name: campaignData.name,
         short_description: values.description,
         subdomain_name: campaignData.subdomainName,
         category: metadataPatch.category ?? campaignData.category ?? "",
+        campaign_type: campaignTypeValue,
         funding_goal: campaignData.fundingGoal ?? "0",
         start_date: new Date(campaignData.startDateMs),
         end_date: new Date(campaignData.endDateMs),
@@ -1021,8 +1025,8 @@ export default function EditCampaignPage() {
       await startCertifyFlow(registerResult.flowState);
     } catch (error) {
       if (isUserRejectedError(error)) {
-        setCertifyRejectionMessage(
-          "Approve the storage registration transaction in your wallet to continue.",
+        toast.info(
+          "Storage registration transaction was cancelled in your wallet.",
         );
         setWizardStep(WizardStep.FORM);
         return;
@@ -1214,8 +1218,6 @@ export default function EditCampaignPage() {
 
       const hasMetadataPayload = metadataKeys.length > 0;
 
-      const config = getContractConfig(network);
-
       if (hasBasicsChanges && hasMetadataPayload) {
         const tx = new Transaction();
         const nameArg = basicsUpdates.name
@@ -1309,7 +1311,7 @@ export default function EditCampaignPage() {
       await refetchCampaign();
       toast.success("Campaign updated successfully.");
       setInitialized(false);
-      navigate(ROUTES.CAMPAIGNS_DETAIL.replace(":id", campaignId));
+      navigate(campaignDetailPath);
     } catch (error) {
       const abortCode = extractMoveAbortCode(error);
       if (abortCode !== null) {
@@ -1434,7 +1436,8 @@ export default function EditCampaignPage() {
 
   const canInteractWithWalrusSection =
     editingSections.details || walrusChangesDetected;
-  const shouldHideRegisterButton = !walrusChangesDetected;
+  const shouldHideRegisterButton =
+    !walrusChangesDetected || Boolean(certifyRejectionMessage);
   const isWalrusOperationPending =
     walrus.prepare.isPending ||
     walrus.register.isPending ||
@@ -1471,9 +1474,7 @@ export default function EditCampaignPage() {
               <BreadcrumbSeparator />
               <BreadcrumbItem>
                 <BreadcrumbLink asChild>
-                  <Link to={ROUTES.CAMPAIGNS_DETAIL.replace(":id", campaignId)}>
-                    Campaign
-                  </Link>
+                  <Link to={campaignDetailPath}>Campaign</Link>
                 </BreadcrumbLink>
               </BreadcrumbItem>
               <BreadcrumbSeparator />
@@ -1639,14 +1640,12 @@ export default function EditCampaignPage() {
 
                 <section className="flex flex-col gap-6">
                   <div className="flex items-center justify-between">
-                    <h2 className="text-2xl font-semibold">
-                      Campaign Timeline
-                    </h2>
+                    <h2 className="text-2xl font-semibold">Funding Duration</h2>
                     <FieldStatusBadge status="Can't Edit" />
                   </div>
                   <p className="text-sm text-muted-foreground">
-                    Timeline cannot be edited after launch. These dates were set
-                    when the campaign was created.
+                    Funding duration cannot be edited after launch. These dates
+                    were set when the campaign was created.
                   </p>
                   <div className="grid gap-6 sm:grid-cols-2">
                     <div className="flex flex-col gap-2">
@@ -1680,7 +1679,7 @@ export default function EditCampaignPage() {
                   <div className="flex flex-col gap-8">
                     <div className="flex flex-col gap-2">
                       <Label className="font-medium text-base">
-                        Add a max funding amount for your campaign
+                        Enter your campaign's goal amount
                       </Label>
                       <div className="relative">
                         <DollarSign className="absolute left-4 top-1/2 -translate-y-1/2 size-5 text-[#737373]" />
@@ -1704,7 +1703,7 @@ export default function EditCampaignPage() {
                         placeholder="0x8894E0a0c962CB723c1976a4421c95949bE2D4E3"
                       />
                       <p className="font-normal text-xs text-black-200">
-                        This is the wallet that will receive all donation funds
+                        This is the address that will receive all the payments.
                       </p>
                     </div>
                   </div>
@@ -1715,12 +1714,23 @@ export default function EditCampaignPage() {
                 <section className="flex flex-col gap-8 mb-12">
                   <h2 className="text-2xl font-semibold">Additional Details</h2>
 
-                  <CampaignSocialsSection
-                    disabled={!editingSections.socials}
-                    labelStatus={
-                      <FieldStatusBadge status={sectionStatuses.socials} />
-                    }
-                    labelAction={renderEditButton("socials")}
+                  <FormField
+                    control={form.control}
+                    name="socials"
+                    render={() => (
+                      <FormItem>
+                        <CampaignSocialsSection
+                          disabled={!editingSections.socials}
+                          labelStatus={
+                            <FieldStatusBadge
+                              status={sectionStatuses.socials}
+                            />
+                          }
+                          labelAction={renderEditButton("socials")}
+                        />
+                        <FormMessage />
+                      </FormItem>
+                    )}
                   />
 
                   <div className="flex flex-col gap-6">

@@ -3,8 +3,6 @@ import {
   Dialog,
   DialogContent,
   DialogDescription,
-  DialogFooter,
-  DialogHeader,
   DialogTitle,
 } from "@/shared/components/ui/dialog";
 
@@ -20,13 +18,24 @@ export function WalrusReuploadWarningModal({
   onClose,
 }: WalrusReuploadWarningModalProps) {
   return (
-    <Dialog open={open} onOpenChange={(state) => (!state ? onClose() : undefined)}>
-      <DialogContent className="max-w-md space-y-6">
-        <DialogHeader className="space-y-3 text-left">
-          <DialogTitle className="text-2xl font-semibold text-[#111827]">
+    <Dialog
+      open={open}
+      onOpenChange={(state) => (!state ? onClose() : undefined)}
+    >
+      <DialogContent className="max-w-md px-10 py-12 rounded-3xl bg-white-50 flex flex-col items-center gap-8 text-center [&>button]:hidden">
+        <div className="size-[120px] shrink-0">
+          <img
+            src="/assets/images/modal-icons/modal-error.png"
+            alt="Walrus storage warning"
+            className="size-full object-contain"
+          />
+        </div>
+
+        <div className="flex flex-col gap-4">
+          <DialogTitle className="text-2xl font-semibold leading-[1.6] text-black-500">
             oops!
           </DialogTitle>
-          <DialogDescription className="space-y-2 text-base leading-relaxed text-[#1f2937]">
+          <DialogDescription className="flex flex-col gap-1 text-base font-normal leading-[1.6] text-black-300">
             <p>All CrowdWalrus media is stored on Walrus.</p>
             <p>
               Changing this field requires purchasing a new storage
@@ -34,9 +43,15 @@ export function WalrusReuploadWarningModal({
             </p>
             <p>Are you sure you want to proceed?</p>
           </DialogDescription>
-        </DialogHeader>
-        <DialogFooter className="sm:justify-between">
-          <Button variant="outline" onClick={onClose} type="button">
+        </div>
+
+        <div className="flex w-full flex-col gap-3 sm:flex-row">
+          <Button
+            variant="ghost"
+            onClick={onClose}
+            type="button"
+            className="flex-1 h-10 px-6 py-2.5 rounded-lg bg-black-50 text-black-500 font-medium hover:bg-white-300"
+          >
             Cancel
           </Button>
           <Button
@@ -44,10 +59,11 @@ export function WalrusReuploadWarningModal({
             onClick={() => {
               onConfirm();
             }}
+            className="flex-1 h-10 px-6 py-2.5 rounded-lg bg-primary text-primary-foreground font-medium hover:bg-primary/90"
           >
             Proceed
           </Button>
-        </DialogFooter>
+        </div>
       </DialogContent>
     </Dialog>
   );

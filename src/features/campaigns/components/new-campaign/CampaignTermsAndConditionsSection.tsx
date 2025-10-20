@@ -30,8 +30,8 @@ export function CampaignTermsAndConditionsSection() {
                   htmlFor="terms"
                   className="cursor-pointer font-normal text-sm text-neutral-700 leading-[1.5]"
                 >
-                  By publishing campaign at CrowdWalrus you agree to our Terms
-                  and Conditions.
+                  By publishing your campaign on CrowdWalrus, you agree to our
+                  [Terms and Conditions].
                 </Label>
               </div>
               {error && <FormMessage>{error.message}</FormMessage>}
@@ -43,7 +43,7 @@ export function CampaignTermsAndConditionsSection() {
           <AlertDescription className="text-sm text-neutral-700 leading-[1.5]">
             <span className="flex items-center gap-2">
               <AlertCircleIcon className="mt-1" size={16} />
-              <span>Fields marked as * are mandatory to fill.</span>
+              <span>Fields marked with * are required.</span>
             </span>
           </AlertDescription>
         </Alert>

@@ -1,6 +1,8 @@
-import { useFormContext } from "react-hook-form";
-import type { ReactNode } from "react";
-import { Input } from "@/shared/components/ui/input";
+import {
+  MAX_FUNDING_TARGET,
+  MIN_FUNDING_TARGET,
+  FUNDING_TARGET_DISPLAY_LOCALE,
+} from "@/features/campaigns/constants/funding";
 import {
   FormControl,
   FormField,
@@ -8,7 +10,44 @@ import {
   FormLabel,
   FormMessage,
 } from "@/shared/components/ui/form";
+import { Input } from "@/shared/components/ui/input";
 import { DollarSign } from "lucide-react";
+import type { ReactNode } from "react";
+import { useFormContext } from "react-hook-form";
+
+const numberFormatter = new Intl.NumberFormat(FUNDING_TARGET_DISPLAY_LOCALE);
+
+const formatTargetAmountDisplay = (value?: string) => {
+  if (!value) {
+    return "";
+  }
+
+  const numericValue = Number(value);
+  if (!Number.isFinite(numericValue) || numericValue < MIN_FUNDING_TARGET) {
+    return "";
+  }
+
+  return numberFormatter.format(numericValue);
+};
+
+const normalizeTargetAmountInput = (rawValue: string) => {
+  const digitsOnly = rawValue.replace(/\D/g, "");
+  if (digitsOnly.length === 0) {
+    return "";
+  }
+
+  const withoutLeadingZeros = digitsOnly.replace(/^0+/, "");
+  if (withoutLeadingZeros.length === 0) {
+    return "";
+  }
+
+  const numericValue = Math.min(
+    Number(withoutLeadingZeros),
+    MAX_FUNDING_TARGET,
+  );
+
+  return String(numericValue);
+};
 
 interface CampaignFundingTargetSectionProps {
   readOnly?: boolean;
@@ -28,6 +67,9 @@ export function CampaignFundingTargetSection({
   const { control } = useFormContext();
 
   if (readOnly) {
+    const formattedFundingGoal =
+      fundingGoal && formatTargetAmountDisplay(fundingGoal);
+
     return (
       <section className="flex flex-col gap-4">
         <div className="flex flex-wrap items-center justify-between gap-3">
@@ -49,7 +91,7 @@ export function CampaignFundingTargetSection({
               Funding goal
             </p>
             <p className="text-lg font-semibold text-foreground">
-              {fundingGoal ?? "—"}
+              {formattedFundingGoal || fundingGoal || "—"}
             </p>
           </div>
           <div>
@@ -86,16 +128,27 @@ export function CampaignFundingTargetSection({
           render={({ field }) => (
             <FormItem className="flex flex-col gap-4">
               <FormLabel className="font-medium text-base">
-                Add a max funding amount for your campaign
+                Enter your campaign's goal amount
               </FormLabel>
               <FormControl>
                 <div className="relative">
                   <DollarSign className="absolute left-4 top-1/2 -translate-y-1/2 size-5 text-[#737373]" />
                   <Input
-                    type="number"
+                    ref={field.ref}
+                    name={field.name}
+                    inputMode="numeric"
+                    pattern="[0-9]*"
+                    type="text"
                     placeholder="Enter amount"
                     className="pl-12"
-                    {...field}
+                    value={formatTargetAmountDisplay(field.value)}
+                    onChange={(event) => {
+                      const normalizedValue = normalizeTargetAmountInput(
+                        event.target.value,
+                      );
+                      field.onChange(normalizedValue);
+                    }}
+                    onBlur={field.onBlur}
                   />
                 </div>
               </FormControl>
@@ -116,10 +169,18 @@ export function CampaignFundingTargetSection({
                 <Input
                   placeholder="0x8894E0a0c962CB723c1976a4421c95949bE2D4E3"
                   {...field}
+                  value={field.value ?? ""}
+                  onChange={(event) => {
+                    const sanitizedValue = event.target.value.replace(
+                      /\s+/g,
+                      "",
+                    );
+                    field.onChange(sanitizedValue);
+                  }}
                 />
               </FormControl>
               <p className="font-normal text-xs text-black-200">
-                This is the wallet that will receive all donation funds
+                This is the address that will receive all the payments.
               </p>
               <FormMessage />
             </FormItem>

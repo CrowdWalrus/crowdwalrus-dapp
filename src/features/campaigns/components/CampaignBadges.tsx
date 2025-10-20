@@ -8,18 +8,25 @@ import {
   HeartPulse,
   Hourglass,
   Leaf,
-  TrendingUp,
   Palette,
   Sparkles,
   Tag,
   Users,
   CheckCircle,
   XCircle,
+  HandCoins,
+  Timer,
+  ClockFading,
 } from "lucide-react";
 import type { LucideIcon } from "lucide-react";
 import { Badge } from "@/shared/components/ui/badge";
 import { cn } from "@/shared/lib/utils";
 import type { CampaignStatus } from "@/features/campaigns/utils/campaignStatus";
+import {
+  Tooltip,
+  TooltipContent,
+  TooltipTrigger,
+} from "@/shared/components/ui/tooltip";
 
 type CategoryKey =
   | "arts"
@@ -40,7 +47,7 @@ const CATEGORY_BADGE_CONFIG: Record<
   education: { Icon: GraduationCap, label: "Education" },
   environment: { Icon: Leaf, label: "Environment & Energy" },
   health: { Icon: HeartPulse, label: "Health & Wellness" },
-  ngo: { Icon: Building2, label: "NGO / NonProfits" },
+  ngo: { Icon: Building2, label: "NGO / Nonprofits" },
   tech: { Icon: Cpu, label: "Technology" },
   other: { Icon: Sparkles, label: "Others" },
 };
@@ -58,7 +65,7 @@ const STATUS_BADGE_CONFIG: Record<
     className: "bg-orange-50 border-orange-500 text-orange-600",
   },
   funding: {
-    Icon: TrendingUp,
+    Icon: HandCoins,
     className: "bg-sgreen-50 border-sgreen-500 text-sgreen-700",
   },
   active: {
@@ -80,7 +87,7 @@ export function OpenSoonBadge() {
         "bg-orange-50 border-orange-500 text-orange-600",
       )}
     >
-      <Clock className="size-3" />
+      <ClockFading className="size-3" />
       Open Soon
     </Badge>
   );
@@ -106,7 +113,7 @@ interface EndsInBadgeProps {
 export function EndsInBadge({ daysUntilEnd }: EndsInBadgeProps) {
   return (
     <Badge variant="outline" className={cn(BADGE_TEXT_CLASS, "bg-black-50")}>
-      <Hourglass className="size-3" />
+      <Timer className="size-3" />
       Ends in {daysUntilEnd} days
     </Badge>
   );
@@ -234,5 +241,94 @@ export function VerificationBadge({
       <IconComponent className="size-3" />
       {isVerified ? "Verified" : "Not Verified"}
     </Badge>
+  );
+}
+
+interface CategoriesBadgeGroupProps {
+  categories: string;
+  maxVisible?: number;
+}
+
+/**
+ * Displays multiple category badges with overflow handling
+ * Shows first N categories, with a "+X more" tooltip for remaining ones
+ */
+export function CategoriesBadgeGroup({
+  categories,
+  maxVisible = 1,
+}: CategoriesBadgeGroupProps) {
+  // Parse comma-separated categories
+  const categoryList = categories
+    .split(",")
+    .map((cat) => cat.trim())
+    .filter(Boolean);
+
+  if (categoryList.length === 0) {
+    return null;
+  }
+
+  // Show all if within limit
+  if (categoryList.length <= maxVisible) {
+    return (
+      <>
+        {categoryList.map((category, index) => (
+          <CategoryBadge key={`${category}-${index}`} category={category} />
+        ))}
+      </>
+    );
+  }
+
+  // Show limited badges + "more" indicator with tooltip
+  const visibleCategories = categoryList.slice(0, maxVisible);
+  const remainingCategories = categoryList.slice(maxVisible);
+  const remainingCount = remainingCategories.length;
+
+  return (
+    <>
+      {visibleCategories.map((category, index) => (
+        <CategoryBadge key={`${category}-${index}`} category={category} />
+      ))}
+      <Tooltip>
+        <TooltipTrigger asChild>
+          <div>
+            <Badge
+              variant="outline"
+              className={cn(BADGE_TEXT_CLASS, "bg-black-50 cursor-help")}
+            >
+              <Tag className="size-3" />+{remainingCount} more
+            </Badge>
+          </div>
+        </TooltipTrigger>
+        <TooltipContent side="top" className="max-w-xs">
+          <div className="flex flex-col gap-1">
+            <div className="font-semibold text-xs">All categories:</div>
+            <div className="flex flex-wrap gap-1">
+              {categoryList.map((category, index) => {
+                const normalizedCategory = category.trim().toLowerCase();
+                const config =
+                  CATEGORY_BADGE_CONFIG[normalizedCategory as CategoryKey];
+                const label =
+                  config?.label ??
+                  category
+                    .trim()
+                    .split(/[\s_-]+/)
+                    .filter(Boolean)
+                    .map((word) => word.charAt(0).toUpperCase() + word.slice(1))
+                    .join(" ");
+                return (
+                  <span
+                    key={`tooltip-${category}-${index}`}
+                    className="text-xs"
+                  >
+                    {label}
+                    {index < categoryList.length - 1 && ", "}
+                  </span>
+                );
+              })}
+            </div>
+          </div>
+        </TooltipContent>
+      </Tooltip>
+    </>
   );
 }

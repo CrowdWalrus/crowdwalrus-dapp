@@ -1,11 +1,13 @@
 import { Link } from "react-router-dom";
 import { useForm, FormProvider, useWatch } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import { useDebounce } from "@/shared/hooks/useDebounce";
 import { useWalBalance } from "@/shared/hooks/useWalBalance";
+import { useDocumentTitle } from "@/shared/hooks/useDocumentTitle";
 import { ROUTES } from "@/shared/config/routes";
 import {
+  ConnectButton,
   useCurrentAccount,
   useSignAndExecuteTransaction,
   useSuiClient,
@@ -75,37 +77,36 @@ import {
   newCampaignSchema,
   type NewCampaignFormData,
 } from "@/features/campaigns/schemas/newCampaignSchema";
-import { AlertCircleIcon } from "lucide-react";
-
-// ============================================================================
-// TEST DEFAULT VALUES - Remove this block after testing
-// ============================================================================
-const TEST_DEFAULTS: Partial<NewCampaignFormData> = {
-  campaignName: "Test Campaign for Ocean Cleanup",
-  description:
-    "A revolutionary project to clean our oceans using AI-powered drones and sustainable practices.",
-  subdomain: "ocean-cleanup-2025",
-  coverImage: undefined,
-  campaignType: "donation",
-  categories: ["environment", "tech"],
-  startDate: "2025-11-01",
-  endDate: "2025-12-31",
-  targetAmount: "50000",
-  walletAddress:
-    "0x4003168c48cb1ccb974723839b65f516d52ea646eee25f921617496e10df5761",
-  socials: [
-    { platform: "website", url: "https://example.com" },
-    { platform: "twitter", url: "https://twitter.com/oceancleanup" },
-    { platform: "instagram", url: "https://instagram.com/oceancleanup" },
-  ],
-  campaignDetails: "", // Leave empty - fill manually in the rich text editor
-  termsAccepted: false,
-};
-// ============================================================================
+import { isUserRejectedError } from "@/shared/utils/errors";
+import {
+  AlertCircleIcon,
+  WalletMinimal,
+  Check,
+  Loader2,
+  Info,
+} from "lucide-react";
 
 const AUTO_CALCULATING_LABEL = "Calculating...";
 
+const EMPTY_FORM_DEFAULTS: Partial<NewCampaignFormData> = {
+  campaignName: "",
+  description: "",
+  subdomain: "",
+  coverImage: undefined,
+  campaignType: "",
+  categories: [],
+  startDate: "",
+  endDate: "",
+  targetAmount: "",
+  walletAddress: "",
+  socials: [],
+  campaignDetails: "",
+  termsAccepted: false,
+};
+
 export default function NewCampaignPage() {
+  useDocumentTitle("Create Campaign");
+
   const currentAccount = useCurrentAccount();
   const suiClient = useSuiClient();
 
@@ -119,6 +120,11 @@ export default function NewCampaignPage() {
   // Modal state management
   const modal = useCampaignCreationModal();
   const { openModal, closeModal } = modal;
+  const connectButtonRef = useRef<HTMLDivElement>(null);
+
+  const handleConnectClick = () => {
+    connectButtonRef.current?.querySelector("button")?.click();
+  };
 
   // Wizard state management
   // TODO: TEMP - Change back to WizardStep.FORM after UI work
@@ -175,8 +181,28 @@ export default function NewCampaignPage() {
   const form = useForm<NewCampaignFormData>({
     resolver: zodResolver(newCampaignSchema),
     mode: "onChange", // Revalidate on every change after first validation
-    defaultValues: TEST_DEFAULTS, // Change to empty object {} when done testing
+    defaultValues: {
+      ...EMPTY_FORM_DEFAULTS,
+      walletAddress: currentAccount?.address ?? "",
+    },
   });
+
+  useEffect(() => {
+    const connectedAddress = currentAccount?.address ?? "";
+    const walletFieldState = form.getFieldState("walletAddress");
+    const currentValue = form.getValues("walletAddress") ?? "";
+
+    if (!connectedAddress) {
+      if (currentValue !== "") {
+        form.resetField("walletAddress", { defaultValue: "" });
+      }
+      return;
+    }
+
+    if (!walletFieldState.isDirty && currentValue !== connectedAddress) {
+      form.resetField("walletAddress", { defaultValue: connectedAddress });
+    }
+  }, [currentAccount?.address, form]);
 
   const subdomainValue = useWatch({ control: form.control, name: "subdomain" });
   const rawSubdomain = (subdomainValue ?? "").trim();
@@ -209,12 +235,6 @@ export default function NewCampaignPage() {
     campaignDomain && hasRawSubdomain && SUBDOMAIN_PATTERN.test(rawSubdomain)
       ? formatSubdomain(rawSubdomain, campaignDomain)
       : "";
-
-  const previewFullSubdomain =
-    availabilityFullSubdomain ||
-    debouncedFullSubdomain ||
-    rawFullSubdomain ||
-    (campaignDomain ? `yourcampaign.${campaignDomain}` : "");
 
   const availabilityDisplayName =
     availabilityFullSubdomain ||
@@ -250,7 +270,7 @@ export default function NewCampaignPage() {
     }
 
     if (subnameStatus === "taken") {
-      const message = `${availabilityDisplayName} is already registered. Please choose another sub-name.`;
+      const message = "This sub-name has already been taken";
       if (fieldErrorMessage !== message) {
         form.setError("subdomain", { type: "manual", message });
       }
@@ -291,12 +311,12 @@ export default function NewCampaignPage() {
           : "default";
 
   const subdomainHelperClass = cn(
-    "text-sm pt-2",
+    "text-xs",
     helperVariant === "error"
-      ? "text-destructive"
+      ? "text-red-500"
       : helperVariant === "success"
-        ? "text-emerald-500"
-        : "text-muted-foreground",
+        ? "text-sgreen-700"
+        : "text-black-200",
   );
 
   const subdomainHelperText = (() => {
@@ -308,10 +328,6 @@ export default function NewCampaignPage() {
       return "Loading network configuration…";
     }
 
-    if (!hasRawSubdomain) {
-      return `Your campaign URL will look like yourcampaign.${campaignDomain}`;
-    }
-
     if (includesCampaignSuffix) {
       return `You only need the part before .${campaignDomain}. We'll add it automatically.`;
     }
@@ -320,23 +336,20 @@ export default function NewCampaignPage() {
       return "Skip the domain suffix; just choose a unique label.";
     }
 
-    if (isCheckingSubname) {
-      return `Checking availability for ${availabilityDisplayName}…`;
+    if (subnameStatus === "available") {
+      return "This sub-name is available to register";
     }
 
     if (subnameStatus === "taken") {
-      return `${availabilityDisplayName} is already registered.`;
-    }
-
-    if (subnameStatus === "available") {
-      return `${availabilityDisplayName} is available.`;
+      return "This sub-name has already been taken";
     }
 
     if (subnameStatus === "error") {
       return `We couldn't verify availability for ${availabilityDisplayName}. Please try again${availabilityErrorMessage ? ` (${availabilityErrorMessage})` : ""}.`;
     }
 
-    return `Your campaign URL will be ${previewFullSubdomain}.`;
+    // Default state: empty, loading, or checking
+    return "Enter your preferred sub-name to check its availability";
   })();
 
   const shouldShowHelperText = subdomainHelperText.length > 0;
@@ -575,21 +588,6 @@ export default function NewCampaignPage() {
     );
   };
 
-  const isUserRejectedError = (error: unknown) => {
-    if (!(error instanceof Error)) {
-      return false;
-    }
-
-    const message = error.message.toLowerCase();
-    return (
-      message.includes("user rejected") ||
-      message.includes("rejected the request") ||
-      message.includes("user cancelled") ||
-      message.includes("user canceled") ||
-      message.includes("request rejected")
-    );
-  };
-
   const startCertifyFlow = (flowState: WalrusFlowState | null) => {
     if (!flowState || walrus.certify.isPending) {
       return;
@@ -776,22 +774,25 @@ export default function NewCampaignPage() {
 
   // Close modal handler
   const handleCloseModal = () => {
-    // Only close if we're in SUCCESS or ERROR state
     if (wizardStep === WizardStep.SUCCESS) {
       closeModal();
-      // Optionally reset to form
       setWizardStep(WizardStep.FORM);
       setCertifyRejectionMessage(null);
-    } else if (wizardStep === WizardStep.ERROR) {
+      return;
+    }
+
+    if (wizardStep === WizardStep.ERROR) {
       closeModal();
       setWizardStep(WizardStep.FORM);
-      // Reset all state
-      setFormData(null);
-      setFlowState(null);
-      setRegisterResult(null);
-      setUploadCompleted(false);
-      setCertifyResult(null);
       setError(null);
+
+      if (!certifyResult) {
+        setFormData(null);
+        setFlowState(null);
+        setRegisterResult(null);
+        setUploadCompleted(false);
+      }
+
       setCertifyRejectionMessage(null);
     }
   };
@@ -813,6 +814,9 @@ export default function NewCampaignPage() {
         campaignResult={campaignResult}
         errorTitle={errorHeading || undefined}
         error={errorBody || rawErrorMessage || undefined}
+        subdomainName={
+          campaignResult?.subdomain ?? formData?.subdomain_name ?? null
+        }
       />
 
       <div className="py-8">
@@ -827,7 +831,7 @@ export default function NewCampaignPage() {
               </BreadcrumbItem>
               <BreadcrumbSeparator />
               <BreadcrumbItem>
-                <BreadcrumbPage>Launch Campaign</BreadcrumbPage>
+                <BreadcrumbPage>Launch Your Campaign</BreadcrumbPage>
               </BreadcrumbItem>
             </BreadcrumbList>
           </Breadcrumb>
@@ -841,12 +845,39 @@ export default function NewCampaignPage() {
                 <div className="flex flex-col gap-16">
                   {/* Wallet Status */}
                   {!currentAccount && (
-                    <Alert className="border-yellow-500">
-                      <AlertDescription className="flex items-center gap-2">
-                        <AlertCircleIcon className="size-4" />
-                        Please connect your wallet to create a campaign
-                      </AlertDescription>
-                    </Alert>
+                    <div className="sticky top-24 z-20">
+                      <Alert className="border-blue-200 bg-blue-50/80 backdrop-blur-sm shadow-sm">
+                        <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
+                          <AlertDescription className="flex items-start gap-3 text-blue-900">
+                            <div className="mt-0.5">
+                              <AlertCircleIcon className="size-5 text-blue-500" />
+                            </div>
+                            <div>
+                              <p className="font-semibold">
+                                Wallet connection required
+                              </p>
+                              <p className="text-sm text-blue-900/80">
+                                Connect your wallet to save progress and launch
+                                your campaign when you&rsquo;re ready.
+                              </p>
+                            </div>
+                          </AlertDescription>
+                          <div className="flex flex-col gap-2 sm:flex-row sm:items-center">
+                            <Button
+                              className="bg-blue-500 text-white hover:bg-blue-600"
+                              onClick={handleConnectClick}
+                              type="button"
+                            >
+                              <WalletMinimal className="mr-2 size-4" />
+                              Connect Wallet
+                            </Button>
+                            <div ref={connectButtonRef} className="hidden">
+                              <ConnectButton />
+                            </div>
+                          </div>
+                        </div>
+                      </Alert>
+                    </div>
                   )}
 
                   <fieldset
@@ -855,12 +886,11 @@ export default function NewCampaignPage() {
                   >
                     <div className="flex flex-col items-center text-center gap-4 mb-16">
                       <h1 className="text-4xl font-bold mb-4">
-                        Launch Campaign
+                        Launch Your Campaign
                       </h1>
                       <p className="text-muted-foreground text-base">
-                        Enter your campaign details. You can edit campaign
-                        details anytime after your publish your campaign, but
-                        the transaction will cost gas.
+                        Enter your campaign details. You can update them anytime
+                        after publishing, but each change incurs a gas fee.
                       </p>
                     </div>
 
@@ -920,17 +950,51 @@ export default function NewCampaignPage() {
                           render={({ field }) => (
                             <FormItem className="flex flex-col gap-4">
                               <FormLabel className="font-medium text-base">
-                                Sub-name <span className="text-red-300">*</span>
+                                Setup your campaign sub-name{" "}
+                                <span className="text-red-300">*</span>
                               </FormLabel>
-                              <FormControl>
-                                <Input placeholder="yourcampaign" {...field} />
-                              </FormControl>
-                              {shouldShowHelperText ? (
-                                <p className={subdomainHelperClass}>
-                                  {subdomainHelperText}
-                                </p>
-                              ) : null}
-                              <FormMessage />
+                              <div className="flex flex-col gap-2">
+                                <div
+                                  className={cn(
+                                    "flex h-10 w-full rounded-lg border bg-white-50 px-4 py-[9.5px] gap-3 items-center",
+                                    subdomainFieldState.error
+                                      ? "border-red-500"
+                                      : "border-input",
+                                  )}
+                                >
+                                  {isCheckingSubname && (
+                                    <Loader2 className="size-[18px] animate-spin text-black-300" />
+                                  )}
+                                  <FormControl>
+                                    <input
+                                      {...field}
+                                      placeholder="campaign-name"
+                                      className="flex-1 bg-transparent text-sm outline-none placeholder:text-black-300"
+                                    />
+                                  </FormControl>
+                                  {campaignDomain && (
+                                    <span className="text-sm text-black-300 whitespace-nowrap">
+                                      .{campaignDomain}
+                                    </span>
+                                  )}
+                                </div>
+                                {shouldShowHelperText && (
+                                  <div className="flex gap-1 items-center">
+                                    {subnameStatus === "available" ? (
+                                      <Check className="size-[18px] text-sgreen-700" />
+                                    ) : subnameStatus === "taken" ||
+                                      subnameStatus === "error" ? (
+                                      <AlertCircleIcon className="size-[18px] text-red-500" />
+                                    ) : (
+                                      <Info className="size-[18px] text-black-200" />
+                                    )}
+                                    <p className={subdomainHelperClass}>
+                                      {subdomainHelperText}
+                                    </p>
+                                  </div>
+                                )}
+                                <FormMessage />
+                              </div>
                             </FormItem>
                           )}
                         />
@@ -950,7 +1014,7 @@ export default function NewCampaignPage() {
 
                     <Separator />
 
-                    {/* Campaign Timeline Section */}
+                    {/* Funding Duration Section */}
                     <CampaignTimeline />
 
                     {/* Funding Target Section */}
@@ -965,7 +1029,16 @@ export default function NewCampaignPage() {
                       </h2>
 
                       {/* Add Socials */}
-                      <CampaignSocialsSection />
+                      <FormField
+                        control={form.control}
+                        name="socials"
+                        render={() => (
+                          <FormItem>
+                            <CampaignSocialsSection />
+                            <FormMessage />
+                          </FormItem>
+                        )}
+                      />
 
                       {/* Rich Text Editor */}
                       <CampaignDetailsEditor disabled={isFormLocked} />
@@ -1005,6 +1078,10 @@ export default function NewCampaignPage() {
                     isLocked={isFormLocked}
                     storageRegistered={hasCompletedStorageRegistration}
                     estimatedCost={costEstimate}
+                    hideRegisterButton={
+                      Boolean(certifyRejectionMessage) ||
+                      hasCompletedStorageRegistration
+                    }
                   />
 
                   <Separator />
@@ -1015,8 +1092,8 @@ export default function NewCampaignPage() {
                       <AlertDescription className="flex items-center gap-2">
                         <span className="flex items-center gap-2">
                           <AlertCircleIcon className="size-4" />
-                          You can publish campaign after completing the
-                          "Register Storage" step
+                          You can publish your campaign once the ‘Register
+                          Storage’ step is complete.
                         </span>
                       </AlertDescription>
                     </Alert>

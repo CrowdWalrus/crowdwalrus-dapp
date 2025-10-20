@@ -247,6 +247,7 @@ export function prepareMetadataVectors(
     walrus_quilt_id: walrusBlobId,
     walrus_storage_epochs: storageEpochs.toString(),
     category: formData.category,
+    campaign_type: formData.campaign_type,
     cover_image_id: "cover.jpg", // Standard identifier in the Quilt
   };
 
@@ -583,6 +584,15 @@ export function validateCampaignFormData(formData: CampaignFormData): void {
   // Category validation
   if (!formData.category || formData.category.trim().length === 0) {
     throw new Error("Category is required");
+  }
+
+  // Campaign type validation
+  const allowedCampaignTypes = new Set(["flexible", "nonprofit", "commercial"]);
+  const campaignType = formData.campaign_type?.trim().toLowerCase();
+  if (!campaignType || !allowedCampaignTypes.has(campaignType)) {
+    throw new Error(
+      "Campaign type must be one of: flexible, nonprofit, commercial",
+    );
   }
 }
 

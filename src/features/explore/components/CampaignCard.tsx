@@ -5,18 +5,20 @@
  * Matches Figma design exactly
  */
 
+import { useMemo } from "react";
 import { Link } from "react-router-dom";
 import { Button } from "@/shared/components/ui/button";
-import { ROUTES } from "@/shared/config/routes";
 import type { CampaignData } from "@/features/campaigns/hooks/useAllCampaigns";
 import { useWalrusImage } from "@/features/campaigns/hooks/useWalrusImage";
 import {
   CampaignStatusBadge,
   CampaignTimelineBadge,
-  CategoryBadge,
+  CategoriesBadgeGroup,
   ContributorsBadge,
 } from "@/features/campaigns/components/CampaignBadges";
 import { getCampaignStatusInfo } from "@/features/campaigns/utils/campaignStatus";
+import { useNetworkVariable } from "@/shared/config/networkConfig";
+import { buildCampaignDetailPath } from "@/shared/utils/routes";
 
 interface CampaignCardProps {
   campaign: CampaignData;
@@ -48,6 +50,9 @@ export function CampaignCard({
   raised = 0,
   supporters = 0,
 }: CampaignCardProps) {
+  const campaignDomain = useNetworkVariable("campaignDomain") as
+    | string
+    | undefined;
   const { data: coverImageObjectUrl, isPending: isCoverImagePending } =
     useWalrusImage(campaign.coverImageUrl);
 
@@ -66,6 +71,14 @@ export function CampaignCard({
   const displayCoverImageUrl = hasCoverImage
     ? coverImageObjectUrl
     : CAMPAIGN_PLACEHOLDER_IMAGE;
+  const detailPath = useMemo(
+    () =>
+      buildCampaignDetailPath(campaign.id, {
+        subdomainName: campaign.subdomainName,
+        campaignDomain,
+      }),
+    [campaign.id, campaign.subdomainName, campaignDomain],
+  );
 
   return (
     <div className="flex flex-col overflow-hidden rounded-[24px] relative">
@@ -133,7 +146,7 @@ export function CampaignCard({
             </div>
 
             <div className="flex items-center gap-2 flex-wrap">
-              <CategoryBadge category={campaign.category} />
+              <CategoriesBadgeGroup categories={campaign.category} />
               {supporters > 0 && (
                 <ContributorsBadge contributorsCount={supporters} />
               )}
@@ -152,38 +165,39 @@ export function CampaignCard({
               </div>
 
               {/* Funding Stats */}
-              <div className="flex items-center gap-1 text-base leading-relaxed">
-                <span className="font-semibold">
-                  ${raised.toLocaleString()} raised
-                </span>
-                <span>Goal ${fundingGoal.toLocaleString()}</span>
-                <span className="ml-auto">{fundingPercentage}% funded</span>
+              <div className="flex items-center justify-between text-base leading-relaxed">
+                <div className="flex items-center gap-1">
+                  <span className="font-semibold">
+                    ${raised.toLocaleString()} raised
+                  </span>
+                  <span>Goal ${fundingGoal.toLocaleString()}</span>
+                </div>
+                <span>{fundingPercentage}% funded</span>
               </div>
             </div>
           )}
 
           {/* No progress - just show raised amount */}
           {!statusInfo.showProgress && raised > 0 && (
-            <div className="flex items-center gap-1 text-base leading-relaxed">
-              <span className="font-semibold">
-                ${raised.toLocaleString()} raised
-              </span>
-              <span>Goal ${fundingGoal.toLocaleString()}</span>
-              <span className="ml-auto">{fundingPercentage}% funded</span>
+            <div className="flex items-center justify-between text-base leading-relaxed">
+              <div className="flex items-center gap-1">
+                <span className="font-semibold">
+                  ${raised.toLocaleString()} raised
+                </span>
+                <span>Goal ${fundingGoal.toLocaleString()}</span>
+              </div>
+              <span>{fundingPercentage}% funded</span>
             </div>
           )}
         </div>
 
         {/* Action Button Section - Always at Bottom */}
-        <Link
-          to={ROUTES.CAMPAIGNS_DETAIL.replace(":id", campaign.id)}
-          className="w-full pt-4"
-        >
+        <Link to={detailPath} className="w-full pt-4">
           <Button
             className={`w-full min-h-10 ${
               statusInfo.buttonVariant === "primary"
-                ? "bg-blue-500 text-white-50 hover:bg-blue-600 border-0"
-                : "bg-white-50 border border-black-50 hover:bg-white-100 text-black-500"
+                ? "bg-blue-500 text-white-50 shadow-none hover:bg-blue-600 border-0"
+                : "bg-white-50 border border-black-50 shadow-none hover:bg-white-100 text-black-500"
             }`}
           >
             {statusInfo.buttonText}

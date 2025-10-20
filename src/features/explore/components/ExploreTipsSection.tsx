@@ -42,7 +42,7 @@ export function ExploreTipsSection() {
           </div>
 
           {/* Tip Cards */}
-          <div className="flex flex-col md:flex-row gap-6 md:gap-8 lg:gap-10 items-stretch">
+          <div className="flex flex-col lg:flex-row gap-6 md:gap-8 lg:gap-10 items-stretch">
             {TIPS.map((tip) => (
               <TipCard
                 key={tip.title}

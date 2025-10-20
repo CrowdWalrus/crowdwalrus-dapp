@@ -19,10 +19,12 @@ import { useAllCampaigns } from "@/features/campaigns/hooks/useAllCampaigns";
 import type { CampaignData } from "@/features/campaigns/hooks/useAllCampaigns";
 import { CampaignCard } from "@/features/admin/components/CampaignCard";
 import { VerifierManagementPanel } from "@/features/admin/components/VerifierManagementPanel";
+import { useDocumentTitle } from "@/shared/hooks/useDocumentTitle";
 
 type TabValue = "all" | "verified" | "unverified";
 
 export function AdminPage() {
+  useDocumentTitle("Admin Dashboard");
   const [activeTab, setActiveTab] = useState<TabValue>("all");
 
   // Fetch admin capabilities
