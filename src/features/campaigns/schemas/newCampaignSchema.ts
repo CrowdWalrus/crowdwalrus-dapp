@@ -5,11 +5,31 @@ import {
   MAX_FUNDING_TARGET,
   MIN_FUNDING_TARGET,
 } from "@/features/campaigns/constants/funding";
+import { MAX_SOCIAL_LINKS } from "@/features/campaigns/constants/socialPlatforms";
 import { SUBDOMAIN_PATTERN } from "@/shared/utils/subdomain";
+
+const isValidHttpUrl = (value: string) => {
+  try {
+    const parsed = new URL(value);
+    return parsed.protocol === "https:" || parsed.protocol === "http:";
+  } catch {
+    return false;
+  }
+};
 
 export const socialSchema = z.object({
   platform: z.string(),
-  url: z.union([z.string().url("Please enter a valid URL"), z.literal("")]),
+  url: z
+    .string()
+    .trim()
+    .refine(
+      (value) => value === "" || !/\s/.test(value),
+      "URL cannot contain spaces",
+    )
+    .refine(
+      (value) => value === "" || isValidHttpUrl(value),
+      "Please enter a valid URL",
+    ),
 });
 
 const MIN_FUNDING_TARGET_LABEL = MIN_FUNDING_TARGET.toLocaleString(
@@ -82,7 +102,9 @@ export const newCampaignSchema = z
       .string()
       .min(1, "Wallet address is required")
       .regex(/^0x[a-fA-F0-9]+$/, "Please enter a valid Sui wallet address"),
-    socials: z.array(socialSchema),
+    socials: z
+      .array(socialSchema)
+      .max(MAX_SOCIAL_LINKS, "You can add up to 5 social links."),
     campaignDetails: z
       .string()
       .min(1, "Campaign details are required")
