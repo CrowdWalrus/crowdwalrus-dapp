@@ -1499,9 +1499,7 @@ export default function EditCampaignPage() {
               <BreadcrumbSeparator />
               <BreadcrumbItem>
                 <BreadcrumbLink asChild>
-                  <Link to={campaignDetailPath}>
-                    Campaign
-                  </Link>
+                  <Link to={campaignDetailPath}>Campaign</Link>
                 </BreadcrumbLink>
               </BreadcrumbItem>
               <BreadcrumbSeparator />
@@ -1667,9 +1665,7 @@ export default function EditCampaignPage() {
 
                 <section className="flex flex-col gap-6">
                   <div className="flex items-center justify-between">
-                    <h2 className="text-2xl font-semibold">
-                      Funding Duration
-                    </h2>
+                    <h2 className="text-2xl font-semibold">Funding Duration</h2>
                     <FieldStatusBadge status="Can't Edit" />
                   </div>
                   <p className="text-sm text-muted-foreground">
@@ -1743,12 +1739,23 @@ export default function EditCampaignPage() {
                 <section className="flex flex-col gap-8 mb-12">
                   <h2 className="text-2xl font-semibold">Additional Details</h2>
 
-                  <CampaignSocialsSection
-                    disabled={!editingSections.socials}
-                    labelStatus={
-                      <FieldStatusBadge status={sectionStatuses.socials} />
-                    }
-                    labelAction={renderEditButton("socials")}
+                  <FormField
+                    control={form.control}
+                    name="socials"
+                    render={() => (
+                      <FormItem>
+                        <CampaignSocialsSection
+                          disabled={!editingSections.socials}
+                          labelStatus={
+                            <FieldStatusBadge
+                              status={sectionStatuses.socials}
+                            />
+                          }
+                          labelAction={renderEditButton("socials")}
+                        />
+                        <FormMessage />
+                      </FormItem>
+                    )}
                   />
 
                   <div className="flex flex-col gap-6">
