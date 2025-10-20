@@ -73,6 +73,7 @@ export function LinkToolbarPlugin({ disabled = false }: LinkToolbarPluginProps) 
           onClick={removeLink}
           className="size-8 p-0"
           disabled={disabled}
+          type="button"
         >
           <Unlink className="size-4" />
         </Button>
@@ -88,6 +89,7 @@ export function LinkToolbarPlugin({ disabled = false }: LinkToolbarPluginProps) 
               onClick={checkForLink}
               className="size-8 p-0"
               disabled={disabled}
+              type="button"
             >
               <Link className="size-4" />
             </Button>
@@ -111,6 +113,7 @@ export function LinkToolbarPlugin({ disabled = false }: LinkToolbarPluginProps) 
                 size="sm"
                 className="w-full"
                 disabled={disabled}
+                type="button"
               >
                 Insert
               </Button>

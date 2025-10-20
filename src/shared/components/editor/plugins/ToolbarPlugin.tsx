@@ -74,6 +74,7 @@ export function ToolbarPlugin({ disabled = false }: ToolbarPluginProps) {
         onClick={() => formatText("bold")}
         className="size-8 p-0"
         disabled={disabled}
+        type="button"
       >
         <Bold className="size-4" />
       </Button>
@@ -83,6 +84,7 @@ export function ToolbarPlugin({ disabled = false }: ToolbarPluginProps) {
         onClick={() => formatText("italic")}
         className="size-8 p-0"
         disabled={disabled}
+        type="button"
       >
         <Italic className="size-4" />
       </Button>
@@ -92,6 +94,7 @@ export function ToolbarPlugin({ disabled = false }: ToolbarPluginProps) {
         onClick={() => formatText("underline")}
         className="size-8 p-0"
         disabled={disabled}
+        type="button"
       >
         <Underline className="size-4" />
       </Button>
@@ -101,6 +104,7 @@ export function ToolbarPlugin({ disabled = false }: ToolbarPluginProps) {
         onClick={() => formatText("strikethrough")}
         className="size-8 p-0"
         disabled={disabled}
+        type="button"
       >
         <Strikethrough className="size-4" />
       </Button>
@@ -112,6 +116,7 @@ export function ToolbarPlugin({ disabled = false }: ToolbarPluginProps) {
             size="sm"
             className="size-8 p-0"
             disabled={disabled}
+            type="button"
           >
             <Palette className="size-4" />
           </Button>
@@ -127,6 +132,7 @@ export function ToolbarPlugin({ disabled = false }: ToolbarPluginProps) {
         onClick={handleImageUpload}
         className="size-8 p-0"
         disabled={disabled}
+        type="button"
       >
         <Image className="size-4" />
       </Button>

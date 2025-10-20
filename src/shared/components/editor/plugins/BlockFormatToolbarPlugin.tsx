@@ -12,7 +12,12 @@ import {
   $isListNode,
   ListNode,
 } from "@lexical/list";
-import { $createHeadingNode, $createQuoteNode, $isHeadingNode, HeadingTagType } from "@lexical/rich-text";
+import {
+  $createHeadingNode,
+  $createQuoteNode,
+  $isHeadingNode,
+  HeadingTagType,
+} from "@lexical/rich-text";
 import { $setBlocksType } from "@lexical/selection";
 import {
   AlignLeft,
@@ -45,6 +50,15 @@ const BLOCK_TYPES = [
   { label: "Quote", value: "quote", icon: Quote },
   { label: "Bulleted List", value: "bullet", icon: List },
   { label: "Numbered List", value: "number", icon: ListOrdered },
+];
+
+// Only Paragraph and Headings are selectable from dropdown
+// Quote and Lists have dedicated toolbar buttons
+const SELECTABLE_BLOCK_TYPES = [
+  { label: "Paragraph", value: "paragraph", icon: Type },
+  { label: "Heading 1", value: "h1", icon: Heading1 },
+  { label: "Heading 2", value: "h2", icon: Heading2 },
+  { label: "Heading 3", value: "h3", icon: Heading3 },
 ];
 
 interface BlockFormatToolbarPluginProps {
@@ -129,15 +143,6 @@ export function BlockFormatToolbarPlugin({
       case "h3":
         formatHeading("h3");
         break;
-      case "quote":
-        formatQuote();
-        break;
-      case "bullet":
-        formatBulletList();
-        break;
-      case "number":
-        formatNumberedList();
-        break;
     }
   };
 
@@ -171,6 +176,10 @@ export function BlockFormatToolbarPlugin({
     });
   }, [editor]);
 
+  // Get current block type info for display
+  const currentBlockType = BLOCK_TYPES.find(type => type.value === blockType);
+  const CurrentIcon = currentBlockType?.icon || Type;
+
   return (
     <>
       <Select
@@ -179,10 +188,15 @@ export function BlockFormatToolbarPlugin({
         disabled={disabled}
       >
         <SelectTrigger className="w-[140px] h-8" disabled={disabled}>
-          <SelectValue placeholder="Block type" />
+          <SelectValue placeholder="Block type">
+            <div className="flex items-center gap-2">
+              <CurrentIcon className="size-4" />
+              <span>{currentBlockType?.label || "Block type"}</span>
+            </div>
+          </SelectValue>
         </SelectTrigger>
         <SelectContent>
-          {BLOCK_TYPES.map((type) => {
+          {SELECTABLE_BLOCK_TYPES.map((type) => {
             const Icon = type.icon;
             return (
               <SelectItem key={type.value} value={type.value}>
@@ -202,6 +216,7 @@ export function BlockFormatToolbarPlugin({
         onClick={() => formatAlign("left")}
         className="size-8 p-0"
         disabled={disabled}
+        type="button"
       >
         <AlignLeft className="size-4" />
       </Button>
@@ -211,6 +226,7 @@ export function BlockFormatToolbarPlugin({
         onClick={() => formatAlign("center")}
         className="size-8 p-0"
         disabled={disabled}
+        type="button"
       >
         <AlignCenter className="size-4" />
       </Button>
@@ -220,8 +236,43 @@ export function BlockFormatToolbarPlugin({
         onClick={() => formatAlign("right")}
         className="size-8 p-0"
         disabled={disabled}
+        type="button"
       >
         <AlignRight className="size-4" />
+      </Button>
+      <Separator orientation="vertical" className="h-6 mx-1" />
+      <Button
+        variant="ghost"
+        size="sm"
+        onClick={formatQuote}
+        className="size-8 p-0"
+        disabled={disabled}
+        aria-pressed={blockType === "quote"}
+        type="button"
+      >
+        <Quote className="size-4" />
+      </Button>
+      <Button
+        variant="ghost"
+        size="sm"
+        onClick={formatBulletList}
+        className="size-8 p-0"
+        disabled={disabled}
+        aria-pressed={blockType === "bullet"}
+        type="button"
+      >
+        <List className="size-4" />
+      </Button>
+      <Button
+        variant="ghost"
+        size="sm"
+        onClick={formatNumberedList}
+        className="size-8 p-0"
+        disabled={disabled}
+        aria-pressed={blockType === "number"}
+        type="button"
+      >
+        <ListOrdered className="size-4" />
       </Button>
       <Separator orientation="vertical" className="h-6 mx-1" />
     </>
