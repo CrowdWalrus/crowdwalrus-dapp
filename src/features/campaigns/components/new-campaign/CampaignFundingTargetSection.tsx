@@ -15,9 +15,7 @@ import { DollarSign } from "lucide-react";
 import type { ReactNode } from "react";
 import { useFormContext } from "react-hook-form";
 
-const numberFormatter = new Intl.NumberFormat(
-  FUNDING_TARGET_DISPLAY_LOCALE,
-);
+const numberFormatter = new Intl.NumberFormat(FUNDING_TARGET_DISPLAY_LOCALE);
 
 const formatTargetAmountDisplay = (value?: string) => {
   if (!value) {
@@ -43,7 +41,10 @@ const normalizeTargetAmountInput = (rawValue: string) => {
     return "";
   }
 
-  const numericValue = Math.min(Number(withoutLeadingZeros), MAX_FUNDING_TARGET);
+  const numericValue = Math.min(
+    Number(withoutLeadingZeros),
+    MAX_FUNDING_TARGET,
+  );
 
   return String(numericValue);
 };
@@ -168,6 +169,14 @@ export function CampaignFundingTargetSection({
                 <Input
                   placeholder="0x8894E0a0c962CB723c1976a4421c95949bE2D4E3"
                   {...field}
+                  value={field.value ?? ""}
+                  onChange={(event) => {
+                    const sanitizedValue = event.target.value.replace(
+                      /\s+/g,
+                      "",
+                    );
+                    field.onChange(sanitizedValue);
+                  }}
                 />
               </FormControl>
               <p className="font-normal text-xs text-black-200">
