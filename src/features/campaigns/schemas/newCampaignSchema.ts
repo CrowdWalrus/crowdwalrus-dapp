@@ -1,4 +1,5 @@
 import { z } from "zod";
+import { isValidSuiAddress } from "@mysten/sui/utils";
 
 import {
   FUNDING_TARGET_DISPLAY_LOCALE,
@@ -101,7 +102,14 @@ export const newCampaignSchema = z
     walletAddress: z
       .string()
       .min(1, "Wallet address is required")
-      .regex(/^0x[a-fA-F0-9]+$/, "Please enter a valid Sui wallet address"),
+      .refine(
+        (value) => !/\s/.test(value),
+        "Wallet address cannot contain spaces",
+      )
+      .refine(
+        (value) => isValidSuiAddress(value),
+        "Please enter a valid Sui wallet address",
+      ),
     socials: z
       .array(socialSchema)
       .max(MAX_SOCIAL_LINKS, "You can add up to 5 social links."),
