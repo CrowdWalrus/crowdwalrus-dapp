@@ -9,6 +9,7 @@ import {
   useSuiClient,
 } from "@mysten/dapp-kit";
 import { AlertCircleIcon } from "lucide-react";
+import { useDocumentTitle } from "@/shared/hooks/useDocumentTitle";
 import {
   Breadcrumb,
   BreadcrumbItem,
@@ -77,6 +78,8 @@ const DEFAULT_FORM_VALUES: CampaignUpdateFormData = {
 };
 
 export default function PostCampaignUpdatePage() {
+  useDocumentTitle("Post Update");
+
   const { id: campaignIdParam } = useParams<{ id: string }>();
   const rawIdentifier = campaignIdParam ?? "";
   const {

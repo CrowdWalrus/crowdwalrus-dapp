@@ -13,6 +13,7 @@ import {
 import { Transaction } from "@mysten/sui/transactions";
 import { toast } from "sonner";
 
+import { useDocumentTitle } from "@/shared/hooks/useDocumentTitle";
 import { useCampaign } from "@/features/campaigns/hooks/useCampaign";
 import { useResolvedCampaignId } from "@/features/campaigns/hooks/useResolvedCampaignId";
 import type { CampaignData } from "@/features/campaigns/hooks/useAllCampaigns";
@@ -201,6 +202,8 @@ const areSnapshotsEqual = (
 };
 
 export default function EditCampaignPage() {
+  useDocumentTitle("Edit Campaign");
+
   const { id: campaignIdParam } = useParams<{ id: string }>();
   const rawIdentifier = campaignIdParam ?? "";
   const {

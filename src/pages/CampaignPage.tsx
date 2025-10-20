@@ -12,6 +12,7 @@ import { useResolvedCampaignId } from "@/features/campaigns/hooks/useResolvedCam
 import { useWalrusDescription } from "@/features/campaigns/hooks/useWalrusDescription";
 import { useWalrusImage } from "@/features/campaigns/hooks/useWalrusImage";
 import { useCampaignUpdates } from "@/features/campaigns/hooks/useCampaignUpdates";
+import { useDocumentTitle } from "@/shared/hooks/useDocumentTitle";
 import { DEFAULT_NETWORK, useNetworkVariable } from "@/shared/config/networkConfig";
 import { Card, CardContent } from "@/shared/components/ui/card";
 import { Button } from "@/shared/components/ui/button";
@@ -100,6 +101,9 @@ export function CampaignPage() {
     isLoading: isUpdatesLoading,
     error: updatesError,
   } = useCampaignUpdates(campaignId, network);
+
+  // Set dynamic page title
+  useDocumentTitle(campaign?.name || "Campaign Details");
 
   const { isOwner, accountAddress, ownerCapId, refetchOwnership } =
     useCampaignOwnership({

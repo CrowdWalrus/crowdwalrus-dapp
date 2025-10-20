@@ -4,6 +4,7 @@ import { zodResolver } from "@hookform/resolvers/zod";
 import { useState, useEffect, useRef } from "react";
 import { useDebounce } from "@/shared/hooks/useDebounce";
 import { useWalBalance } from "@/shared/hooks/useWalBalance";
+import { useDocumentTitle } from "@/shared/hooks/useDocumentTitle";
 import { ROUTES } from "@/shared/config/routes";
 import {
   ConnectButton,
@@ -104,6 +105,8 @@ const EMPTY_FORM_DEFAULTS: Partial<NewCampaignFormData> = {
 };
 
 export default function NewCampaignPage() {
+  useDocumentTitle("Create Campaign");
+
   const currentAccount = useCurrentAccount();
   const suiClient = useSuiClient();
 
