@@ -1016,7 +1016,16 @@ export default function NewCampaignPage() {
                       </h2>
 
                       {/* Add Socials */}
-                      <CampaignSocialsSection />
+                      <FormField
+                        control={form.control}
+                        name="socials"
+                        render={() => (
+                          <FormItem>
+                            <CampaignSocialsSection />
+                            <FormMessage />
+                          </FormItem>
+                        )}
+                      />
 
                       {/* Rich Text Editor */}
                       <CampaignDetailsEditor disabled={isFormLocked} />
