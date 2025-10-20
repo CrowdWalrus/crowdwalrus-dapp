@@ -19,7 +19,6 @@ import "react-image-crop/dist/ReactCrop.css";
 import { toast } from "sonner";
 
 import { Button } from "@/shared/components/ui/button";
-import { Input } from "@/shared/components/ui/input";
 import { FormLabel, FormMessage } from "@/shared/components/ui/form";
 import {
   Dialog,
@@ -467,6 +466,14 @@ export function CampaignCoverImageUpload({
     ],
   );
 
+  const handleBrowseClick = useCallback(() => {
+    if (disabled) {
+      return;
+    }
+
+    fileInputRef.current?.click();
+  }, [disabled]);
+
   const handleDrop = useCallback(
     async (
       event: React.DragEvent<HTMLDivElement>,
@@ -595,6 +602,7 @@ export function CampaignCoverImageUpload({
               <FormLabel
                 htmlFor="cover-image"
                 className="font-medium text-base leading-[1.6]"
+                onClick={handleBrowseClick}
               >
                 Cover image <span className="text-red-300">*</span>
               </FormLabel>
@@ -605,15 +613,26 @@ export function CampaignCoverImageUpload({
                 </div>
               )}
             </div>
-            <Input
-              ref={fileInputRef}
-              id="cover-image"
-              type="file"
-              accept="image/jpeg,image/png"
-              className="py-1.5"
-              disabled={disabled}
-              onChange={(event) => handleImageChange(event, onChange)}
-            />
+            <div className="flex items-center gap-3">
+              <input
+                ref={fileInputRef}
+                id="cover-image"
+                type="file"
+                accept="image/jpeg,image/png"
+                className="sr-only"
+                disabled={disabled}
+                onChange={(event) => handleImageChange(event, onChange)}
+              />
+              <Button
+                type="button"
+                variant="outline"
+                onClick={handleBrowseClick}
+                disabled={disabled}
+                aria-controls="cover-image"
+              >
+                Choose file
+              </Button>
+            </div>
             <p className="text-sm text-muted-foreground pt-2 pb-3">
               Upload an image (JPEG or PNG, up to 5 MB). You can fine-tune the
               crop before saving.
@@ -670,7 +689,7 @@ export function CampaignCoverImageUpload({
                   <p className="text-sm">
                     {isDragging
                       ? "Drop image here"
-                      : 'Drag and drop or click "Choose File" to upload'}
+                      : 'Drag and drop or click "Choose file" to upload'}
                   </p>
                 </div>
               )}
