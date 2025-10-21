@@ -40,8 +40,7 @@ export const SuccessState = ({
     ? updateResult?.campaignId
     : campaignResult?.campaignId;
 
-  const derivedSubdomain =
-    campaignResult?.subdomain ?? subdomainName ?? null;
+  const derivedSubdomain = campaignResult?.subdomain ?? subdomainName ?? null;
 
   // Generate full campaign SuiNS address (subdomain + campaignDomain)
   const fullCampaignSuiAddress =
@@ -56,12 +55,27 @@ export const SuccessState = ({
       })
     : "/";
 
+  const campaignDetailPathWithUpdatesTab = `${campaignDetailPath}${
+    campaignDetailPath.includes("?") ? "&" : "?"
+  }tab=updates`;
+
+  const viewCampaignUrl = isUpdate
+    ? campaignDetailPathWithUpdatesTab
+    : campaignDetailPath;
+
   const shareableCampaignUrl = useMemo(() => {
-    if (!effectiveCampaignId || !campaignDetailPath || campaignDetailPath === "/") {
+    if (
+      !effectiveCampaignId ||
+      !campaignDetailPath ||
+      campaignDetailPath === "/"
+    ) {
       return "";
     }
 
-    if (campaignDetailPath.startsWith("http://") || campaignDetailPath.startsWith("https://")) {
+    if (
+      campaignDetailPath.startsWith("http://") ||
+      campaignDetailPath.startsWith("https://")
+    ) {
       return campaignDetailPath;
     }
 
@@ -98,8 +112,10 @@ export const SuccessState = ({
 
   const handleViewCampaign = () => {
     onClose?.();
-    window.location.href = campaignDetailPath;
+    window.location.href = viewCampaignUrl;
   };
+
+  const shouldShowCopySection = !!copyTarget && campaignDetailPath !== "/";
 
   return (
     <div className="py-3">
@@ -125,19 +141,20 @@ export const SuccessState = ({
       </div>
 
       {/* Campaign link with Copy button */}
-      {copyTarget && campaignDetailPath !== "/" && (
-        <div className="pb-10">
-          <div className="flex items-center">
-            <div className="basis-0 bg-background border border-border border-r-0 grow min-h-[40px] rounded-bl-lg rounded-tl-lg">
-              <div className="flex items-center gap-3 px-4 py-2.5">
-                <p className="font-normal text-sm text-foreground whitespace-nowrap overflow-hidden text-ellipsis">
-                  {shareableCampaignUrl || fullCampaignSuiAddress}
-                </p>
-              </div>
+      {shouldShowCopySection && (
+        <div className="flex justify-center pb-10">
+          <div className="mx-auto flex w-full max-w-[400px] items-center overflow-hidden  rounded-lg border border-border bg-background">
+            <div className="flex min-h-[40px] min-w-0 grow items-center gap-3 px-4 py-2.5">
+              <p
+                className="font-normal text-sm text-foreground whitespace-nowrap overflow-hidden text-ellipsis"
+                title={shareableCampaignUrl || fullCampaignSuiAddress}
+              >
+                {shareableCampaignUrl || fullCampaignSuiAddress}
+              </p>
             </div>
             <button
               onClick={handleCopy}
-              className="bg-background border border-border h-[40px] rounded-br-lg rounded-tr-lg px-3 hover:bg-accent transition-colors flex items-center gap-2"
+              className="flex shrink-0 items-center gap-2 border-l border-border bg-background px-3 py-2.5 transition-colors hover:bg-accent"
             >
               {copied ? (
                 <Check className="size-5 text-foreground" />
@@ -155,7 +172,7 @@ export const SuccessState = ({
       {/* Action buttons */}
       <div>
         <Button onClick={handleViewCampaign} className="w-full">
-          {isUpdate ? "View Campaign" : "View Campaign"}
+          {isUpdate ? "View Updates" : "View Campaign"}
         </Button>
       </div>
     </div>

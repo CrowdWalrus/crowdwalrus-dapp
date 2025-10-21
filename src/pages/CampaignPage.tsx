@@ -6,14 +6,17 @@
  */
 
 import { useEffect, useState } from "react";
-import { Link, useParams } from "react-router-dom";
+import { Link, useParams, useSearchParams } from "react-router-dom";
 import { useCampaign } from "@/features/campaigns/hooks/useCampaign";
 import { useResolvedCampaignId } from "@/features/campaigns/hooks/useResolvedCampaignId";
 import { useWalrusDescription } from "@/features/campaigns/hooks/useWalrusDescription";
 import { useWalrusImage } from "@/features/campaigns/hooks/useWalrusImage";
 import { useCampaignUpdates } from "@/features/campaigns/hooks/useCampaignUpdates";
 import { useDocumentTitle } from "@/shared/hooks/useDocumentTitle";
-import { DEFAULT_NETWORK, useNetworkVariable } from "@/shared/config/networkConfig";
+import {
+  DEFAULT_NETWORK,
+  useNetworkVariable,
+} from "@/shared/config/networkConfig";
 import { Card, CardContent } from "@/shared/components/ui/card";
 import { Button } from "@/shared/components/ui/button";
 import { Separator } from "@/shared/components/ui/separator";
@@ -67,6 +70,11 @@ export function CampaignPage() {
     | string
     | undefined;
   const rawIdentifier = id ?? "";
+  const [searchParams, setSearchParams] = useSearchParams();
+  const tabParam = searchParams.get("tab");
+  const [activeTab, setActiveTab] = useState<"about" | "updates">(
+    tabParam === "updates" ? "updates" : "about",
+  );
 
   const {
     campaignId,
@@ -228,6 +236,27 @@ export function CampaignPage() {
 
   const handleToggleView = () => {
     setIsOwnerView((prev) => !prev);
+  };
+
+  useEffect(() => {
+    const nextTab = tabParam === "updates" ? "updates" : "about";
+    setActiveTab(nextTab);
+  }, [tabParam]);
+
+  const handleTabChange = (value: string) => {
+    if (value !== "about" && value !== "updates") {
+      return;
+    }
+
+    setActiveTab(value);
+
+    const nextParams = new URLSearchParams(searchParams);
+    if (value === "about") {
+      nextParams.delete("tab");
+    } else {
+      nextParams.set("tab", value);
+    }
+    setSearchParams(nextParams, { replace: true });
   };
 
   if (!rawIdentifier && !campaignId) {
@@ -457,7 +486,11 @@ export function CampaignPage() {
                 socialLinks={campaign.socialLinks}
               />
 
-              <Tabs defaultValue="about" className="pt-10">
+              <Tabs
+                value={activeTab}
+                onValueChange={handleTabChange}
+                className="pt-10"
+              >
                 <TabsList className="bg-white-500 rounded-xl p-1">
                   <TabsTrigger value="about">About</TabsTrigger>
                   <TabsTrigger value="updates">
