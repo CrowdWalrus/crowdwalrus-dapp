@@ -170,7 +170,7 @@ export function CampaignCard({
                   <span className="font-semibold">
                     ${raised.toLocaleString()} raised
                   </span>
-                  <span>Goal ${fundingGoal.toLocaleString()}</span>
+                  <span>of ${fundingGoal.toLocaleString()}</span>
                 </div>
                 <span>{fundingPercentage}% funded</span>
               </div>
@@ -184,7 +184,7 @@ export function CampaignCard({
                 <span className="font-semibold">
                   ${raised.toLocaleString()} raised
                 </span>
-                <span>Goal ${fundingGoal.toLocaleString()}</span>
+                <span>of ${fundingGoal.toLocaleString()}</span>
               </div>
               <span>{fundingPercentage}% funded</span>
             </div>
