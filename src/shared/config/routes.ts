@@ -7,4 +7,5 @@ export const ROUTES = {
   CAMPAIGNS_EDIT: "/campaigns/:id/edit",
   CAMPAIGNS_ADD_UPDATE: "/campaigns/:id/add-update",
   PROFILE_CREATE: "/profile/create",
+  PROFILE_DETAIL: "/profile/:address",
 } as const;
