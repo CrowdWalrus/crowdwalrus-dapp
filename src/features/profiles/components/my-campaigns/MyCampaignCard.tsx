@@ -4,15 +4,15 @@ import {
   CampaignStatusBadge,
   CampaignTimelineBadge,
   CategoriesBadgeGroup,
+  ContributorsBadge,
   VerificationBadge,
 } from "@/features/campaigns/components/CampaignBadges";
 import type { CampaignData } from "@/features/campaigns/hooks/useAllCampaigns";
 import { getCampaignStatusInfo } from "@/features/campaigns/utils/campaignStatus";
-import { Badge } from "@/shared/components/ui/badge";
 import { Button } from "@/shared/components/ui/button";
 import { Separator } from "@/shared/components/ui/separator";
 import { cn } from "@/shared/lib/utils";
-import { Loader2, Users } from "lucide-react";
+import { Loader2 } from "lucide-react";
 import { Link } from "react-router-dom";
 
 export type MyCampaignCardActionVariant =
@@ -148,10 +148,9 @@ export function MyCampaignCard({
 
             <div className="flex flex-wrap items-center gap-2">
               <CategoriesBadgeGroup categories={campaign.category ?? ""} />
-              <Badge className="flex items-center gap-1 rounded-lg bg-white-600 px-2 py-1 text-xs font-medium text-black-400">
-                <Users className="size-3" />
-                {resolvedUpdatesCount}
-              </Badge>
+              <ContributorsBadge
+                contributorsCount={resolvedUpdatesCount}
+              />
             </div>
           </div>
 
