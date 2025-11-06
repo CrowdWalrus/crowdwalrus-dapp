@@ -1,5 +1,5 @@
 import { useMemo } from "react";
-import { Link, useParams } from "react-router-dom";
+import { Link, useParams, useSearchParams } from "react-router-dom";
 import {
   BanknoteArrowDown,
   FileSpreadsheet,
@@ -14,7 +14,9 @@ import {
   ProfileSummaryCard,
   ProfileTabs,
   type ProfileTabConfig,
+  type ProfileTabValue,
 } from "@/features/profiles/components/profile-page";
+import { MyCampaignsSection } from "@/features/profiles/components/my-campaigns";
 import { useProfileOwnership } from "@/features/profiles/hooks/useProfileOwnership";
 import { useDocumentTitle } from "@/shared/hooks/useDocumentTitle";
 import { Button } from "@/shared/components/ui/button";
@@ -32,6 +34,11 @@ const BADGE_ASSETS = [
 ];
 
 const DEFAULT_BADGE_ALT = "CrowdWalrus profile badge placeholder";
+const PROFILE_TAB_VALUES: ProfileTabValue[] = [
+  "overview",
+  "campaigns",
+  "contributions",
+];
 
 const formatAddressForDisplay = (address?: string | null) => {
   if (!address || address.length < 10) {
@@ -43,6 +50,7 @@ const formatAddressForDisplay = (address?: string | null) => {
 export function ProfilePage() {
   const { address: addressParam } = useParams<{ address: string }>();
   const { isOwner } = useProfileOwnership({ profileAddress: addressParam });
+  const [searchParams, setSearchParams] = useSearchParams();
 
   useDocumentTitle("Profile");
 
@@ -98,15 +106,7 @@ export function ProfilePage() {
     </div>
   );
 
-  const campaignsContent = (
-    <div className="rounded-2xl border border-dashed border-black-50 bg-white p-10 text-center">
-      <h3 className="text-lg font-semibold text-black-500">My campaigns</h3>
-      <p className="mt-2 text-sm text-black-400">
-        {/* TODO: Populate with campaigns created or owned by this profile. */}
-        Campaign listings will appear here once profile data is connected.
-      </p>
-    </div>
-  );
+  const campaignsContent = <MyCampaignsSection />;
 
   const contributionsContent = (
     <div className="rounded-2xl border border-dashed border-black-50 bg-white p-10 text-center">
@@ -140,6 +140,23 @@ export function ProfilePage() {
     },
   ];
 
+  const tabParam = searchParams.get("tab");
+  const activeTab = PROFILE_TAB_VALUES.includes(
+    tabParam as ProfileTabValue,
+  )
+    ? (tabParam as ProfileTabValue)
+    : "overview";
+
+  const handleTabChange = (nextValue: ProfileTabValue) => {
+    const params = new URLSearchParams(searchParams);
+    if (nextValue === "overview") {
+      params.delete("tab");
+    } else {
+      params.set("tab", nextValue);
+    }
+    setSearchParams(params, { replace: true });
+  };
+
   const createProfileAction =
     isOwner && !hasProfileData ? (
       <Button asChild className="gap-2">
@@ -164,7 +181,11 @@ export function ProfilePage() {
             action={createProfileAction}
           />
 
-          <ProfileTabs tabs={tabs} />
+          <ProfileTabs
+            tabs={tabs}
+            value={activeTab}
+            onValueChange={handleTabChange}
+          />
         </div>
       </div>
     </div>
