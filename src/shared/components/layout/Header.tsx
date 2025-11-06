@@ -159,7 +159,12 @@ export function Header() {
                     >
                       <div className="size-6 rounded-full bg-gradient-to-br from-blue-500 to-purple-500" />
                       {formatAddress(account.address)}
-                      <ChevronDown className="size-4 text-black-200" aria-hidden="true" />
+                      <ChevronDown
+                        className={`size-4 text-black-200 transition-transform duration-200 ${
+                          desktopAccountMenuOpen ? "rotate-180" : ""
+                        }`}
+                        aria-hidden="true"
+                      />
                     </Button>
                   </DropdownMenuTrigger>
                   <DropdownMenuContent
@@ -237,7 +242,12 @@ export function Header() {
                       aria-label="Open wallet menu"
                     >
                       <div className="size-6 rounded-full bg-gradient-to-br from-blue-500 to-purple-500" />
-                      <ChevronDown className="size-4 text-black-200" aria-hidden="true" />
+                      <ChevronDown
+                        className={`size-4 text-black-200 transition-transform duration-200 ${
+                          mobileAccountMenuOpen ? "rotate-180" : ""
+                        }`}
+                        aria-hidden="true"
+                      />
                     </Button>
                 </DropdownMenuTrigger>
                 <DropdownMenuContent
