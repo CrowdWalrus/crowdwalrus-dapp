@@ -56,3 +56,7 @@ export function buildCampaignAddUpdatePath(
   const segment = resolveCampaignSegment(campaignId, options);
   return `${CAMPAIGNS_PREFIX}/${segment}/add-update`;
 }
+
+export function buildProfileDetailPath(profileAddress: string): string {
+  return `/profile/${sanitizeSegment(profileAddress)}`;
+}

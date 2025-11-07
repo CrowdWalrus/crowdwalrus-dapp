@@ -6,6 +6,8 @@ import NewCampaignPage from "@/pages/NewCampaignPage";
 import { CampaignPage } from "@/pages/CampaignPage";
 import EditCampaignPage from "@/pages/EditCampaignPage";
 import PostCampaignUpdatePage from "@/pages/PostCampaignUpdatePage";
+import ProfileCreatePage from "@/pages/ProfileCreatePage";
+import { ProfilePage } from "@/pages/ProfilePage";
 import { ROUTES } from "@/shared/config/routes";
 
 export function AppRoutes() {
@@ -21,6 +23,8 @@ export function AppRoutes() {
         path={ROUTES.CAMPAIGNS_ADD_UPDATE}
         element={<PostCampaignUpdatePage />}
       />
+      <Route path={ROUTES.PROFILE_CREATE} element={<ProfileCreatePage />} />
+      <Route path={ROUTES.PROFILE_DETAIL} element={<ProfilePage />} />
     </Routes>
   );
 }

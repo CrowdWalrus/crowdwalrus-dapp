@@ -5,11 +5,11 @@ import {
   CampaignStatusBadge,
   CampaignTimelineBadge,
   CategoryBadge,
+  ContributorsBadge,
   VerificationBadge,
 } from "@/features/campaigns/components/CampaignBadges";
 import { getCampaignStatusInfo } from "@/features/campaigns/utils/campaignStatus";
-import { Badge } from "@/shared/components/ui/badge";
-import { Check, Users, X } from "lucide-react";
+import { Check, X } from "lucide-react";
 
 /**
  * Format address for display (0x36...c088)
@@ -92,12 +92,9 @@ export function CampaignCard({
           </div>
           <div className="flex items-center gap-2 flex-wrap">
             <CategoryBadge category={campaign.category} />
-            <Badge className="bg-white-600 border-white-600 rounded-lg px-2 py-0.5 gap-1.5 hover:bg-white-700 text-black-500">
-              <Users className="w-3 h-3" />
-              <span className="text-xs font-medium">
-                {campaign.nextUpdateSeq}
-              </span>
-            </Badge>
+            <ContributorsBadge
+              contributorsCount={campaign.nextUpdateSeq}
+            />
           </div>
         </div>
 

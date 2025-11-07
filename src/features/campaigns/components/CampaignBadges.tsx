@@ -11,12 +11,12 @@ import {
   Palette,
   Sparkles,
   Tag,
-  Users,
   CheckCircle,
   XCircle,
   HandCoins,
   Timer,
   ClockFading,
+  User,
 } from "lucide-react";
 import type { LucideIcon } from "lucide-react";
 import { Badge } from "@/shared/components/ui/badge";
@@ -202,16 +202,27 @@ export function CategoryBadge({ category }: CategoryBadgeProps) {
 }
 
 interface ContributorsBadgeProps {
-  contributorsCount: number;
+  contributorsCount: number | null | undefined;
 }
 
 export function ContributorsBadge({
   contributorsCount,
 }: ContributorsBadgeProps) {
+  const safeContributorsCount =
+    typeof contributorsCount === "number" && Number.isFinite(contributorsCount)
+      ? Math.max(0, contributorsCount)
+      : 0;
+
   return (
-    <Badge variant="outline" className={cn(BADGE_TEXT_CLASS, "bg-black-50")}>
-      <Users className="size-3" />
-      {contributorsCount}
+    <Badge
+      variant="outline"
+      className={cn(
+        BADGE_TEXT_CLASS,
+        "bg-black-50 border-black-50 text-black-500",
+      )}
+    >
+      <User className="size-3" />
+      {safeContributorsCount}
     </Badge>
   );
 }
