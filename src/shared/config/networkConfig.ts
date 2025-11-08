@@ -71,6 +71,14 @@ export const STORAGE_DURATION_OPTIONS = {
   ] as StorageDurationOption[],
 } as const;
 
+const devnetContracts = contractsConfig.devnet.contracts;
+const testnetContracts = contractsConfig.testnet.contracts;
+const mainnetContracts = contractsConfig.mainnet.contracts;
+
+const devnetCampaignDomain = contractsConfig.devnet.campaignDomain;
+const testnetCampaignDomain = contractsConfig.testnet.campaignDomain;
+const mainnetCampaignDomain = contractsConfig.mainnet.campaignDomain;
+
 const { networkConfig, useNetworkVariable, useNetworkVariables } =
   createNetworkConfig({
     devnet: {
@@ -79,8 +87,8 @@ const { networkConfig, useNetworkVariable, useNetworkVariables } =
         walCoinType: WAL_COIN_TYPE.devnet,
         epochConfig: WALRUS_EPOCH_CONFIG.devnet,
         storageDurationOptions: STORAGE_DURATION_OPTIONS.devnet,
-        contracts: contractsConfig.devnet.contracts,
-        campaignDomain: contractsConfig.devnet.campaignDomain,
+        contracts: devnetContracts,
+        campaignDomain: devnetCampaignDomain,
       },
     },
     testnet: {
@@ -89,8 +97,8 @@ const { networkConfig, useNetworkVariable, useNetworkVariables } =
         walCoinType: WAL_COIN_TYPE.testnet,
         epochConfig: WALRUS_EPOCH_CONFIG.testnet,
         storageDurationOptions: STORAGE_DURATION_OPTIONS.testnet,
-        contracts: contractsConfig.testnet.contracts,
-        campaignDomain: contractsConfig.testnet.campaignDomain,
+        contracts: testnetContracts,
+        campaignDomain: testnetCampaignDomain,
       },
     },
     mainnet: {
@@ -99,8 +107,8 @@ const { networkConfig, useNetworkVariable, useNetworkVariables } =
         walCoinType: WAL_COIN_TYPE.mainnet,
         epochConfig: WALRUS_EPOCH_CONFIG.mainnet,
         storageDurationOptions: STORAGE_DURATION_OPTIONS.mainnet,
-        contracts: contractsConfig.mainnet.contracts,
-        campaignDomain: contractsConfig.mainnet.campaignDomain,
+        contracts: mainnetContracts,
+        campaignDomain: mainnetCampaignDomain,
       },
     },
   });
