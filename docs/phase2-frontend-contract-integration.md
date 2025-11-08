@@ -21,6 +21,8 @@ Scope: Update the existing Phase 1 frontend to integrate Phase 2 contract change
 
 Deliverable: contracts config compiles with extended shape; no runtime lookups of these IDs.
 
+Status: ✅ Completed on 2025-11-08 — `ContractAddresses` now carries the Phase 2 registries, `networkConfig` exposes them per environment, and each new/updated ID (package, CrowdWalrus, SuiNS manager, PolicyRegistry, ProfilesRegistry, TokenRegistry, BadgeConfig) was verified on Sui testnet via `sui client object <id>`.
+
 ## 2) Campaign Creation (breaking changes)
 
 Contracts: `crowd_walrus::create_campaign` signature changed and core fields are now typed.
