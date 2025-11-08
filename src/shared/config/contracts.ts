@@ -16,6 +16,10 @@ export interface ContractAddresses {
   crowdWalrusObjectId: string;
   suinsManagerObjectId: string;
   suinsObjectId: string;
+  policyRegistryObjectId: string;
+  profilesRegistryObjectId: string;
+  tokenRegistryObjectId: string;
+  badgeConfigObjectId: string;
 }
 
 /**
@@ -55,6 +59,18 @@ const DEVNET_CONFIG: NetworkContractConfig = {
 
     // TODO: Add SuiNS registry object ID for devnet
     suinsObjectId: "YOUR_DEVNET_SUINS_OBJECT_ID_HERE",
+
+    // TODO: Add PolicyRegistry shared object ID
+    policyRegistryObjectId: "YOUR_DEVNET_POLICY_REGISTRY_OBJECT_ID_HERE",
+
+    // TODO: Add ProfilesRegistry shared object ID
+    profilesRegistryObjectId: "YOUR_DEVNET_PROFILES_REGISTRY_OBJECT_ID_HERE",
+
+    // TODO: Add TokenRegistry shared object ID
+    tokenRegistryObjectId: "YOUR_DEVNET_TOKEN_REGISTRY_OBJECT_ID_HERE",
+
+    // TODO: Add BadgeConfig shared object ID
+    badgeConfigObjectId: "YOUR_DEVNET_BADGE_CONFIG_OBJECT_ID_HERE",
   },
   walrus: {
     network: "devnet",
@@ -77,19 +93,35 @@ const TESTNET_CONFIG: NetworkContractConfig = {
   contracts: {
     // Package ID from deployment
     packageId:
-      "0x7c0e35909394908e79505a301860db084fa0a0d2eace8496528da995e7de3a64",
+      "0xc762a509c02849b7ca0b63eb4226c1fb87aed519af51258424a3591faaacac10",
 
     // CrowdWalrus shared object from deployment
     crowdWalrusObjectId:
-      "0xf7f40450c3d5adabac7232e97320039bd94f19b8c3b664c90893b514cac4226f",
+      "0x10e5b1e7f63c33d8e49eeac79168badfb9b271209bd12a59bbcde1ecd0187596",
 
     // SuiNS Manager shared object from deployment
     suinsManagerObjectId:
-      "0x8a0b7028dcff9b0a263971caad0716cd8f295f2fc830ef72e1c0f68a42675c01",
+      "0x48ceb4364109da3b9cd889d29dc9e14bafa5983777ccaa3f5d6385958b8190cf",
 
     // SuiNS registry object ID for custom deployment (crowdwalrus-testnet-core-v2)
     suinsObjectId:
       "0x300369e8909b9a6464da265b9a5a9ab6fe2158a040e84e808628cde7a07ee5a3",
+
+    // PolicyRegistry shared object from Phase 2 deployment
+    policyRegistryObjectId:
+      "0xaf5058f1ff30262fdeeeaa325b4b1ce12a73015abbf22867f63e9f449bb9e8c3",
+
+    // ProfilesRegistry shared object from Phase 2 deployment
+    profilesRegistryObjectId:
+      "0xd72f3907908b0575afea266c457c0109690ab11e8568106364c76e2444c2aeac",
+
+    // TokenRegistry shared object from Phase 2 deployment
+    tokenRegistryObjectId:
+      "0xee1330d94cd954ae58fd18a8336738562f05487fae56dda9c655f461eac52b6f",
+
+    // BadgeConfig shared object from Phase 2 deployment
+    badgeConfigObjectId:
+      "0x71c1e75eb42a29a81680f9f1e454e87468561a5cd28e2217e841c6693d00ea23",
   },
   walrus: {
     network: "testnet",
@@ -120,6 +152,18 @@ const MAINNET_CONFIG: NetworkContractConfig = {
 
     // TODO: Add SuiNS registry object ID for mainnet
     suinsObjectId: "YOUR_MAINNET_SUINS_OBJECT_ID_HERE",
+
+    // TODO: Add PolicyRegistry shared object ID
+    policyRegistryObjectId: "YOUR_MAINNET_POLICY_REGISTRY_OBJECT_ID_HERE",
+
+    // TODO: Add ProfilesRegistry shared object ID
+    profilesRegistryObjectId: "YOUR_MAINNET_PROFILES_REGISTRY_OBJECT_ID_HERE",
+
+    // TODO: Add TokenRegistry shared object ID
+    tokenRegistryObjectId: "YOUR_MAINNET_TOKEN_REGISTRY_OBJECT_ID_HERE",
+
+    // TODO: Add BadgeConfig shared object ID
+    badgeConfigObjectId: "YOUR_MAINNET_BADGE_CONFIG_OBJECT_ID_HERE",
   },
   walrus: {
     network: "mainnet",
