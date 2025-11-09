@@ -10,6 +10,10 @@ import { Separator } from "@/shared/components/ui/separator";
 import { Share2, ChevronDown, Clock } from "lucide-react";
 import { useCurrentAccount } from "@mysten/dapp-kit";
 import { VerificationBadge } from "./CampaignBadges";
+import {
+  formatUsdLocaleFromMicros,
+  usdMicrosToNumber,
+} from "@/shared/utils/currency";
 
 interface DonationCardProps {
   campaignId: string;
@@ -18,7 +22,7 @@ interface DonationCardProps {
   endDateMs: number;
   amountRaised: number;
   contributorsCount: number;
-  fundingGoal: number;
+  fundingGoalUsdMicro: bigint;
   recipientAddress: string;
   isActive: boolean;
 }
@@ -29,12 +33,13 @@ export function DonationCard({
   endDateMs,
   amountRaised,
   contributorsCount,
-  fundingGoal,
+  fundingGoalUsdMicro,
   recipientAddress,
   isActive,
 }: DonationCardProps) {
   const currentAccount = useCurrentAccount();
   const [contributionAmount, setContributionAmount] = useState("");
+  const fundingGoalUsd = usdMicrosToNumber(fundingGoalUsdMicro);
 
   const formatDate = (timestampMs: number) => {
     if (!Number.isFinite(timestampMs) || timestampMs <= 0) {
@@ -59,7 +64,7 @@ export function DonationCard({
 
   // Calculate funding percentage
   const fundingPercentage =
-    fundingGoal > 0 ? (amountRaised / fundingGoal) * 100 : 0;
+    fundingGoalUsd > 0 ? (amountRaised / fundingGoalUsd) * 100 : 0;
 
   const nowMs = Date.now();
   const hasValidStart = Number.isFinite(startDateMs) && startDateMs > 0;
@@ -127,7 +132,9 @@ export function DonationCard({
           )}
         </div>
         <div className="flex items-center justify-between text-xl ">
-          <p className="font-semibold">Goal ${fundingGoal.toLocaleString()}</p>
+          <p className="font-semibold">
+            Goal {formatUsdLocaleFromMicros(fundingGoalUsdMicro)}
+          </p>
           <p>{fundingPercentage.toFixed(0)}% funded</p>
         </div>
       </div>
