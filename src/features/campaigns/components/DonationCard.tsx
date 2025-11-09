@@ -10,17 +10,14 @@ import { Separator } from "@/shared/components/ui/separator";
 import { Share2, ChevronDown, Clock } from "lucide-react";
 import { useCurrentAccount } from "@mysten/dapp-kit";
 import { VerificationBadge } from "./CampaignBadges";
-import {
-  formatUsdLocaleFromMicros,
-  usdMicrosToNumber,
-} from "@/shared/utils/currency";
+import { formatUsdLocaleFromMicros } from "@/shared/utils/currency";
 
 interface DonationCardProps {
   campaignId: string;
   isVerified: boolean;
   startDateMs: number;
   endDateMs: number;
-  amountRaised: number;
+  raisedUsdMicro: bigint;
   contributorsCount: number;
   fundingGoalUsdMicro: bigint;
   recipientAddress: string;
@@ -31,7 +28,7 @@ export function DonationCard({
   isVerified,
   startDateMs,
   endDateMs,
-  amountRaised,
+  raisedUsdMicro,
   contributorsCount,
   fundingGoalUsdMicro,
   recipientAddress,
@@ -39,7 +36,7 @@ export function DonationCard({
 }: DonationCardProps) {
   const currentAccount = useCurrentAccount();
   const [contributionAmount, setContributionAmount] = useState("");
-  const fundingGoalUsd = usdMicrosToNumber(fundingGoalUsdMicro);
+  const formattedRaised = formatUsdLocaleFromMicros(raisedUsdMicro);
 
   const formatDate = (timestampMs: number) => {
     if (!Number.isFinite(timestampMs) || timestampMs <= 0) {
@@ -64,7 +61,9 @@ export function DonationCard({
 
   // Calculate funding percentage
   const fundingPercentage =
-    fundingGoalUsd > 0 ? (amountRaised / fundingGoalUsd) * 100 : 0;
+    fundingGoalUsdMicro > 0n
+      ? Number((raisedUsdMicro * 100n) / fundingGoalUsdMicro)
+      : 0;
 
   const nowMs = Date.now();
   const hasValidStart = Number.isFinite(startDateMs) && startDateMs > 0;
@@ -116,7 +115,7 @@ export function DonationCard({
       {/* Amount Raised */}
       <div className="flex flex-col gap-2">
         <h2 className="font-['Inter_Tight'] text-[40px] font-bold leading-[1.2] tracking-[0.4px] ">
-          ${amountRaised.toLocaleString()} raised
+          {`$${formattedRaised} raised`}
         </h2>
         <p className="text-xl  ">from {contributorsCount} contributors</p>
       </div>
@@ -181,6 +180,7 @@ export function DonationCard({
 
       {/* Action Buttons */}
       <div className="flex flex-col gap-4 w-full">
+        {/* TODO(Phase 2 - Task 5): enable once donation flows & price oracle are wired */}
         <Button
           className="w-full h-10 bg-primary text-primary-foreground  text-sm font-medium tracking-[0.07px] rounded-lg hover:bg-primary/90 opacity-50"
           disabled={!isActive || !currentAccount || !contributionAmount}
