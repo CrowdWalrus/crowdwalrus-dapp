@@ -14,6 +14,10 @@ import { Separator } from "@/shared/components/ui/separator";
 import { cn } from "@/shared/lib/utils";
 import { Loader2 } from "lucide-react";
 import { Link } from "react-router-dom";
+import {
+  formatUsdLocaleFromMicros,
+  usdMicrosToNumber,
+} from "@/shared/utils/currency";
 
 export type MyCampaignCardActionVariant =
   | "primary"
@@ -91,12 +95,17 @@ export function MyCampaignCard({
     campaign.isDeleted,
   );
 
-  const normalizedGoal = safeNumber(goalAmount ?? Number(campaign.fundingGoal));
+  const normalizedGoal = safeNumber(
+    goalAmount ?? usdMicrosToNumber(campaign.fundingGoalUsdMicro),
+  );
   const normalizedRaised = safeNumber(raisedAmount);
   const fundingPercentage =
     normalizedGoal > 0
       ? Math.min(100, Math.round((normalizedRaised / normalizedGoal) * 100))
       : 0;
+  const formattedGoal = formatUsdLocaleFromMicros(
+    campaign.fundingGoalUsdMicro,
+  );
 
   const resolvedUpdatesCount =
     typeof updatesCount === "number" ? Math.max(0, updatesCount) : 0;
@@ -170,7 +179,7 @@ export function MyCampaignCard({
                 <span className="font-semibold">
                   ${normalizedRaised.toLocaleString()} raised
                 </span>
-                <span>Goal ${normalizedGoal.toLocaleString()}</span>
+                <span>Goal {formattedGoal}</span>
               </div>
               <span>{fundingPercentage}% funded</span>
             </div>
