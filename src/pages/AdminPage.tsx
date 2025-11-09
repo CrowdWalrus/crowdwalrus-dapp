@@ -1,4 +1,4 @@
-import { useState, useMemo } from "react";
+import { useState, useMemo, useEffect } from "react";
 import { ConnectButton } from "@mysten/dapp-kit";
 import { Tabs, TabsList, TabsTrigger } from "@/shared/components/ui/tabs";
 import { Button } from "@/shared/components/ui/button";
@@ -15,6 +15,7 @@ import {
   useUnverifyCampaign,
   useCreateVerifyCap,
 } from "@/features/admin";
+import { useCampaignStats } from "@/features/campaigns/hooks/useCampaignStats";
 import { useAllCampaigns } from "@/features/campaigns/hooks/useAllCampaigns";
 import type { CampaignData } from "@/features/campaigns/hooks/useAllCampaigns";
 import { CampaignCard } from "@/features/admin/components/CampaignCard";
@@ -272,6 +273,25 @@ function CampaignCardWithActions({
   accountAddress,
   onRefetch,
 }: CampaignCardWithActionsProps) {
+  const {
+    totalUsdMicro,
+    totalDonationsCount,
+    isPending: isStatsPending,
+    error: statsError,
+  } = useCampaignStats({
+    campaignId: campaign.id,
+    statsId: campaign.statsId,
+    enabled: Boolean(campaign.statsId || campaign.id),
+  });
+
+  useEffect(() => {
+    if (statsError) {
+      console.warn(
+        `[AdminPage] Failed to load stats for ${campaign.id}:`,
+        statsError,
+      );
+    }
+  }, [campaign.id, statsError]);
   const { verifyCampaign, isProcessing: isVerifying } = useVerifyCampaign({
     campaignId: campaign.id,
     verifyCapId: primaryVerifyCapId,
@@ -298,6 +318,8 @@ function CampaignCardWithActions({
       onVerify={verifyCampaign}
       onUnverify={unverifyCampaign}
       canTakeAction={Boolean(primaryVerifyCapId)}
+      raisedUsdMicro={statsError || isStatsPending ? 0n : totalUsdMicro}
+      supportersCount={statsError || isStatsPending ? 0 : totalDonationsCount}
     />
   );
 }
