@@ -94,12 +94,12 @@ Contracts create a per-campaign `CampaignStats` shared object and link it via `C
 
 Deliverables: a reusable hook that provides `totalUsdMicro`, `totalDonationsCount`, and optionally coin-specific totals. **Done** – `useCampaignStats` now powers campaign detail, profile, explore, and admin surfaces with live totals (plus per-coin helpers when needed). All consumers log stats errors and fall back to safe zero states so list/grid views never show stale data while still surfacing the issues for debugging.
 
-## 5) Token Registry (read-only)
+## 5) Token Registry (read-only) ✅ Completed – 2025-11-09
 
 - Add `src/features/tokens/hooks/useEnabledTokens.ts` to derive the list of enabled token types and metadata by querying owned/shared `TokenRegistry` object (ID from config) dynamic fields or by consuming `Token*` events.
 - Expose `{ coinType, symbol, decimals, pythFeedId, maxAgeMs }` and an `isEnabled` flag; cache with React Query.
 
-Deliverables: read-only hooks to list enabled tokens for donors and stats.
+Deliverables: read-only hooks to list enabled tokens for donors and stats. **Done** – `useEnabledTokens` now fetches every `token_registry::TokenMetadata` dynamic field from the shared registry, parses coin metadata (including 32-byte `pyth_feed_id`, decimals, `max_age_ms`, enablement), and caches the results via React Query for downstream donation + stats flows. A feature-level barrel export (`src/features/tokens/index.ts`) and shared dynamic-field paginator keep the hook composable for future admin + oracle wiring.
 
 ## 6) Profiles (new feature and auto-creation)
 
