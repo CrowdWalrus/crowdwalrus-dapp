@@ -61,7 +61,7 @@ Notes:
 - Policy presets are fetched at runtime (no hard-coded defaults); campaign creation/edit flows now preserve any custom presets defined on-chain.
 - All funding goal math uses bigint micros (`parseUsdToMicros`), and UI components render `fundingGoalUsdMicro` to prevent precision loss.
 
-## 3) Types and parsing (typed core fields)
+## 3) Types and parsing (typed core fields) ✅ Completed – 2025-11-09
 
 - Update `src/features/campaigns/types/campaign.ts`:
   - In `CampaignFormData`, clarify `funding_goal` is denominated in USD (not SUI). Add optional `policyPresetName?: string` if you want to wire presets later.
@@ -71,7 +71,11 @@ Notes:
   - Optional (expose payout policy): add `payoutPlatformBps` and `payoutPlatformAddress` from `payout_policy` for downstream logic/labels.
 - Do not attempt to edit/start/end/funding/policy via metadata. Those are immutable from creation; metadata updates remain allowed for other keys.
 
-Deliverables: hooks compile and return accurate values for funding goal and recipient, matching Phase 2 object layout.
+Deliverables: hooks compile and return accurate values for funding goal and recipient, matching Phase 2 object layout. **Done** – see `src/features/campaigns/types/campaign.ts`, `useCampaign.ts`, `useAllCampaigns.ts`.
+
+Notes:
+- Funding goals are parsed/stored as `bigint` micros end-to-end; UI formatting happens only at display time via `currency.ts`.
+- Recipient and policy data come directly from the typed `payout_policy` struct (no metadata fallback), and `payoutPlatformBps` / `payoutPlatformAddress` are exposed for future logic.
 
 ## 4) Campaign Stats (new shared aggregate)
 
