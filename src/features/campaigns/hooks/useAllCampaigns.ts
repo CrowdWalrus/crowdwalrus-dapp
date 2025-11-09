@@ -24,6 +24,7 @@ export interface CampaignData {
   id: string;
   adminId: string;
   creatorAddress: string;
+  statsId: string;
   name: string;
   shortDescription: string;
   subdomainName: string;
@@ -60,6 +61,7 @@ interface MetadataField {
 interface CampaignMoveContentFields {
   id?: { id?: string };
   admin_id?: string;
+  stats_id?: string;
   name?: string;
   short_description?: string;
   subdomain_name?: string;
@@ -241,6 +243,7 @@ export function useAllCampaigns(network: SupportedNetwork = DEFAULT_NETWORK) {
             id: campaignId,
             adminId: fields.admin_id ?? "",
             creatorAddress,
+            statsId: typeof fields.stats_id === "string" ? fields.stats_id : "",
             name: fields.name ?? "",
             shortDescription: fields.short_description ?? "",
             subdomainName: fields.subdomain_name ?? "",
