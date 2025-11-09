@@ -79,7 +79,7 @@ Notes:
 - Funding goals are parsed/stored as `bigint` micros end-to-end; UI formatting happens only at display time via `currency.ts`.
 - Recipient and policy data come directly from the typed `payout_policy` struct (no metadata fallback), and `payoutPlatformBps` / `payoutPlatformAddress` are exposed for future logic.
 
-## 4) Campaign Stats (new shared aggregate)
+## 4) Campaign Stats (new shared aggregate) ✅ Completed – 2025-11-09
 
 Contracts create a per-campaign `CampaignStats` shared object and link it via `Campaign.stats_id`.
 
@@ -92,7 +92,7 @@ Contracts create a per-campaign `CampaignStats` shared object and link it via `C
     - If needed, iterate enabled coins from TokenRegistry (see Section 7) and query dynamic fields keyed by `PerCoinKey<T>` via `getDynamicFieldObject` to read `PerCoinStats<T> { total_raw, donation_count }`.
 - Backfill existing places showing “supporters” or totals to consume this hook rather than recomputing from events.
 
-Deliverables: a reusable hook that provides `totalUsdMicro`, `totalDonationsCount`, and optionally coin-specific totals.
+Deliverables: a reusable hook that provides `totalUsdMicro`, `totalDonationsCount`, and optionally coin-specific totals. **Done** – `useCampaignStats` now powers campaign detail, profile, explore, and admin surfaces with live totals (plus per-coin helpers when needed). All consumers log stats errors and fall back to safe zero states so list/grid views never show stale data while still surfacing the issues for debugging.
 
 ## 5) Donation Flows (new features)
 
