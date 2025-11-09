@@ -28,6 +28,8 @@ interface CampaignCardProps {
   onVerify: () => void;
   onUnverify: () => void;
   canTakeAction: boolean;
+  raisedUsdMicro?: bigint;
+  supportersCount?: number;
 }
 
 export function CampaignCard({
@@ -37,6 +39,8 @@ export function CampaignCard({
   onVerify,
   onUnverify,
   canTakeAction,
+  raisedUsdMicro,
+  supportersCount,
 }: CampaignCardProps) {
   const statusInfo = getCampaignStatusInfo(
     campaign.startDateMs,
@@ -45,8 +49,19 @@ export function CampaignCard({
     campaign.isDeleted,
   );
 
-  // Calculate funding percentage (placeholder until raised value available)
-  const fundingPercent = 0;
+  const raisedValue = raisedUsdMicro ?? 0n;
+  const supporters =
+    typeof supportersCount === "number" && Number.isFinite(supportersCount)
+      ? Math.max(0, supportersCount)
+      : 0;
+  const fundingPercent =
+    campaign.fundingGoalUsdMicro > 0n
+      ? Math.min(
+          100,
+          Number((raisedValue * 100n) / campaign.fundingGoalUsdMicro),
+        )
+      : 0;
+  const formattedRaised = formatUsdLocaleFromMicros(raisedValue);
 
   return (
     <div className="bg-white-100 border border-black-50 rounded-3xl p-6 flex flex-col gap-6">
@@ -92,16 +107,16 @@ export function CampaignCard({
           </div>
           <div className="flex items-center gap-2 flex-wrap">
             <CategoryBadge category={campaign.category} />
-            <ContributorsBadge
-              contributorsCount={campaign.nextUpdateSeq}
-            />
+            <ContributorsBadge contributorsCount={supporters} />
           </div>
         </div>
 
         {/* Funding progress */}
         <div className="flex flex-col gap-1">
           <div className="flex items-center gap-1 text-base leading-relaxed">
-            <span className="font-semibold text-black-500">$0 raised</span>
+            <span className="font-semibold text-black-500">
+              {`$${formattedRaised} raised`}
+            </span>
             <span className="text-black-500">
               Goal {formatUsdLocaleFromMicros(campaign.fundingGoalUsdMicro)}
             </span>
