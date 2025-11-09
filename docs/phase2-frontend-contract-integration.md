@@ -3,7 +3,7 @@
 Version: 2025-11-04
 Scope: Update the existing Phase 1 frontend to integrate Phase 2 contract changes and expose new on-chain features. This plan is ordered, focuses strictly on contract interactions (no UI work), and calls out concrete file touch points.
 
-## 1) Contract Addresses & Network Config
+## 1) Contract Addresses & Network Config ✅ Completed – 2025-11-08
 
 - Update `src/shared/config/contracts.ts` to include new shared object IDs that Phase 2 entries require.
   - Add to `ContractAddresses` and each network config:
@@ -19,9 +19,11 @@ Scope: Update the existing Phase 1 frontend to integrate Phase 2 contract change
   - `crowd_walrus::TokenRegistryCreated`
   - `crowd_walrus::BadgeConfigCreated`
 
-Deliverable: contracts config compiles with extended shape; no runtime lookups of these IDs.
+Deliverable: contracts config compiles with extended shape; no runtime lookups of these IDs. **Done** – see `src/shared/config/contracts.ts` and `src/shared/config/networkConfig.ts`.
 
-Status: ✅ Completed on 2025-11-08 — `ContractAddresses` now carries the Phase 2 registries, `networkConfig` exposes them per environment, and each new/updated ID (package, CrowdWalrus, SuiNS manager, PolicyRegistry, ProfilesRegistry, TokenRegistry, BadgeConfig) was verified on Sui testnet via `sui client object <id>`.
+Notes:
+- Each environment now includes Policy/Profiles/Token/Badge object IDs alongside package + CrowdWalrus IDs.
+- IDs were verified on Sui testnet using `sui client object <id>` and are surfaced through `getContractConfig` for downstream services.
 
 ## 2) Campaign Creation (breaking changes) ✅ Completed – 2025-11-09
 
