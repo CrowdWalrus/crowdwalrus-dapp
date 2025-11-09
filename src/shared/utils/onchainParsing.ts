@@ -136,6 +136,20 @@ export function parseU64BigIntFromMove(
   value: unknown,
   fallback = 0n,
 ): bigint {
+  return parseBigIntLike(value, fallback);
+}
+
+/**
+ * Parse a Move u128 value into a bigint without losing precision.
+ */
+export function parseU128BigIntFromMove(
+  value: unknown,
+  fallback = 0n,
+): bigint {
+  return parseBigIntLike(value, fallback);
+}
+
+function parseBigIntLike(value: unknown, fallback: bigint): bigint {
   if (value === null || value === undefined) {
     return fallback;
   }
@@ -158,12 +172,12 @@ export function parseU64BigIntFromMove(
   if (typeof value === "object") {
     const obj = value as Record<string, unknown>;
     if (obj.value !== undefined) {
-      return parseU64BigIntFromMove(obj.value, fallback);
+      return parseBigIntLike(obj.value, fallback);
     }
     if (obj.fields && typeof obj.fields === "object") {
       const fields = obj.fields as Record<string, unknown>;
       if (fields.value !== undefined) {
-        return parseU64BigIntFromMove(fields.value, fallback);
+        return parseBigIntLike(fields.value, fallback);
       }
     }
   }
