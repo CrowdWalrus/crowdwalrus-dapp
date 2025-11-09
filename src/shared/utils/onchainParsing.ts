@@ -125,3 +125,47 @@ export function parseU64FromMove(
   }
   return fallback;
 }
+
+/**
+ * Parse a Move u64 into a bigint without losing precision.
+ *
+ * @param value - Raw Move value (string/number/bigint/object wrapper).
+ * @param fallback - Value to return on failure.
+ */
+export function parseU64BigIntFromMove(
+  value: unknown,
+  fallback = 0n,
+): bigint {
+  if (value === null || value === undefined) {
+    return fallback;
+  }
+  if (typeof value === "bigint") {
+    return value;
+  }
+  if (typeof value === "string") {
+    try {
+      return BigInt(value);
+    } catch {
+      return fallback;
+    }
+  }
+  if (typeof value === "number") {
+    if (!Number.isFinite(value)) {
+      return fallback;
+    }
+    return BigInt(Math.trunc(value));
+  }
+  if (typeof value === "object") {
+    const obj = value as Record<string, unknown>;
+    if (obj.value !== undefined) {
+      return parseU64BigIntFromMove(obj.value, fallback);
+    }
+    if (obj.fields && typeof obj.fields === "object") {
+      const fields = obj.fields as Record<string, unknown>;
+      if (fields.value !== undefined) {
+        return parseU64BigIntFromMove(fields.value, fallback);
+      }
+    }
+  }
+  return fallback;
+}
