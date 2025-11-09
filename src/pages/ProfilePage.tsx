@@ -17,6 +17,7 @@ import {
   type ProfileTabValue,
 } from "@/features/profiles/components/profile-page";
 import { MyCampaignsSection } from "@/features/profiles/components/my-campaigns";
+import { useMyCampaigns } from "@/features/campaigns/hooks/useMyCampaigns";
 import { useProfileOwnership } from "@/features/profiles/hooks/useProfileOwnership";
 import { useDocumentTitle } from "@/shared/hooks/useDocumentTitle";
 import { Button } from "@/shared/components/ui/button";
@@ -51,6 +52,8 @@ export function ProfilePage() {
   const { address: addressParam } = useParams<{ address: string }>();
   const { isOwner } = useProfileOwnership({ profileAddress: addressParam });
   const [searchParams, setSearchParams] = useSearchParams();
+  const myCampaigns = useMyCampaigns();
+  const campaignCount = myCampaigns.campaigns.length;
 
   useDocumentTitle("Profile");
 
@@ -87,7 +90,7 @@ export function ProfilePage() {
       {
         id: "campaigns",
         label: "Your Campaigns",
-        value: "2",
+        value: campaignCount.toString(),
         icon: FileSpreadsheet,
       },
       {
@@ -97,7 +100,7 @@ export function ProfilePage() {
         icon: BanknoteArrowDown,
       },
     ];
-  }, []);
+  }, [campaignCount]);
 
   const overviewContent = (
     <div className="flex flex-col gap-12">
@@ -127,8 +130,7 @@ export function ProfilePage() {
     {
       value: "campaigns",
       label: "My Campaigns",
-      // TODO: Wire badge counts to real campaign totals.
-      badgeCount: 2,
+      badgeCount: campaignCount,
       content: campaignsContent,
     },
     {
