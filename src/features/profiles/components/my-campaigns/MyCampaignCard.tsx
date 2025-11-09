@@ -14,10 +14,7 @@ import { Separator } from "@/shared/components/ui/separator";
 import { cn } from "@/shared/lib/utils";
 import { Loader2 } from "lucide-react";
 import { Link } from "react-router-dom";
-import {
-  formatUsdLocaleFromMicros,
-  usdMicrosToNumber,
-} from "@/shared/utils/currency";
+import { formatUsdLocaleFromMicros } from "@/shared/utils/currency";
 
 export type MyCampaignCardActionVariant =
   | "primary"
@@ -41,9 +38,8 @@ export interface MyCampaignCardAction {
 export interface MyCampaignCardProps {
   campaign: CampaignData;
   actions: MyCampaignCardAction[];
-  raisedAmount?: number;
-  goalAmount?: number;
-  updatesCount?: number;
+  raisedAmountUsdMicro?: bigint;
+  supportersCount?: number;
   className?: string;
 }
 
@@ -63,7 +59,7 @@ const ACTION_VARIANT_CLASS: Record<MyCampaignCardActionVariant, string> = {
     "bg-sgreen-50 text-sgreen-700 border border-sgreen-200 hover:bg-sgreen-100",
 };
 
-const CAMPAIGN_PLACEHOLDER_UPDATES = 0;
+const CAMPAIGN_PLACEHOLDER_SUPPORTERS = 0;
 
 const formatAddress = (address?: string | null): string => {
   if (!address) {
@@ -77,15 +73,11 @@ const formatAddress = (address?: string | null): string => {
   return `${address.slice(0, 4)}...${address.slice(-4)}`;
 };
 
-const safeNumber = (value?: number): number =>
-  Number.isFinite(value) && typeof value === "number" ? value : 0;
-
 export function MyCampaignCard({
   campaign,
   actions,
-  raisedAmount,
-  goalAmount,
-  updatesCount = CAMPAIGN_PLACEHOLDER_UPDATES,
+  raisedAmountUsdMicro,
+  supportersCount = CAMPAIGN_PLACEHOLDER_SUPPORTERS,
   className,
 }: MyCampaignCardProps) {
   const statusInfo = getCampaignStatusInfo(
@@ -95,20 +87,23 @@ export function MyCampaignCard({
     campaign.isDeleted,
   );
 
-  const normalizedGoal = safeNumber(
-    goalAmount ?? usdMicrosToNumber(campaign.fundingGoalUsdMicro),
-  );
-  const normalizedRaised = safeNumber(raisedAmount);
-  const fundingPercentage =
-    normalizedGoal > 0
-      ? Math.min(100, Math.round((normalizedRaised / normalizedGoal) * 100))
+  const raisedUsdMicro = raisedAmountUsdMicro ?? 0n;
+  const fundingPercentageRaw =
+    campaign.fundingGoalUsdMicro > 0n
+      ? Number((raisedUsdMicro * 100n) / campaign.fundingGoalUsdMicro)
       : 0;
+  const fundingPercentage = Math.min(
+    100,
+    Math.max(0, fundingPercentageRaw),
+  );
   const formattedGoal = formatUsdLocaleFromMicros(
     campaign.fundingGoalUsdMicro,
   );
-
-  const resolvedUpdatesCount =
-    typeof updatesCount === "number" ? Math.max(0, updatesCount) : 0;
+  const formattedRaised = formatUsdLocaleFromMicros(raisedUsdMicro);
+  const resolvedSupportersCount =
+    typeof supportersCount === "number" && Number.isFinite(supportersCount)
+      ? Math.max(0, supportersCount)
+      : CAMPAIGN_PLACEHOLDER_SUPPORTERS;
 
   return (
     <div
@@ -158,7 +153,7 @@ export function MyCampaignCard({
             <div className="flex flex-wrap items-center gap-2">
               <CategoriesBadgeGroup categories={campaign.category ?? ""} />
               <ContributorsBadge
-                contributorsCount={resolvedUpdatesCount}
+                contributorsCount={resolvedSupportersCount}
               />
             </div>
           </div>
@@ -177,7 +172,7 @@ export function MyCampaignCard({
             <div className="flex flex-col gap-1 text-base leading-relaxed text-black-500 md:flex-row md:items-center md:justify-between">
               <div className="flex items-center gap-1">
                 <span className="font-semibold">
-                  ${normalizedRaised.toLocaleString()} raised
+                  {`$${formattedRaised} raised`}
                 </span>
                 <span>Goal {formattedGoal}</span>
               </div>
