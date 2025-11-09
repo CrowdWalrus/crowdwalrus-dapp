@@ -67,10 +67,7 @@ export const newCampaignSchema = z
       }),
     campaignType: z
       .string()
-      .min(1, "Please select a campaign type")
-      .refine((val) => ["flexible", "nonprofit", "commercial"].includes(val), {
-        message: "Please select a valid campaign type",
-      }),
+      .min(1, "Please select a campaign type"),
     categories: z
       .array(z.string())
       .min(1, "Please select at least one category"),
