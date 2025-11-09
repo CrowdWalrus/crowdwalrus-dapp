@@ -1,5 +1,6 @@
 import type { SuiClient } from "@mysten/sui/client";
 import type { PolicyPresetName } from "@/features/campaigns/constants/policies";
+import { fetchAllDynamicFields } from "@/services/suiDynamicFields";
 
 export interface OnChainPolicyPreset {
   name: PolicyPresetName;
@@ -94,23 +95,4 @@ export async function fetchPolicyPresetsFromRegistry(
       (preset): preset is OnChainPolicyPreset =>
         Boolean(preset && preset.enabled),
     );
-}
-
-async function fetchAllDynamicFields(client: SuiClient, parentId: string) {
-  const collected: Awaited<
-    ReturnType<typeof client.getDynamicFields>
-  >["data"] = [];
-
-  let cursor: string | null = null;
-  do {
-    const response = await client.getDynamicFields({
-      parentId,
-      cursor: cursor ?? undefined,
-      limit: 50,
-    });
-    collected.push(...response.data);
-    cursor = response.hasNextPage ? response.nextCursor ?? null : null;
-  } while (cursor);
-
-  return collected;
 }
