@@ -101,7 +101,7 @@ Deliverables: a reusable hook that provides `totalUsdMicro`, `totalDonationsCoun
 
 Deliverables: read-only hooks to list enabled tokens for donors and stats. **Done** – `useEnabledTokens` now fetches every `token_registry::TokenMetadata` dynamic field from the shared registry, parses coin metadata (including 32-byte `pyth_feed_id`, decimals, `max_age_ms`, enablement), and caches the results via React Query for downstream donation + stats flows. A feature-level barrel export (`src/features/tokens/index.ts`) and shared dynamic-field paginator keep the hook composable for future admin + oracle wiring.
 
-## 6) Profiles (new feature and auto-creation)
+## 6) Profiles (new feature and auto-creation) ✅ Completed – 2025-11-09
 
 - Auto-creation touchpoints:
   - `create_campaign` now calls `profiles::create_or_get_profile_for_sender` automatically.
@@ -114,6 +114,7 @@ Deliverables: read-only hooks to list enabled tokens for donors and stats. **Don
     - `updateProfileMetadata(key: string, value: string)` → `profiles::update_profile_metadata` (profile + clock). For batching, issue multiple calls in a single PTB.
 
 Deliverables: basic hooks and transactions for profile read/update flows; reuse in donation flow selection logic.
+**Done** – `useProfile` now resolves profile IDs via the shared registry, exposes both raw and sanitized metadata, and normalizes the `__cw_removed__` sentinel so UI surfaces blanks consistently. `profile.ts` provides create/update builders plus batching helpers, and `ProfileCreatePage` consumes them to create-or-update profiles while allowing users to clear stored metadata (by writing the sentinel) without regressions in future detail views.
 
 ## 7) Pyth Price Oracle wiring (required for donations)
 
