@@ -180,7 +180,7 @@ export function DonationCard({
 
       {/* Action Buttons */}
       <div className="flex flex-col gap-4 w-full">
-        {/* TODO(Phase 2 - Task 5): enable once donation flows & price oracle are wired */}
+        {/* TODO(Phase 2 - Task 8): enable once donation flows & price oracle are wired */}
         <Button
           className="w-full h-10 bg-primary text-primary-foreground  text-sm font-medium tracking-[0.07px] rounded-lg hover:bg-primary/90 opacity-50"
           disabled={!isActive || !currentAccount || !contributionAmount}
