@@ -12,7 +12,13 @@ import {
   parseOptionalTimestampFromMove,
   parseTimestampFromMove,
   parseU64FromMove,
+  parseU64BigIntFromMove,
 } from "@/shared/utils/onchainParsing";
+import { formatUsdFromMicros } from "@/shared/utils/currency";
+import {
+  inferPolicyPresetFromBps,
+  type PolicyPresetName,
+} from "@/features/campaigns/constants/policies";
 
 export interface CampaignData {
   id: string;
@@ -31,11 +37,14 @@ export interface CampaignData {
   deletedAtMs: number | null;
   nextUpdateSeq: number;
   fundingGoal: string;
+  fundingGoalUsdMicro: bigint;
   category: string;
   walrusQuiltId: string;
   walrusStorageEpochs: string;
   coverImageId: string;
-  campaignType?: string;
+  policyPresetName: PolicyPresetName;
+  payoutPlatformBps?: number;
+  payoutPlatformAddress?: string;
   socialLinks: CampaignSocialLink[];
   coverImageUrl: string;
   descriptionUrl: string;
@@ -68,7 +77,14 @@ interface CampaignMoveContentFields {
   deleted_at_ms?: unknown;
   next_update_seq?: unknown;
   nextUpdateSeq?: unknown;
-  campaign_type?: unknown;
+  funding_goal_usd_micro?: unknown;
+  payout_policy?: {
+    fields?: {
+      platform_bps?: unknown;
+      platform_address?: string;
+      recipient_address?: string;
+    };
+  };
   metadata?: {
     fields?: {
       contents?: MetadataField[];
@@ -100,21 +116,30 @@ const extractMoveString = (value: unknown): string | undefined => {
   return undefined;
 };
 
-const normalizeCampaignType = (value: string | undefined): string => {
-  if (!value) {
-    return "";
-  }
-  const canonical = value.toLowerCase().replace(/[\s_-]/g, "");
-  if (canonical === "nonprofit") {
-    return "nonprofit";
-  }
-  if (canonical === "commercial") {
-    return "commercial";
-  }
-  if (canonical === "flexible") {
-    return "flexible";
-  }
-  return value;
+const extractPayoutPolicyFields = (
+  payoutPolicy: CampaignMoveContentFields["payout_policy"],
+) => {
+  const policyFields = payoutPolicy?.fields;
+  const hasPlatformBps = policyFields?.platform_bps !== undefined;
+  const platformBps = hasPlatformBps
+    ? parseU64FromMove(policyFields?.platform_bps ?? 0, 0)
+    : undefined;
+  const platformAddress =
+    typeof policyFields?.platform_address === "string"
+      ? policyFields.platform_address
+      : undefined;
+  const recipientAddress =
+    typeof policyFields?.recipient_address === "string"
+      ? policyFields.recipient_address
+      : undefined;
+
+  return { platformBps, platformAddress, recipientAddress };
+};
+
+const parseFundingGoalUsdMicro = (
+  fields: CampaignMoveContentFields,
+): bigint => {
+  return parseU64BigIntFromMove(fields.funding_goal_usd_micro, 0n);
 };
 
 export function useAllCampaigns(network: SupportedNetwork = DEFAULT_NETWORK) {
@@ -201,10 +226,11 @@ export function useAllCampaigns(network: SupportedNetwork = DEFAULT_NETWORK) {
 
           const walrusQuiltId = metadataMap["walrus_quilt_id"] || "";
           const socialLinks = parseSocialLinksFromMetadata(metadataMap);
-          const rawCampaignType = normalizeCampaignType(
-            metadataMap["campaign_type"] ??
-              extractMoveString(fields.campaign_type) ??
-              "",
+          const payoutPolicy = extractPayoutPolicyFields(fields.payout_policy);
+          const fundingGoalUsdMicro = parseFundingGoalUsdMicro(fields);
+          const fundingGoalDisplay = formatUsdFromMicros(fundingGoalUsdMicro);
+          const policyPresetName = inferPolicyPresetFromBps(
+            payoutPolicy.platformBps,
           );
 
           const campaignId = fields.id?.id || obj.data?.objectId || "";
@@ -218,10 +244,7 @@ export function useAllCampaigns(network: SupportedNetwork = DEFAULT_NETWORK) {
             name: fields.name ?? "",
             shortDescription: fields.short_description ?? "",
             subdomainName: fields.subdomain_name ?? "",
-            recipientAddress:
-              fields.recipient_address ??
-              metadataMap["recipient_address"] ??
-              "",
+            recipientAddress: payoutPolicy.recipientAddress ?? "",
             startDateMs: parseTimestampFromMove(fields.start_date),
             endDateMs: parseTimestampFromMove(fields.end_date),
             createdAtMs: parseTimestampFromMove(
@@ -237,12 +260,15 @@ export function useAllCampaigns(network: SupportedNetwork = DEFAULT_NETWORK) {
             nextUpdateSeq: parseU64FromMove(
               fields.next_update_seq ?? fields.nextUpdateSeq ?? 0,
             ),
-            fundingGoal: metadataMap["funding_goal"] || "0",
+            fundingGoal: fundingGoalDisplay,
+            fundingGoalUsdMicro,
             category: metadataMap["category"] || "Other",
             walrusQuiltId,
             walrusStorageEpochs: metadataMap["walrus_storage_epochs"] || "0",
             coverImageId: metadataMap["cover_image_id"] || "cover.jpg",
-            campaignType: rawCampaignType,
+            policyPresetName,
+            payoutPlatformBps: payoutPolicy.platformBps,
+            payoutPlatformAddress: payoutPolicy.platformAddress,
             socialLinks,
             coverImageUrl: walrusQuiltId
               ? getWalrusUrl(
