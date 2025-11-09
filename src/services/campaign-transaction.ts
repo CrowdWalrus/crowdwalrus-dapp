@@ -18,13 +18,14 @@ import {
 import { getContractConfig, CLOCK_OBJECT_ID } from "@/shared/config/contracts";
 import { WALRUS_EPOCH_CONFIG } from "@/shared/config/networkConfig";
 import type { SupportedNetwork } from "@/shared/types/network";
+import { parseUsdToMicros } from "@/shared/utils/currency";
 import { formatSubdomain } from "@/shared/utils/subdomain";
-
 interface ObjectChange {
   type?: string;
   objectType?: string;
   objectId?: string;
 }
+
 
 const getObjectChanges = (value: unknown): ObjectChange[] => {
   if (
@@ -63,9 +64,11 @@ export function buildCreateCampaignTransaction(
     epochs,
   );
 
-  // Convert dates to Unix timestamps in milliseconds (UTC)
+  // Convert dates to Unix timestamps in milliseconds (UTC) and typed funding/policy fields
   const startDateMs = BigInt(formData.start_date.getTime());
   const endDateMs = BigInt(formData.end_date.getTime());
+  const fundingGoalUsdMicros = parseUsdToMicros(formData.funding_goal);
+  const policyPresetName = formData.policyPresetName.trim();
 
   // Append configured SuiNS domain when user only provides the label
   const fullSubdomain = formatSubdomain(
@@ -87,6 +90,11 @@ export function buildCreateCampaignTransaction(
   console.log("Recipient Address:", formData.recipient_address);
   console.log("Start Date (ms):", startDateMs.toString());
   console.log("End Date (ms):", endDateMs.toString());
+  console.log("Funding Goal (USD micros):", fundingGoalUsdMicros.toString());
+  console.log(
+    "Policy Preset:",
+    policyPresetName ?? "(default on-chain preset)",
+  );
   console.log("\n--- Metadata VecMap ---");
   console.log("Keys:", keys);
   console.log("Values:", values);
@@ -98,6 +106,12 @@ export function buildCreateCampaignTransaction(
     arguments: [
       // CrowdWalrus shared object
       tx.object(config.contracts.crowdWalrusObjectId),
+
+      // Policy registry shared object
+      tx.object(config.contracts.policyRegistryObjectId),
+
+      // Profiles registry shared object
+      tx.object(config.contracts.profilesRegistryObjectId),
 
       // SuiNS Manager
       tx.object(config.contracts.suinsManagerObjectId),
@@ -123,8 +137,14 @@ export function buildCreateCampaignTransaction(
       // Metadata values (vector<String>)
       tx.pure.vector("string", values),
 
+      // Funding goal in USD micros
+      tx.pure.u64(fundingGoalUsdMicros),
+
       // Recipient address for donations
       tx.pure.address(formData.recipient_address),
+
+      // Policy preset Option<String>
+      tx.pure.option("string", policyPresetName),
 
       // Start date (u64 - Unix timestamp in milliseconds)
       tx.pure.u64(startDateMs),
@@ -243,11 +263,9 @@ export function prepareMetadataVectors(
   storageEpochs: number,
 ): { keys: string[]; values: string[] } {
   const metadata: CampaignMetadata = {
-    funding_goal: formData.funding_goal,
     walrus_quilt_id: walrusBlobId,
     walrus_storage_epochs: storageEpochs.toString(),
     category: formData.category,
-    campaign_type: formData.campaign_type,
     cover_image_id: "cover.jpg", // Standard identifier in the Quilt
   };
 
@@ -458,7 +476,7 @@ export function extractCampaignIdFromEffects(
     // objectChanges is at the top level of the result object
     const objectChanges = getObjectChanges(result);
 
-    const campaignType = `${packageId}::campaign::Campaign`;
+  const campaignType = `${packageId}::campaign::Campaign`;
 
     const campaignChange = objectChanges.find(
       (change) =>
@@ -586,13 +604,9 @@ export function validateCampaignFormData(formData: CampaignFormData): void {
     throw new Error("Category is required");
   }
 
-  // Campaign type validation
-  const allowedCampaignTypes = new Set(["flexible", "nonprofit", "commercial"]);
-  const campaignType = formData.campaign_type?.trim().toLowerCase();
-  if (!campaignType || !allowedCampaignTypes.has(campaignType)) {
-    throw new Error(
-      "Campaign type must be one of: flexible, nonprofit, commercial",
-    );
+  // Policy preset validation
+  if (!formData.policyPresetName || formData.policyPresetName.trim().length === 0) {
+    throw new Error("Policy preset must be selected.");
   }
 }
 

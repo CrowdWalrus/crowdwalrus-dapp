@@ -66,12 +66,10 @@ export function transformNewCampaignFormData(
   formData: NewCampaignFormData
 ): CampaignFormData {
   const socials = sanitizeSocialLinks(formData.socials);
-  const allowedCampaignTypes = new Set(["flexible", "nonprofit", "commercial"]);
-  const rawCampaignType = formData.campaignType?.trim() ?? "";
-  const normalizedCampaignType = rawCampaignType.toLowerCase();
-  const campaignTypeValue = allowedCampaignTypes.has(normalizedCampaignType)
-    ? normalizedCampaignType
-    : rawCampaignType;
+  const policyPresetName = formData.campaignType?.trim();
+  if (!policyPresetName) {
+    throw new Error("Please select a campaign policy preset.");
+  }
 
   return {
     // Basic Information
@@ -79,7 +77,7 @@ export function transformNewCampaignFormData(
     short_description: formData.description,
     subdomain_name: formData.subdomain,
     category: formData.categories.join(","), // Join categories array to comma-separated string
-    campaign_type: campaignTypeValue,
+    policyPresetName,
 
     // Fundraising Details
     funding_goal: formData.targetAmount,

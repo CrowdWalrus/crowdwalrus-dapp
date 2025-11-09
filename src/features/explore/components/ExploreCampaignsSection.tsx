@@ -4,7 +4,7 @@
  * Main section displaying campaigns with filters and tabs
  */
 
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { Button } from "@/shared/components/ui/button";
 import { Separator } from "@/shared/components/ui/separator";
 import {
@@ -13,7 +13,11 @@ import {
   TabsList,
   TabsTrigger,
 } from "@/shared/components/ui/tabs";
-import { useAllCampaigns } from "@/features/campaigns/hooks/useAllCampaigns";
+import {
+  useAllCampaigns,
+  type CampaignData,
+} from "@/features/campaigns/hooks/useAllCampaigns";
+import { useCampaignStats } from "@/features/campaigns/hooks/useCampaignStats";
 import { CampaignCard } from "./CampaignCard";
 import { getCampaignStatus } from "@/features/campaigns/utils/campaignStatus";
 import { ChevronDown } from "lucide-react";
@@ -32,26 +36,6 @@ const TABS: TabConfig[] = [
   { id: "active", label: "Active" },
   { id: "ended", label: "Ended" },
 ];
-
-// Mock data for raised amounts and supporters (will be replaced with real data later)
-const MOCK_CAMPAIGN_DATA: Record<
-  string,
-  { raised: number; supporters: number }
-> = {};
-
-function generateMockData(campaignId: string) {
-  if (!MOCK_CAMPAIGN_DATA[campaignId]) {
-    // Generate consistent mock data based on campaign ID
-    const hash = campaignId
-      .split("")
-      .reduce((acc, char) => acc + char.charCodeAt(0), 0);
-    MOCK_CAMPAIGN_DATA[campaignId] = {
-      raised: Math.floor((hash % 100) * 1000) + 10000,
-      supporters: Math.floor((hash % 50) * 10) + 100,
-    };
-  }
-  return MOCK_CAMPAIGN_DATA[campaignId];
-}
 
 export function ExploreCampaignsSection() {
   const [displayCounts, setDisplayCounts] = useState<Record<TabFilter, number>>(
@@ -160,17 +144,12 @@ export function ExploreCampaignsSection() {
                       </div>
                     ) : (
                       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
-                        {displayedCampaigns.map((campaign) => {
-                          const mockData = generateMockData(campaign.id);
-                          return (
-                            <CampaignCard
-                              key={campaign.id}
-                              campaign={campaign}
-                              raised={mockData.raised}
-                              supporters={mockData.supporters}
-                            />
-                          );
-                        })}
+                        {displayedCampaigns.map((campaign) => (
+                          <ExploreCampaignCard
+                            key={campaign.id}
+                            campaign={campaign}
+                          />
+                        ))}
                       </div>
                     )}
 
@@ -194,5 +173,39 @@ export function ExploreCampaignsSection() {
         </div>
       </div>
     </div>
+  );
+}
+
+interface ExploreCampaignCardProps {
+  campaign: CampaignData;
+}
+
+function ExploreCampaignCard({ campaign }: ExploreCampaignCardProps) {
+  const {
+    totalUsdMicro,
+    totalDonationsCount,
+    isPending,
+    error: statsError,
+  } = useCampaignStats({
+    campaignId: campaign.id,
+    statsId: campaign.statsId,
+    enabled: Boolean(campaign.statsId || campaign.id),
+  });
+
+  useEffect(() => {
+    if (statsError) {
+      console.warn(
+        `[ExploreCampaignCard] Failed to load stats for ${campaign.id}:`,
+        statsError,
+      );
+    }
+  }, [campaign.id, statsError]);
+
+  return (
+    <CampaignCard
+      campaign={campaign}
+      raisedUsdMicro={statsError || isPending ? 0n : totalUsdMicro}
+      supportersCount={statsError || isPending ? 0 : totalDonationsCount}
+    />
   );
 }

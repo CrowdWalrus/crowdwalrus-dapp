@@ -26,6 +26,7 @@ import { EditorViewer } from "@/shared/components/editor/blocks/editor-00/viewer
 import { SerializedEditorState } from "lexical";
 import { formatSubdomain } from "@/shared/utils/subdomain";
 import { useWalrusDescription } from "@/features/campaigns/hooks/useWalrusDescription";
+import { formatUsdLocaleFromMicros } from "@/shared/utils/currency";
 import { useWalrusImage } from "@/features/campaigns/hooks/useWalrusImage";
 
 interface CampaignCardProps {
@@ -199,7 +200,9 @@ function CampaignCard({ campaign, network }: CampaignCardProps) {
         <div className="grid grid-cols-2 gap-3 text-sm">
           <div>
             <p className="text-muted-foreground">Funding Goal</p>
-            <p className="font-semibold">{campaign.fundingGoal} SUI</p>
+            <p className="font-semibold">
+              {formatUsdLocaleFromMicros(campaign.fundingGoalUsdMicro)}
+            </p>
           </div>
           <div>
             <p className="text-muted-foreground">Category</p>

@@ -33,6 +33,7 @@ import { CampaignHero } from "@/features/campaigns/components/CampaignHero";
 import { CampaignAbout } from "@/features/campaigns/components/CampaignAbout";
 import { CampaignUpdatesList } from "@/features/campaigns/components/campaign-updates";
 import { DonationCard } from "@/features/campaigns/components/DonationCard";
+import { useCampaignStats } from "@/features/campaigns/hooks/useCampaignStats";
 import { useCampaignOwnership } from "@/features/campaigns/hooks/useCampaignOwnership";
 import { useDeactivateCampaign } from "@/features/campaigns/hooks/useDeactivateCampaign";
 import { useActivateCampaign } from "@/features/campaigns/hooks/useActivateCampaign";
@@ -96,6 +97,17 @@ export function CampaignPage() {
     campaignId ?? "",
     network,
   );
+
+  const {
+    totalUsdMicro: totalRaisedUsdMicro,
+    totalDonationsCount,
+    isPending: isStatsPending,
+    error: statsError,
+  } = useCampaignStats({
+    campaignId: campaign?.id ?? campaignId ?? "",
+    statsId: campaign?.statsId,
+    enabled: Boolean(campaign?.statsId),
+  });
 
   // Fetch cover image
   const { data: imageObjectUrl } = useWalrusImage(campaign?.coverImageUrl);
@@ -349,9 +361,9 @@ export function CampaignPage() {
     );
   }
 
-  // Mock contributors count and amount raised (replace with real data)
-  const contributorsCount = 0;
-  const amountRaised = 0;
+  const contributorsCount = statsError ? 0 : totalDonationsCount;
+  const amountRaisedUsdMicro =
+    isStatsPending || statsError ? 0n : totalRaisedUsdMicro;
   const showProcessingDialog =
     (processingType === "deactivate" && isDeactivationProcessing) ||
     (processingType === "activate" && isActivationProcessing) ||
@@ -560,14 +572,23 @@ export function CampaignPage() {
 
             {/* Right Column - Donation Card */}
             <div className="w-[480px] shrink-0 sticky top-[38px]">
+              {statsError && (
+                <div className="mb-4 rounded-2xl border border-orange-200 bg-orange-50 px-4 py-3 text-sm text-orange-900">
+                  <p className="font-semibold">Live stats temporarily unavailable</p>
+                  <p className="text-orange-800">
+                    {statsError.message ||
+                      "We couldn't load the latest totals. Please refresh or try again later."}
+                  </p>
+                </div>
+              )}
               <DonationCard
                 campaignId={campaign.id}
                 isVerified={campaign.isVerified}
                 startDateMs={campaign.startDateMs}
                 endDateMs={campaign.endDateMs}
-                amountRaised={amountRaised}
+                raisedUsdMicro={amountRaisedUsdMicro}
                 contributorsCount={contributorsCount}
-                fundingGoal={Number(campaign.fundingGoal)}
+                fundingGoalUsdMicro={campaign.fundingGoalUsdMicro}
                 recipientAddress={campaign.recipientAddress}
                 isActive={campaign.isActive}
               />

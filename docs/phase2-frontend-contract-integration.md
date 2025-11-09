@@ -3,7 +3,7 @@
 Version: 2025-11-04
 Scope: Update the existing Phase 1 frontend to integrate Phase 2 contract changes and expose new on-chain features. This plan is ordered, focuses strictly on contract interactions (no UI work), and calls out concrete file touch points.
 
-## 1) Contract Addresses & Network Config
+## 1) Contract Addresses & Network Config ✅ Completed – 2025-11-08
 
 - Update `src/shared/config/contracts.ts` to include new shared object IDs that Phase 2 entries require.
   - Add to `ContractAddresses` and each network config:
@@ -19,9 +19,13 @@ Scope: Update the existing Phase 1 frontend to integrate Phase 2 contract change
   - `crowd_walrus::TokenRegistryCreated`
   - `crowd_walrus::BadgeConfigCreated`
 
-Deliverable: contracts config compiles with extended shape; no runtime lookups of these IDs.
+Deliverable: contracts config compiles with extended shape; no runtime lookups of these IDs. **Done** – see `src/shared/config/contracts.ts` and `src/shared/config/networkConfig.ts`.
 
-## 2) Campaign Creation (breaking changes)
+Notes:
+- Each environment now includes Policy/Profiles/Token/Badge object IDs alongside package + CrowdWalrus IDs.
+- IDs were verified on Sui testnet using `sui client object <id>` and are surfaced through `getContractConfig` for downstream services.
+
+## 2) Campaign Creation (breaking changes) ✅ Completed – 2025-11-09
 
 Contracts: `crowd_walrus::create_campaign` signature changed and core fields are now typed.
 
@@ -52,10 +56,14 @@ Contracts: `crowd_walrus::create_campaign` signature changed and core fields are
 - Keep writing Walrus keys (`walrus_quilt_id`, `walrus_storage_epochs`, `cover_image_id`), plus non-critical keys like `category`, `campaign_type`, `socials_json`.
 
 Deliverables:
-- `buildCreateCampaignTransaction` compiles with the new signature and uses the two new shared objects.
-- Creation wizard continues to work with unchanged UI; the contract now sets `Campaign.stats_id` and auto-creates a Profile for the owner.
+- `buildCreateCampaignTransaction` compiles with the new signature and uses the two new shared objects. **Done** – see `src/services/campaign-transaction.ts`.
+- Creation wizard continues to work with unchanged UI; the contract now sets `Campaign.stats_id` and auto-creates a Profile for the owner. **Done** – funding goal now typed, metadata cleansed, policy preset selector wired to live registry.
 
-## 3) Types and parsing (typed core fields)
+Notes:
+- Policy presets are fetched at runtime (no hard-coded defaults); campaign creation/edit flows now preserve any custom presets defined on-chain.
+- All funding goal math uses bigint micros (`parseUsdToMicros`), and UI components render `fundingGoalUsdMicro` to prevent precision loss.
+
+## 3) Types and parsing (typed core fields) ✅ Completed – 2025-11-09
 
 - Update `src/features/campaigns/types/campaign.ts`:
   - In `CampaignFormData`, clarify `funding_goal` is denominated in USD (not SUI). Add optional `policyPresetName?: string` if you want to wire presets later.
@@ -65,9 +73,13 @@ Deliverables:
   - Optional (expose payout policy): add `payoutPlatformBps` and `payoutPlatformAddress` from `payout_policy` for downstream logic/labels.
 - Do not attempt to edit/start/end/funding/policy via metadata. Those are immutable from creation; metadata updates remain allowed for other keys.
 
-Deliverables: hooks compile and return accurate values for funding goal and recipient, matching Phase 2 object layout.
+Deliverables: hooks compile and return accurate values for funding goal and recipient, matching Phase 2 object layout. **Done** – see `src/features/campaigns/types/campaign.ts`, `useCampaign.ts`, `useAllCampaigns.ts`.
 
-## 4) Campaign Stats (new shared aggregate)
+Notes:
+- Funding goals are parsed/stored as `bigint` micros end-to-end; UI formatting happens only at display time via `currency.ts`.
+- Recipient and policy data come directly from the typed `payout_policy` struct (no metadata fallback), and `payoutPlatformBps` / `payoutPlatformAddress` are exposed for future logic.
+
+## 4) Campaign Stats (new shared aggregate) ✅ Completed – 2025-11-09
 
 Contracts create a per-campaign `CampaignStats` shared object and link it via `Campaign.stats_id`.
 
@@ -77,14 +89,48 @@ Contracts create a per-campaign `CampaignStats` shared object and link it via `C
     - `total_usd_micro: u64`
     - `total_donations_count: u64`
   - Optional per-coin breakdowns:
-    - If needed, iterate enabled coins from TokenRegistry (see Section 7) and query dynamic fields keyed by `PerCoinKey<T>` via `getDynamicFieldObject` to read `PerCoinStats<T> { total_raw, donation_count }`.
+    - If needed, iterate enabled coins from TokenRegistry (see Section 5) and query dynamic fields keyed by `PerCoinKey<T>` via `getDynamicFieldObject` to read `PerCoinStats<T> { total_raw, donation_count }`.
 - Backfill existing places showing “supporters” or totals to consume this hook rather than recomputing from events.
 
-Deliverables: a reusable hook that provides `totalUsdMicro`, `totalDonationsCount`, and optionally coin-specific totals.
+Deliverables: a reusable hook that provides `totalUsdMicro`, `totalDonationsCount`, and optionally coin-specific totals. **Done** – `useCampaignStats` now powers campaign detail, profile, explore, and admin surfaces with live totals (plus per-coin helpers when needed). All consumers log stats errors and fall back to safe zero states so list/grid views never show stale data while still surfacing the issues for debugging.
 
-## 5) Donation Flows (new features)
+## 5) Token Registry (read-only) ✅ Completed – 2025-11-09
+
+- Add `src/features/tokens/hooks/useEnabledTokens.ts` to derive the list of enabled token types and metadata by querying owned/shared `TokenRegistry` object (ID from config) dynamic fields or by consuming `Token*` events.
+- Expose `{ coinType, symbol, decimals, pythFeedId, maxAgeMs }` and an `isEnabled` flag; cache with React Query.
+
+Deliverables: read-only hooks to list enabled tokens for donors and stats. **Done** – `useEnabledTokens` now fetches every `token_registry::TokenMetadata` dynamic field from the shared registry, parses coin metadata (including 32-byte `pyth_feed_id`, decimals, `max_age_ms`, enablement), and caches the results via React Query for downstream donation + stats flows. A feature-level barrel export (`src/features/tokens/index.ts`) and shared dynamic-field paginator keep the hook composable for future admin + oracle wiring.
+
+## 6) Profiles (new feature and auto-creation) ✅ Completed – 2025-11-09
+
+- Auto-creation touchpoints:
+  - `create_campaign` now calls `profiles::create_or_get_profile_for_sender` automatically.
+  - First-time donation path creates and transfers a `Profile` to the donor.
+- Add profile utilities:
+  - `src/features/profiles/hooks/useProfile.ts`:
+    - Read `ProfilesRegistry` (ID from config) to resolve `profile_id` by owner address, then `getObject(profile_id)` for totals and metadata.
+  - `src/services/profile.ts`:
+    - `createProfile()` → `profiles::create_profile` (registry + clock)
+    - `updateProfileMetadata(key: string, value: string)` → `profiles::update_profile_metadata` (profile + clock). For batching, issue multiple calls in a single PTB.
+
+Deliverables: basic hooks and transactions for profile read/update flows; reuse in donation flow selection logic.
+**Done** – `useProfile` now resolves profile IDs via the shared registry, exposes both raw and sanitized metadata, and normalizes the `__cw_removed__` sentinel so UI surfaces blanks consistently. `profile.ts` provides create/update builders plus batching helpers, and `ProfileCreatePage` consumes them to create-or-update profiles while allowing users to clear stored metadata (by writing the sentinel) without regressions in future detail views.
+
+## 7) Pyth Price Oracle wiring (required for donations)
+
+- Create `src/services/priceOracle.ts`:
+  - Off-chain: fetch a fresh Pyth price update (VAAs) for the selected coin’s `pyth_feed_id` (from Token Registry) from a supported endpoint.
+  - In-PTB: add the Pyth entry call that materializes a `PriceInfoObject` (e.g., `pyth::update_price_feeds(...)`) and capture its `Result` handle for the subsequent donation call in the same transaction.
+  - Pass that `PriceInfoObject` into `donate_*` builder as an argument.
+- Respect registry staleness policy: leave `opt_max_age_ms = null` by default so the contract uses `TokenRegistry.max_age_ms<T>`. Allow overrides later.
+
+Deliverables: a minimal service that returns `{ priceInfoObjectArg, quotedUsdMicroPreview }` to the donation builders.
+
+## 8) Donation Flows (new features)
 
 Contracts: `donations::donate_and_award_first_time<T>` and `donations::donate_and_award<T>` with price oracle and slippage protection.
+
+- Prerequisites: Sections 5 (Token Registry – read-only), 6 (Profiles), 7 (Price Oracle).
 
 - Add `src/services/donations.ts` with two builders:
   - `buildFirstTimeDonationTx<T>` calling `donations::donate_and_award_first_time<T>`.
@@ -103,39 +149,35 @@ Contracts: `donations::donate_and_award_first_time<T>` and `donations::donate_an
   - First‑time flow only: `&mut profiles::ProfilesRegistry` (`config.contracts.profilesRegistryObjectId`).
   - Repeat flow only: `&mut profiles::Profile` (resolve sender’s profile ID; caller must pass the owned, mutable Profile object).
 - Coin selection: select and merge coin objects of type `T` using the dapp-kit client (`selectCoins` + `tx.mergeCoins` or `tx.splitCoins`) to reach the target raw amount.
-- Slippage: derive `expected_min_usd_micro` from the quoted USD returned by the off-chain price preview (see below) multiplied by `(1 - tolerance)`; recommend default tolerance 1–2%.
+- Slippage: derive `expected_min_usd_micro` from the quoted USD returned by the off-chain price preview (see Section 7) multiplied by `(1 - tolerance)`; recommend default tolerance 1–2%.
 
 - Routing: if a Profile already exists for the signer, call the repeat path; otherwise call the first‑time path (the first‑time entry aborts if a profile already exists).
 - Return value: both donation entries return `DonationAwardOutcome { usd_micro, minted_levels }`. Plumb this through the service for analytics/UX.
 
 Deliverables: donation service builds valid PTBs for both new and returning donors, parametrized by coin type `T`, and returns `DonationAwardOutcome`.
 
-## 6) Pyth Price Oracle wiring (required for donations)
+## 9) Badges (non-transferable rewards)
 
-- Create `src/services/priceOracle.ts`:
-  - Off-chain: fetch a fresh Pyth price update (VAAs) for the selected coin’s `pyth_feed_id` from a supported endpoint.
-  - In-PTB: add the Pyth entry call that materializes a `PriceInfoObject` (e.g., `pyth::update_price_feeds(...)`) and capture its `Result` handle for the subsequent donation call in the same transaction.
-  - Pass that `PriceInfoObject` into `donate_*` builder as an argument.
-- Respect registry staleness policy: leave `opt_max_age_ms = null` by default so the contract uses `TokenRegistry.max_age_ms<T>`. Allow overrides later.
+- Read-only:
+  - Add `src/features/badges/hooks/useDonorBadges.ts` to list owned `badge_rewards::DonorBadge` objects for the connected wallet.
+- Admin wrapper:
+  - `updateBadgeConfig(amountThresholdsMicro: u64[5], paymentThresholds: u64[5], imageUris: string[5])` → `crowd_walrus::update_badge_config` (requires `&mut BadgeConfig`, `&AdminCap`, `&Clock`).
+- Display registration (one-time publisher task): if needed post-publish, call `badge_rewards::setup_badge_display` with package `Publisher`.
 
-Deliverables: a minimal service that returns `{ priceInfoObjectArg, quotedUsdMicroPreview }` to the donation builders.
+Deliverables: badge read hook and admin transaction builder.
 
-## 7) Token Registry (admin + read)
+## 10) Token Registry (admin)
 
-- Read-only (for donors and stats):
-  - Add `src/features/tokens/hooks/useEnabledTokens.ts` to derive the list of enabled token types and metadata by querying owned/shared `TokenRegistry` object (ID from config) dynamic fields or by consuming `Token*` events.
-  - Expose `{ coinType, symbol, decimals, pythFeedId, maxAgeMs }` and an `isEnabled` flag; cache with React Query.
-- Admin (cap required, contract wrappers only, no UI):
-  - Add transactions in `src/services/admin.ts` and export helpers:
-    - `addToken<T>(symbol, name, decimals, pythFeedId: Uint8Array, maxAgeMs)` → `crowd_walrus::add_token<T>`
-    - `updateTokenMetadata<T>(...)` → `crowd_walrus::update_token_metadata<T>`
-    - `setTokenEnabled<T>(enabled)` → `crowd_walrus::set_token_enabled<T>`
-    - `setTokenMaxAge<T>(maxAgeMs)` → `crowd_walrus::set_token_max_age<T>`
-  - Each requires `&mut TokenRegistry`, `&AdminCap`, and `&Clock`.
+- Add transactions in `src/services/admin.ts` and export helpers:
+  - `addToken<T>(symbol, name, decimals, pythFeedId: Uint8Array, maxAgeMs)` → `crowd_walrus::add_token<T>`
+  - `updateTokenMetadata<T>(...)` → `crowd_walrus::update_token_metadata<T>`
+  - `setTokenEnabled<T>(enabled)` → `crowd_walrus::set_token_enabled<T>`
+  - `setTokenMaxAge<T>(maxAgeMs)` → `crowd_walrus::set_token_max_age<T>`
+- Each requires `&mut TokenRegistry`, `&AdminCap`, and `&Clock`.
 
-Deliverables: hooks/services to list enabled tokens and admin wrappers to manage them.
+Deliverables: admin wrappers to manage tokens.
 
-## 8) Platform Policy Presets (admin)
+## 11) Platform Policy Presets (admin)
 
 - Read-only for creation: creation now accepts only presets by name. Until a selector exists, pass `None` to use the default preset name (`crowd_walrus::default_policy_name()` returns "standard").
 - Admin wrappers in `src/services/admin.ts`:
@@ -147,31 +189,7 @@ Deliverables: hooks/services to list enabled tokens and admin wrappers to manage
 
 Deliverables: policy management transaction builders; creation builder already wires preset usage.
 
-## 9) Profiles (new feature and auto-creation)
-
-- Auto-creation touchpoints:
-  - `create_campaign` now calls `profiles::create_or_get_profile_for_sender` automatically.
-  - First-time donation path creates and transfers a `Profile` to the donor.
-- Add profile utilities:
-  - `src/features/profiles/hooks/useProfile.ts`:
-    - Read `ProfilesRegistry` (ID from config) to resolve `profile_id` by owner address, then `getObject(profile_id)` for totals and metadata.
-  - `src/services/profile.ts`:
-    - `createProfile()` → `profiles::create_profile` (registry + clock)
-    - `updateProfileMetadata(key: string, value: string)` → `profiles::update_profile_metadata` (profile + clock). For batching, issue multiple calls in a single PTB.
-
-Deliverables: basic hooks and transactions for profile read/update flows; reuse in donation flow selection logic.
-
-## 10) Badges (non-transferable rewards)
-
-- Read-only:
-  - Add `src/features/badges/hooks/useDonorBadges.ts` to list owned `badge_rewards::DonorBadge` objects for the connected wallet.
-- Admin wrapper:
-  - `updateBadgeConfig(amountThresholdsMicro: u64[5], paymentThresholds: u64[5], imageUris: string[5])` → `crowd_walrus::update_badge_config` (requires `&mut BadgeConfig`, `&AdminCap`, `&Clock`).
-- Display registration (one-time publisher task): if needed post-publish, call `badge_rewards::setup_badge_display` with package `Publisher`.
-
-Deliverables: badge read hook and admin transaction builder.
-
-## 11) Events & Indexing (optional hooks)
+## 12) Events & Indexing (optional hooks)
 
 - Add event hooks for new signals when helpful for UX or analytics:
   - `donations::DonationReceived` — canonical per-donation record.
@@ -184,7 +202,7 @@ Deliverables: badge read hook and admin transaction builder.
 
 Deliverables: event constants and optional hooks; no UI consumption required now.
 
-## 12) Existing mutation helpers (verify/unverify/activate/deactivate/delete)
+## 13) Existing mutation helpers (verify/unverify/activate/deactivate/delete)
 
 - No signature changes beyond create/delete argument reorder already aligned in `campaign-transaction.ts`:
   - Verify/Unverify: unchanged (`crowd_walrus::verify_campaign`, `unverify_campaign`).
@@ -193,7 +211,7 @@ Deliverables: event constants and optional hooks; no UI consumption required now
 
 Deliverables: confirm current helpers compile against Phase 2.
 
-## 13) Search-and-update touch points (precise diffs)
+## 14) Search-and-update touch points (precise diffs)
 
 - `src/services/campaign-transaction.ts`
   - Create: add policy + profiles registries args; add `funding_goal_usd_micro`; add `policy_name: Option<String>`.
@@ -217,7 +235,7 @@ Deliverables: confirm current helpers compile against Phase 2.
 
 Deliverables: compile-time-safe mappings to Phase 2 data and entries.
 
-## 14) Runtime safeguards
+## 15) Runtime safeguards
 
 - Respect parameter immutability after first donation:
   - Frontend should already avoid editing funding goal/recipient via metadata; keep server-side guards intact.
@@ -227,7 +245,7 @@ Deliverables: compile-time-safe mappings to Phase 2 data and entries.
 
 Deliverables: safer default behaviors for new flows.
 
-## 15) Post-deploy configuration checklist (ops)
+## 16) Post-deploy configuration checklist (ops)
 
 - Fill in all new shared object IDs in `contracts.ts` once Phase 2 is deployed.
 - Seed or update platform policy presets via admin transactions (e.g., `"standard"`, `"commercial"`).

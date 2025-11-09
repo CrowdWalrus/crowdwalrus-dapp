@@ -89,16 +89,6 @@ export function transformEditCampaignFormData({
 
   const metadataPatch: MetadataPatch = {};
 
-  const nextCampaignType = values.campaignType?.trim() ?? "";
-  const previousCampaignType = campaign.campaignType?.trim() ?? "";
-  if (
-    (isFieldDirty(dirtyFields, "campaignType") ||
-      nextCampaignType !== previousCampaignType) &&
-    nextCampaignType !== previousCampaignType
-  ) {
-    metadataPatch.campaign_type = nextCampaignType;
-  }
-
   const nextCategory = values.categories.join(",").trim();
   const previousCategory = campaign.category?.trim() ?? "";
   if (
