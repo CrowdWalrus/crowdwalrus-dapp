@@ -10,6 +10,7 @@ import {
 } from "@/features/campaigns/components/CampaignBadges";
 import { getCampaignStatusInfo } from "@/features/campaigns/utils/campaignStatus";
 import { Check, X } from "lucide-react";
+import { formatUsdLocaleFromMicros } from "@/shared/utils/currency";
 
 /**
  * Format address for display (0x36...c088)
@@ -45,7 +46,6 @@ export function CampaignCard({
   );
 
   // Calculate funding percentage (placeholder until raised value available)
-  const fundingGoalValue = Number.parseFloat(campaign.fundingGoal) || 0;
   const fundingPercent = 0;
 
   return (
@@ -103,7 +103,7 @@ export function CampaignCard({
           <div className="flex items-center gap-1 text-base leading-relaxed">
             <span className="font-semibold text-black-500">$0 raised</span>
             <span className="text-black-500">
-              Goal ${fundingGoalValue.toLocaleString()}
+              Goal {formatUsdLocaleFromMicros(campaign.fundingGoalUsdMicro)}
             </span>
             <span className="flex-1 text-right text-black-500">
               {fundingPercent}% funded
