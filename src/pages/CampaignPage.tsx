@@ -567,7 +567,7 @@ export function CampaignPage() {
                 endDateMs={campaign.endDateMs}
                 amountRaised={amountRaised}
                 contributorsCount={contributorsCount}
-                fundingGoal={Number(campaign.fundingGoal)}
+                fundingGoalUsdMicro={campaign.fundingGoalUsdMicro}
                 recipientAddress={campaign.recipientAddress}
                 isActive={campaign.isActive}
               />
