@@ -19,6 +19,10 @@ import {
 import { getCampaignStatusInfo } from "@/features/campaigns/utils/campaignStatus";
 import { useNetworkVariable } from "@/shared/config/networkConfig";
 import { buildCampaignDetailPath } from "@/shared/utils/routes";
+import {
+  formatUsdLocaleFromMicros,
+  usdMicrosToNumber,
+} from "@/shared/utils/currency";
 
 interface CampaignCardProps {
   campaign: CampaignData;
@@ -63,7 +67,7 @@ export function CampaignCard({
     campaign.isDeleted,
   );
 
-  const fundingGoal = parseFloat(campaign.fundingGoal) || 0;
+  const fundingGoal = usdMicrosToNumber(campaign.fundingGoalUsdMicro);
   const fundingPercentage = calculateFundingPercentage(raised, fundingGoal);
   const hasCoverImage =
     typeof coverImageObjectUrl === "string" &&
@@ -170,7 +174,9 @@ export function CampaignCard({
                   <span className="font-semibold">
                     ${raised.toLocaleString()} raised
                   </span>
-                  <span>of ${fundingGoal.toLocaleString()}</span>
+                  <span>
+                    of {formatUsdLocaleFromMicros(campaign.fundingGoalUsdMicro)}
+                  </span>
                 </div>
                 <span>{fundingPercentage}% funded</span>
               </div>
@@ -184,7 +190,9 @@ export function CampaignCard({
                 <span className="font-semibold">
                   ${raised.toLocaleString()} raised
                 </span>
-                <span>of ${fundingGoal.toLocaleString()}</span>
+                <span>
+                  of {formatUsdLocaleFromMicros(campaign.fundingGoalUsdMicro)}
+                </span>
               </div>
               <span>{fundingPercentage}% funded</span>
             </div>
