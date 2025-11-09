@@ -20,10 +20,10 @@ export interface CampaignFormData {
   short_description: string;
   subdomain_name: string;
   category: string;
-  campaign_type: string;
+  policyPresetName: string;
 
   // Fundraising Details
-  funding_goal: string; // In SUI tokens
+  funding_goal: string; // Whole-dollar USD string; convert to micros for Move call
   start_date: Date;
   end_date: Date;
   recipient_address: string;
@@ -44,11 +44,9 @@ export interface CampaignFormData {
  * All values must be strings as per the smart contract
  */
 export interface CampaignMetadata {
-  funding_goal: string;
   walrus_quilt_id: string; // Blob ID as string (u256)
   walrus_storage_epochs: string;
   category: string;
-  campaign_type: string;
   cover_image_id: string; // Identifier within the Quilt
   socials_json?: string;
   [key: string]: string | undefined; // Allow additional custom metadata
@@ -62,7 +60,6 @@ export interface MetadataPatch {
   walrus_quilt_id?: string;
   walrus_storage_epochs?: string;
   cover_image_id?: string;
-  campaign_type?: string;
   category?: string;
   socials_json?: string;
   [key: string]: string | undefined;
