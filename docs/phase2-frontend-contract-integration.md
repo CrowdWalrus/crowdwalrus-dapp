@@ -23,7 +23,7 @@ Deliverable: contracts config compiles with extended shape; no runtime lookups o
 
 Status: ✅ Completed on 2025-11-08 — `ContractAddresses` now carries the Phase 2 registries, `networkConfig` exposes them per environment, and each new/updated ID (package, CrowdWalrus, SuiNS manager, PolicyRegistry, ProfilesRegistry, TokenRegistry, BadgeConfig) was verified on Sui testnet via `sui client object <id>`.
 
-## 2) Campaign Creation (breaking changes)
+## 2) Campaign Creation (breaking changes) ✅ Completed – 2025-11-09
 
 Contracts: `crowd_walrus::create_campaign` signature changed and core fields are now typed.
 
@@ -54,8 +54,12 @@ Contracts: `crowd_walrus::create_campaign` signature changed and core fields are
 - Keep writing Walrus keys (`walrus_quilt_id`, `walrus_storage_epochs`, `cover_image_id`), plus non-critical keys like `category`, `campaign_type`, `socials_json`.
 
 Deliverables:
-- `buildCreateCampaignTransaction` compiles with the new signature and uses the two new shared objects.
-- Creation wizard continues to work with unchanged UI; the contract now sets `Campaign.stats_id` and auto-creates a Profile for the owner.
+- `buildCreateCampaignTransaction` compiles with the new signature and uses the two new shared objects. **Done** – see `src/services/campaign-transaction.ts`.
+- Creation wizard continues to work with unchanged UI; the contract now sets `Campaign.stats_id` and auto-creates a Profile for the owner. **Done** – funding goal now typed, metadata cleansed, policy preset selector wired to live registry.
+
+Notes:
+- Policy presets are fetched at runtime (no hard-coded defaults); campaign creation/edit flows now preserve any custom presets defined on-chain.
+- All funding goal math uses bigint micros (`parseUsdToMicros`), and UI components render `fundingGoalUsdMicro` to prevent precision loss.
 
 ## 3) Types and parsing (typed core fields)
 
