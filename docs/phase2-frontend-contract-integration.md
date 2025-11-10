@@ -116,7 +116,7 @@ Deliverables: read-only hooks to list enabled tokens for donors and stats. **Don
 Deliverables: basic hooks and transactions for profile read/update flows; reuse in donation flow selection logic.
 **Done** – `useProfile` now resolves profile IDs via the shared registry, exposes both raw and sanitized metadata, and normalizes the `__cw_removed__` sentinel so UI surfaces blanks consistently. `profile.ts` provides create/update builders plus batching helpers, and `ProfileCreatePage` consumes them to create-or-update profiles while allowing users to clear stored metadata (by writing the sentinel) without regressions in future detail views.
 
-## 7) Pyth Price Oracle wiring (required for donations)
+## 7) Pyth Price Oracle wiring (required for donations) ✅ Completed – 2025-11-10
 
 - Create `src/services/priceOracle.ts`:
   - Off-chain: fetch a fresh Pyth price update (VAAs) for the selected coin’s `pyth_feed_id` (from Token Registry) from a supported endpoint.
@@ -125,6 +125,7 @@ Deliverables: basic hooks and transactions for profile read/update flows; reuse 
 - Respect registry staleness policy: leave `opt_max_age_ms = null` by default so the contract uses `TokenRegistry.max_age_ms<T>`. Allow overrides later.
 
 Deliverables: a minimal service that returns `{ priceInfoObjectArg, quotedUsdMicroPreview }` to the donation builders.
+**Done** – `src/services/priceOracle.ts` now fetches fresh VAAs from Hermes, wires `SuiPythClient.updatePriceFeeds` into the caller’s PTB, mirrors Move’s `quote_usd` math with bigint, and returns the hydrated `PriceInfoObject`, USD micro preview, and registry `max_age_ms`. A shared `applySlippageTolerance` helper and u64 overflow guard prep Task 8 to derive `expected_min_usd_micro` while still defaulting `opt_max_age_ms` to the registry value.
 
 ## 8) Donation Flows (new features)
 
