@@ -36,10 +36,17 @@ export interface WalrusConfig {
 /**
  * Complete network configuration
  */
+export interface PythOracleConfig {
+  hermesUrl: string;
+  pythStateId: string;
+  wormholeStateId: string;
+}
+
 export interface NetworkContractConfig {
   contracts: ContractAddresses;
   walrus: WalrusConfig;
   campaignDomain: string;
+  pyth: PythOracleConfig;
 }
 
 // ============================================================================
@@ -83,6 +90,11 @@ const DEVNET_CONFIG: NetworkContractConfig = {
     subsidyObjectId: "",
   },
   campaignDomain: "crowdwalrus-test.sui",
+  pyth: {
+    hermesUrl: "https://hermes-beta.pyth.network",
+    pythStateId: "YOUR_DEVNET_PYTH_STATE_ID_HERE",
+    wormholeStateId: "YOUR_DEVNET_WORMHOLE_STATE_ID_HERE",
+  },
 };
 
 // ============================================================================
@@ -133,6 +145,13 @@ const TESTNET_CONFIG: NetworkContractConfig = {
     subsidyObjectId: "",
   },
   campaignDomain: "crowdwalrus-test.sui",
+  pyth: {
+    hermesUrl: "https://hermes-beta.pyth.network",
+    pythStateId:
+      "0xd3e79c2c083b934e78b3bd58a490ec6b092561954da6e7322e1e2b3c8abfddc0",
+    wormholeStateId:
+      "0x31358d198147da50db32eda2562951d53973a0c0ad5ed738e9b17d88b213d790",
+  },
 };
 
 // ============================================================================
@@ -175,6 +194,11 @@ const MAINNET_CONFIG: NetworkContractConfig = {
       "0xb606eb177899edc2130c93bf65985af7ec959a2755dc126c953755e59324209e",
   },
   campaignDomain: "crowdwalrus.sui",
+  pyth: {
+    hermesUrl: "https://hermes.pyth.network",
+    pythStateId: "YOUR_MAINNET_PYTH_STATE_ID_HERE",
+    wormholeStateId: "YOUR_MAINNET_WORMHOLE_STATE_ID_HERE",
+  },
 };
 
 // ============================================================================
