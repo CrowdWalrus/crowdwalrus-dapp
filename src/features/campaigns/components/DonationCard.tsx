@@ -584,7 +584,7 @@ export function DonationCard({
   }
 
   return (
-    <div className="bg-white rounded-3xl p-10 flex flex-col gap-6 w-full shadow-[0px_0px_16px_0px_rgba(0,0,0,0.16)]">
+    <div className="bg-white rounded-2xl sm:rounded-3xl p-6 sm:p-8 lg:p-10 flex flex-col gap-4 sm:gap-5 lg:gap-6 w-full shadow-[0px_0px_16px_0px_rgba(0,0,0,0.16)]">
       {/* Verification Badge */}
       <div className="flex items-start">
         <VerificationBadge isVerified={isVerified} />
@@ -593,7 +593,7 @@ export function DonationCard({
       {/* Timeline */}
       {(startDateLabel || endDateLabel) && (
         <div
-          className={`flex flex-wrap items-center gap-4 ${
+          className={`flex flex-wrap items-center gap-2 sm:gap-3 lg:gap-4 ${
             hasStarted && endDateLabel ? "justify-between" : "justify-start"
           }`}
         >
@@ -622,10 +622,10 @@ export function DonationCard({
 
       {/* Amount Raised */}
       <div className="flex flex-col gap-2">
-        <h2 className="font-['Inter_Tight'] text-[40px] font-bold leading-[1.2] tracking-[0.4px] ">
+        <h2 className="font-['Inter_Tight'] text-2xl sm:text-3xl md:text-[36px] lg:text-[40px] font-bold leading-[1.2] tracking-[0.4px]">
           {`$${formattedRaised} raised`}
         </h2>
-        <p className="text-xl  ">from {contributorsCount} contributors</p>
+        <p className="text-base sm:text-lg lg:text-xl">from {contributorsCount} contributors</p>
       </div>
 
       {/* Progress Bar */}
