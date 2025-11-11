@@ -10,6 +10,8 @@ export default defineConfig({
   resolve: {
     alias: {
       "@": path.resolve(path.dirname(fileURLToPath(import.meta.url)), "./src"),
+      "node:buffer": "buffer",
+      buffer: "buffer/",
     },
   },
   server: {
