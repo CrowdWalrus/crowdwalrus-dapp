@@ -4,6 +4,7 @@
  */
 
 import { useCallback, useEffect, useMemo, useState } from "react";
+import type { KeyboardEvent } from "react";
 import {
   useCurrentAccount,
   useCurrentWallet,
@@ -23,7 +24,6 @@ import {
   SelectContent,
   SelectItem,
   SelectTrigger,
-  SelectValue,
 } from "@/shared/components/ui/select";
 import { VerificationBadge } from "./CampaignBadges";
 import { formatUsdLocaleFromMicros } from "@/shared/utils/currency";
@@ -41,6 +41,11 @@ import { DEFAULT_NETWORK } from "@/shared/config/networkConfig";
 import type { TokenRegistryEntry } from "@/services/tokenRegistry";
 import { isUserRejectedError } from "@/shared/utils/errors";
 import { getContractConfig } from "@/shared/config/contracts";
+import {
+  getTokenDisplayData,
+  type TokenDisplayData,
+} from "@/shared/config/tokenDisplay";
+import { cn } from "@/shared/lib/utils";
 
 interface DonationCardProps {
   campaignId: string;
@@ -117,6 +122,25 @@ export function DonationCard({
   const [lastUsdQuote, setLastUsdQuote] = useState<bigint | null>(null);
   const [quoteTimestamp, setQuoteTimestamp] = useState<number | null>(null);
 
+  const handleContributionChange = useCallback((rawValue: string) => {
+    const sanitized = sanitizeNumericInput(rawValue);
+    setContributionAmount(sanitized);
+    setValidationError(null);
+  }, []);
+
+  const handleContributionKeyDown = useCallback(
+    (event: KeyboardEvent<HTMLInputElement>) => {
+      if (BLOCKED_NUMBER_INPUT_KEYS.has(event.key)) {
+        event.preventDefault();
+        return;
+      }
+      if (event.key === "." && event.currentTarget.value.includes(".")) {
+        event.preventDefault();
+      }
+    },
+    [],
+  );
+
   useEffect(() => {
     if (!selectedCoinType && enabledTokens.length > 0) {
       setSelectedCoinType(enabledTokens[0].coinType);
@@ -133,6 +157,21 @@ export function DonationCard({
     return enabledTokens.find((token) => token.coinType === selectedCoinType) ??
       enabledTokens[0] ?? null;
   }, [enabledTokens, selectedCoinType]);
+
+  const tokenDisplayByCoinType = useMemo(() => {
+    return enabledTokens.reduce<Record<string, TokenDisplayData>>(
+      (acc, token) => {
+        acc[token.coinType] = getTokenDisplayData(token);
+        return acc;
+      },
+      {},
+    );
+  }, [enabledTokens]);
+
+  const selectedTokenDisplay = selectedToken
+    ? tokenDisplayByCoinType[selectedToken.coinType] ??
+      getTokenDisplayData(selectedToken)
+    : null;
 
   const {
     profile,
@@ -207,6 +246,9 @@ export function DonationCard({
   );
 
   const formattedRaised = formatUsdLocaleFromMicros(raisedUsdMicro);
+
+  const isAmountFieldDisabled =
+    !isActive || !currentAccount?.address || !selectedToken || isProcessing;
 
   const formatDate = (timestampMs: number) => {
     if (!Number.isFinite(timestampMs) || timestampMs <= 0) {
@@ -618,23 +660,24 @@ export function DonationCard({
 
         <div className="flex flex-col gap-2 w-full">
           <div className="flex flex-col gap-3">
-            <div className="flex items-center gap-3 w-full">
+            <div
+              className={cn(
+                "flex w-full items-stretch overflow-hidden rounded-xl border border-black-50 bg-white transition focus-within:border-blue-500 focus-within:ring-2 focus-within:ring-blue-200",
+                isAmountFieldDisabled && "opacity-60",
+              )}
+            >
               <input
-                type="text"
+                type="number"
                 inputMode="decimal"
+                step="any"
+                min="0"
                 value={contributionAmount}
-                onChange={(e) => {
-                  setContributionAmount(e.target.value);
-                  setValidationError(null);
-                }}
+                onChange={(event) => handleContributionChange(event.target.value)}
+                onKeyDown={handleContributionKeyDown}
+                onWheel={(event) => event.currentTarget.blur()}
                 placeholder="0.00"
-                className="flex-1 h-[54px] bg-white border border-black-50 rounded-lg px-4 text-lg font-semibold  placeholder:text-black-100 focus:outline-none focus:ring-2 focus:ring-blue-500"
-                disabled={
-                  !isActive ||
-                  !currentAccount?.address ||
-                  !selectedToken ||
-                  isProcessing
-                }
+                className="flex-1 h-[56px] bg-transparent px-4 text-lg font-semibold text-foreground placeholder:text-black-100 focus:outline-none"
+                disabled={isAmountFieldDisabled}
               />
               <Select
                 value={selectedToken?.coinType ?? ""}
@@ -648,15 +691,33 @@ export function DonationCard({
                   isProcessing
                 }
               >
-                <SelectTrigger className="w-40 h-[54px] bg-white border border-black-50 rounded-lg px-3 text-sm font-semibold text-foreground">
-                  <SelectValue placeholder="Token" />
+                <SelectTrigger
+                  aria-label={selectedTokenDisplay?.label ?? "Select token"}
+                  className="flex h-[56px] min-w-[120px] max-w-[150px] shrink-0 items-center gap-2 rounded-none border-0 border-l border-black-50 bg-transparent px-3 text-sm font-semibold text-foreground shadow-none focus:ring-0 focus:ring-offset-0"
+                >
+                  {selectedTokenDisplay ? (
+                    <TokenChoiceContent display={selectedTokenDisplay} />
+                  ) : (
+                    <span className="text-sm font-semibold text-black-200">
+                      Token
+                    </span>
+                  )}
                 </SelectTrigger>
-                <SelectContent>
-                  {enabledTokens.map((token) => (
-                    <SelectItem key={token.coinType} value={token.coinType}>
-                      {token.symbol} · {token.name}
-                    </SelectItem>
-                  ))}
+                <SelectContent className="min-w-[200px] border border-black-50 p-0">
+                  {enabledTokens.map((token) => {
+                    const display =
+                      tokenDisplayByCoinType[token.coinType] ??
+                      getTokenDisplayData(token);
+                    return (
+                      <SelectItem
+                        key={token.coinType}
+                        value={token.coinType}
+                        className="py-2 pl-2 pr-8"
+                      >
+                        <TokenChoiceContent display={display} />
+                      </SelectItem>
+                    );
+                  })}
                 </SelectContent>
               </Select>
             </div>
@@ -761,6 +822,49 @@ export function DonationCard({
           <Share2 className="size-3.5" />
         </Button>
       </div>
+    </div>
+  );
+}
+
+const BLOCKED_NUMBER_INPUT_KEYS = new Set(["e", "E", "+", "-", " "]);
+
+function sanitizeNumericInput(value: string) {
+  const numericValue = value.replace(/[^0-9.]/g, "");
+  if (!numericValue) {
+    return "";
+  }
+  const [wholePart, ...fractionParts] = numericValue.split(".");
+  if (fractionParts.length === 0) {
+    return numericValue;
+  }
+  return `${wholePart}.${fractionParts.join("")}`;
+}
+
+function TokenChoiceContent({
+  display,
+  className,
+}: {
+  display: TokenDisplayData;
+  className?: string;
+}) {
+  const fallbackInitials = display.label.slice(0, 3).toUpperCase();
+  const Icon = display.Icon;
+
+  return (
+    <div
+      className={cn(
+        "flex min-w-0 items-center gap-2 text-sm font-semibold text-foreground",
+        className,
+      )}
+    >
+      {Icon ? (
+        <Icon className="h-6 w-6 shrink-0" aria-hidden="true" />
+      ) : (
+        <span className="flex h-6 w-6 shrink-0 items-center justify-center rounded-full bg-black-50 text-[10px] font-semibold uppercase text-black-400">
+          {fallbackInitials}
+        </span>
+      )}
+      <span className="truncate">{display.label}</span>
     </div>
   );
 }
