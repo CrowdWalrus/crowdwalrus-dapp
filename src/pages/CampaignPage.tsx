@@ -5,7 +5,7 @@
  * Fetches campaign data from Sui blockchain and Walrus storage
  */
 
-import { useEffect, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 import { Link, useParams, useSearchParams } from "react-router-dom";
 import { useCampaign } from "@/features/campaigns/hooks/useCampaign";
 import { useResolvedCampaignId } from "@/features/campaigns/hooks/useResolvedCampaignId";
@@ -93,7 +93,7 @@ export function CampaignPage() {
     identifierSource === "subdomain" ? "Campaign subdomain" : "Campaign ID";
 
   // Fetch campaign data
-  const { campaign, isPending, error, refetch } = useCampaign(
+  const { campaign, isPending, error, refetch: refetchCampaign } = useCampaign(
     campaignId ?? "",
     network,
   );
@@ -103,6 +103,7 @@ export function CampaignPage() {
     totalDonationsCount,
     isPending: isStatsPending,
     error: statsError,
+    refetch: refetchCampaignStats,
   } = useCampaignStats({
     campaignId: campaign?.id ?? campaignId ?? "",
     statsId: campaign?.statsId,
@@ -139,7 +140,7 @@ export function CampaignPage() {
       accountAddress,
       network,
       onSuccess: async () => {
-        await refetch();
+        await refetchCampaign();
       },
     });
   const { activateCampaign, isProcessing: isActivationProcessing } =
@@ -150,7 +151,7 @@ export function CampaignPage() {
       accountAddress,
       network,
       onSuccess: async () => {
-        await refetch();
+        await refetchCampaign();
       },
     });
   const { deleteCampaign, isProcessing: isDeleteProcessing } =
@@ -161,10 +162,14 @@ export function CampaignPage() {
       accountAddress,
       network,
       onSuccess: async () => {
-        await refetch();
+        await refetchCampaign();
         refetchOwnership();
       },
     });
+
+  const handleDonationComplete = useCallback(async () => {
+    await Promise.allSettled([refetchCampaign(), refetchCampaignStats()]);
+  }, [refetchCampaign, refetchCampaignStats]);
 
   // State to toggle between owner view and public view
   const [isOwnerView, setIsOwnerView] = useState(true);
@@ -320,7 +325,7 @@ export function CampaignPage() {
               <p className="text-sm text-muted-foreground mb-4">
                 {error.message}
               </p>
-              <Button variant="outline" onClick={() => refetch()}>
+              <Button variant="outline" onClick={() => refetchCampaign()}>
                 Retry
               </Button>
             </CardContent>
@@ -583,6 +588,7 @@ export function CampaignPage() {
               )}
               <DonationCard
                 campaignId={campaign.id}
+                statsId={campaign.statsId}
                 isVerified={campaign.isVerified}
                 startDateMs={campaign.startDateMs}
                 endDateMs={campaign.endDateMs}
@@ -591,6 +597,7 @@ export function CampaignPage() {
                 fundingGoalUsdMicro={campaign.fundingGoalUsdMicro}
                 recipientAddress={campaign.recipientAddress}
                 isActive={campaign.isActive}
+                onDonationComplete={handleDonationComplete}
               />
             </div>
           </div>
