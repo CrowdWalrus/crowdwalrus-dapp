@@ -93,10 +93,12 @@ export function CampaignPage() {
     identifierSource === "subdomain" ? "Campaign subdomain" : "Campaign ID";
 
   // Fetch campaign data
-  const { campaign, isPending, error, refetch: refetchCampaign } = useCampaign(
-    campaignId ?? "",
-    network,
-  );
+  const {
+    campaign,
+    isPending,
+    error,
+    refetch: refetchCampaign,
+  } = useCampaign(campaignId ?? "", network);
 
   const {
     totalUsdMicro: totalRaisedUsdMicro,
@@ -300,8 +302,8 @@ export function CampaignPage() {
   // Loading state
   if (isPending) {
     return (
-      <div className="py-8">
-        <div className="container px-4 max-w-4xl">
+      <div className="py-4 sm:py-6 lg:py-8">
+        <div className="container px-4 sm:px-6 lg:px-4 max-w-4xl">
           <Card>
             <CardContent className="pt-6">
               <p className="text-muted-foreground">Loading campaign...</p>
@@ -315,8 +317,8 @@ export function CampaignPage() {
   // Error state
   if (error) {
     return (
-      <div className="py-8">
-        <div className="container px-4 max-w-4xl">
+      <div className="py-4 sm:py-6 lg:py-8">
+        <div className="container px-4 sm:px-6 lg:px-4 max-w-4xl">
           <Card className="border-red-500">
             <CardContent className="pt-6">
               <p className="text-red-600 font-semibold mb-2">
@@ -347,8 +349,8 @@ export function CampaignPage() {
 
   if (campaign.isDeleted) {
     return (
-      <div className="py-8">
-        <div className="container px-4 max-w-4xl">
+      <div className="py-4 sm:py-6 lg:py-8">
+        <div className="container px-4 sm:px-6 lg:px-4 max-w-4xl">
           <Card className="border-red-500">
             <CardContent className="pt-6 flex flex-col gap-2">
               <p className="text-red-600 font-semibold">Campaign deleted</p>
@@ -416,33 +418,33 @@ export function CampaignPage() {
         />
       )}
 
-      <div className="py-8">
-        <div className="container px-4">
+      <div className="py-4 sm:py-6 lg:py-8">
+        <div className="container px-4 sm:px-6 lg:px-4">
           {/* Breadcrumb */}
-          <div className="pb-10">
+          <div className="pb-6 sm:pb-8 lg:pb-10">
             <CampaignBreadcrumb campaignName={campaign.name} />
           </div>
         </div>
 
         {/* Main content container */}
-        <div className="container px-4 mx-auto max-w-[1728px]">
+        <div className="container px-4 sm:px-6 lg:px-4 mx-auto max-w-[1728px]">
           {/* Page Title */}
-          <h1 className="text-5xl font-bold mb-[60px] pb-10">
+          <h1 className="text-2xl sm:text-3xl md:text-4xl lg:text-5xl font-bold mb-6 sm:mb-8 lg:mb-[60px] pb-6 sm:pb-8 lg:pb-10">
             {campaign.name}
           </h1>
 
           {/* Two-column layout */}
-          <div className="flex gap-[62px] items-start">
+          <div className="flex flex-col lg:flex-row gap-6 sm:gap-8 lg:gap-[62px] items-start">
             {/* Left Column - Main Content */}
-            <div className="flex-1 max-w-[946px]">
+            <div className="flex-1 w-full lg:max-w-[946px]">
               {/* Owner Action Buttons - Top section */}
               {isOwnerView && isOwner && (
-                <div className="flex justify-end items-center gap-6 pb-10">
+                <div className="flex flex-col sm:flex-row justify-end items-stretch sm:items-center gap-3 sm:gap-4 lg:gap-6 pb-6 sm:pb-8 lg:pb-10">
                   {editPath && (
                     <Button
                       asChild={campaign.isActive}
                       variant="outline"
-                      className="py-[9.5px]"
+                      className="py-[9.5px] w-full sm:w-auto"
                       disabled={!campaign.isActive}
                     >
                       {campaign.isActive ? (
@@ -461,7 +463,7 @@ export function CampaignPage() {
                   {addUpdatePath && (
                     <Button
                       asChild={campaign.isActive}
-                      className="py-[9.5px]"
+                      className="py-[9.5px] w-full sm:w-auto"
                       disabled={!campaign.isActive}
                     >
                       {campaign.isActive ? (
@@ -480,7 +482,7 @@ export function CampaignPage() {
                   {!campaign.isActive && (
                     <Button
                       onClick={() => setIsActivateModalOpen(true)}
-                      className="bg-sgreen-700 text-white-50 hover:bg-sgreen-600 py-[9.5px]"
+                      className="bg-sgreen-700 text-white-50 hover:bg-sgreen-600 py-[9.5px] w-full sm:w-auto"
                     >
                       <CircleCheck />
                       Activate Campaign
@@ -506,16 +508,18 @@ export function CampaignPage() {
               <Tabs
                 value={activeTab}
                 onValueChange={handleTabChange}
-                className="pt-10"
+                className="pt-6 sm:pt-8 lg:pt-10"
               >
-                <TabsList className="bg-white-500 rounded-xl p-1">
-                  <TabsTrigger value="about">About</TabsTrigger>
-                  <TabsTrigger value="updates">
+                <TabsList className="bg-white-500 rounded-xl p-1 w-full sm:w-auto">
+                  <TabsTrigger value="about" className="flex-1 sm:flex-none">
+                    About
+                  </TabsTrigger>
+                  <TabsTrigger value="updates" className="flex-1 sm:flex-none">
                     Updates ({updates.length})
                   </TabsTrigger>
                 </TabsList>
 
-                <TabsContent value="about" className="pt-8">
+                <TabsContent value="about" className="pt-4 sm:pt-6 lg:pt-8">
                   {loadingDescription ? (
                     <p className="text-muted-foreground">
                       Loading description...
@@ -529,7 +533,7 @@ export function CampaignPage() {
                   )}
                 </TabsContent>
 
-                <TabsContent value="updates" className="pt-8">
+                <TabsContent value="updates" className="pt-4 sm:pt-6 lg:pt-8">
                   {isUpdatesLoading ? (
                     <p className="text-muted-foreground">Loading updates...</p>
                   ) : updatesError ? (
@@ -547,17 +551,17 @@ export function CampaignPage() {
                 </TabsContent>
               </Tabs>
 
-              <div className="pb-10">
+              <div className="pb-6 sm:pb-8 lg:pb-10">
                 <Separator />
               </div>
               {/* Deactivate and Delete Buttons - Only visible to campaign owners in owner view */}
               {isOwnerView && isOwner && (
                 <>
-                  <div className="flex gap-2 justify-end">
+                  <div className="flex flex-col sm:flex-row gap-2 sm:gap-2 justify-end">
                     {campaign.isActive && (
                       <Button
                         onClick={() => setIsDeactivateModalOpen(true)}
-                        className="bg-orange-50 border border-orange-200 text-orange-700 hover:bg-orange-100 py-[9.5px]"
+                        className="bg-orange-50 border border-orange-200 text-orange-700 hover:bg-orange-100 py-[9.5px] w-full sm:w-auto"
                       >
                         <OctagonMinus />
                         Deactivate Campaign
@@ -565,7 +569,7 @@ export function CampaignPage() {
                     )}
                     <Button
                       onClick={() => setIsDeleteModalOpen(true)}
-                      className="bg-red-50 border border-red-200 text-red-500 hover:bg-red-100"
+                      className="bg-red-50 border border-red-200 text-red-500 hover:bg-red-100 w-full sm:w-auto"
                     >
                       <Trash2 />
                       Delete Campaign
@@ -576,10 +580,12 @@ export function CampaignPage() {
             </div>
 
             {/* Right Column - Donation Card */}
-            <div className="w-[480px] shrink-0 sticky top-[38px]">
+            <div className="w-full lg:w-[480px] lg:shrink-0 lg:sticky lg:top-[38px]">
               {statsError && (
                 <div className="mb-4 rounded-2xl border border-orange-200 bg-orange-50 px-4 py-3 text-sm text-orange-900">
-                  <p className="font-semibold">Live stats temporarily unavailable</p>
+                  <p className="font-semibold">
+                    Live stats temporarily unavailable
+                  </p>
                   <p className="text-orange-800">
                     {statsError.message ||
                       "We couldn't load the latest totals. Please refresh or try again later."}
