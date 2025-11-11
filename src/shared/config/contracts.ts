@@ -147,8 +147,9 @@ const TESTNET_CONFIG: NetworkContractConfig = {
   campaignDomain: "crowdwalrus-test.sui",
   pyth: {
     hermesUrl: "https://hermes-beta.pyth.network",
+    // Temporary Beta channel until the on-chain package is upgraded.
     pythStateId:
-      "0xd3e79c2c083b934e78b3bd58a490ec6b092561954da6e7322e1e2b3c8abfddc0",
+      "0x243759059f4c3111179da5878c12f68d612c21a8d54d85edc86164bb18be1c7c",
     wormholeStateId:
       "0x31358d198147da50db32eda2562951d53973a0c0ad5ed738e9b17d88b213d790",
   },
