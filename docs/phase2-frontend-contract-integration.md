@@ -158,7 +158,7 @@ Contracts: `donations::donate_and_award_first_time<T>` and `donations::donate_an
 Deliverables: donation service builds valid PTBs for both new and returning donors, parametrized by coin type `T`, and returns `DonationAwardOutcome`.
 
 _Notes (2025-11-10):_
-- `src/services/priceOracle.ts` already exposes `attachPriceOracleQuote` + `applySlippageTolerance`, returning the hydrated `PriceInfoObject`, USD micros, and registry `max_age_ms`; donation builders can call it directly before `donate_*`.
+- Until the Move package is upgraded, keep the Beta Pyth state in config and run donations as two PTBs if you need to refresh prices before calling `donations::donate_*`.
 - Token metadata (`symbol`, `decimals`, `pyth_feed_id`, `max_age_ms`, `enabled`) is available via `useEnabledTokens` → `fetchTokenRegistryEntries`, so Task 8 just needs to plumb the selected `TokenRegistryEntry` forward.
 - Profiles: `useProfile` and `profile.ts` builders handle creation/updates; repeat donations must load the owned `Profile` object to satisfy the `&mut profiles::Profile` argument.
 
