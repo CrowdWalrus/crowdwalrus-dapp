@@ -655,7 +655,7 @@ export function DonationCard({
         <div className="h-2.5 w-full bg-black-50 rounded-[10px] overflow-hidden relative">
           {fundingPercentage > 0 && (
             <div
-              className="h-full bg-green-700 rounded-[10px] absolute top-0 left-0"
+              className="h-full bg-sgreen-700 rounded-[10px] absolute top-0 left-0"
               style={{ width: `${Math.min(fundingPercentage, 100)}%` }}
             />
           )}
