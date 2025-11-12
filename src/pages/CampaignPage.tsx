@@ -598,11 +598,13 @@ export function CampaignPage() {
                 isVerified={campaign.isVerified}
                 startDateMs={campaign.startDateMs}
                 endDateMs={campaign.endDateMs}
+                campaignName={campaign.name}
                 raisedUsdMicro={amountRaisedUsdMicro}
                 contributorsCount={contributorsCount}
                 fundingGoalUsdMicro={campaign.fundingGoalUsdMicro}
                 recipientAddress={campaign.recipientAddress}
                 isActive={campaign.isActive}
+                subdomainName={campaign.subdomainName}
                 onDonationComplete={handleDonationComplete}
               />
             </div>
