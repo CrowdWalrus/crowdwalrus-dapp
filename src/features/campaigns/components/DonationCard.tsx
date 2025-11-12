@@ -39,7 +39,10 @@ import {
   DEFAULT_SLIPPAGE_BPS,
   type DonationBuildResult,
 } from "@/services/donations";
-import { DEFAULT_NETWORK, SUI_EXPLORER_URLS } from "@/shared/config/networkConfig";
+import {
+  DEFAULT_NETWORK,
+  SUI_EXPLORER_URLS,
+} from "@/shared/config/networkConfig";
 import type { SupportedNetwork } from "@/shared/types/network";
 import type { TokenRegistryEntry } from "@/services/tokenRegistry";
 import { isUserRejectedError } from "@/shared/utils/errors";
@@ -59,6 +62,7 @@ import {
   BadgeRewardModal,
   type BadgeRewardItem,
 } from "./modals/BadgeRewardModal";
+import { ShareModal } from "./modals/ShareModal";
 
 interface DonationCardProps {
   campaignId: string;
@@ -66,11 +70,13 @@ interface DonationCardProps {
   isVerified: boolean;
   startDateMs: number;
   endDateMs: number;
+  campaignName?: string;
   raisedUsdMicro: bigint;
   contributorsCount: number;
   fundingGoalUsdMicro: bigint;
   recipientAddress: string;
   isActive: boolean;
+  subdomainName?: string | null;
   onDonationComplete?: () => Promise<void> | void;
 }
 
@@ -80,11 +86,13 @@ export function DonationCard({
   isVerified,
   startDateMs,
   endDateMs,
+  campaignName,
   raisedUsdMicro,
   contributorsCount,
   fundingGoalUsdMicro,
   recipientAddress,
   isActive,
+  subdomainName,
   onDonationComplete,
 }: DonationCardProps) {
   const navigate = useNavigate();
@@ -143,14 +151,16 @@ export function DonationCard({
   const [isBadgeModalOpen, setIsBadgeModalOpen] = useState(false);
   const [shouldOpenBadgeModal, setShouldOpenBadgeModal] = useState(false);
   const [pendingBadgeLevels, setPendingBadgeLevels] = useState<number[]>([]);
-  const [badgeBaselineIds, setBadgeBaselineIds] =
-    useState<string[] | null>(null);
+  const [badgeBaselineIds, setBadgeBaselineIds] = useState<string[] | null>(
+    null,
+  );
   const [pendingDonation, setPendingDonation] =
     useState<PendingDonationContext | null>(null);
   const [isBuildingDonation, setIsBuildingDonation] = useState(false);
   const [isWalletRequestPending, setIsWalletRequestPending] = useState(false);
   const [hasAttemptedWalletConfirmation, setHasAttemptedWalletConfirmation] =
     useState(false);
+  const [isShareModalOpen, setIsShareModalOpen] = useState(false);
   const donationFlowRef = useRef(0);
 
   const handleContributionChange = useCallback((rawValue: string) => {
@@ -861,242 +871,246 @@ export function DonationCard({
   return (
     <>
       <div className="bg-white rounded-2xl sm:rounded-3xl p-6 sm:p-8 lg:p-10 flex flex-col gap-4 sm:gap-5 lg:gap-6 w-full shadow-[0px_0px_16px_0px_rgba(0,0,0,0.16)]">
-      {/* Verification Badge */}
-      <div className="flex items-start">
-        <VerificationBadge isVerified={isVerified} />
-      </div>
-
-      {/* Timeline */}
-      {(startDateLabel || endDateLabel) && (
-        <div
-          className={`flex flex-wrap items-center gap-2 sm:gap-3 lg:gap-4 ${
-            hasStarted && endDateLabel ? "justify-between" : "justify-start"
-          }`}
-        >
-          {startDateLabel && (
-            <Badge
-              variant="outline"
-              className="flex items-center bg-black-50 border-transparent text-black-500 text-xs font-medium leading-[1.5] tracking-[0.18px] px-2 py-0.5 h-6 rounded-lg gap-1.5"
-            >
-              <Clock className="size-3" />
-              {hasStarted
-                ? `Started on ${startDateLabel}`
-                : `Starts ${startDateLabel}`}
-            </Badge>
-          )}
-          {hasStarted && endDateLabel && (
-            <Badge
-              variant="outline"
-              className="flex items-center bg-black-50 border-transparent text-black-500 text-xs font-medium leading-[1.5] tracking-[0.18px] px-2 py-0.5 h-6 rounded-lg gap-1.5"
-            >
-              <Clock className="size-3" />
-              {`Ends on ${endDateLabel}`}
-            </Badge>
-          )}
+        {/* Verification Badge */}
+        <div className="flex items-start">
+          <VerificationBadge isVerified={isVerified} />
         </div>
-      )}
 
-      {/* Amount Raised */}
-      <div className="flex flex-col gap-2">
-        <h2 className="font-['Inter_Tight'] text-2xl sm:text-3xl md:text-[36px] lg:text-[40px] font-bold leading-[1.2] tracking-[0.4px]">
-          {`$${formattedRaised} raised`}
-        </h2>
-        <p className="text-base sm:text-lg lg:text-xl">
-          from {contributorsCount} contributors
-        </p>
-      </div>
-
-      {/* Progress Bar */}
-      <div className="flex flex-col gap-4 w-full">
-        <div className="h-2.5 w-full bg-black-50 rounded-[10px] overflow-hidden relative">
-          {fundingPercentage > 0 && (
-            <div
-              className="h-full bg-sgreen-700 rounded-[10px] absolute top-0 left-0"
-              style={{ width: `${Math.min(fundingPercentage, 100)}%` }}
-            />
-          )}
-        </div>
-        <div className="flex items-center justify-between text-xl ">
-          <p className="font-semibold">
-            Goal {formatUsdLocaleFromMicros(fundingGoalUsdMicro)}
-          </p>
-          <p>{fundingPercentage.toFixed(0)}% funded</p>
-        </div>
-      </div>
-
-      {/* Recipient Address */}
-      <div className="flex flex-col gap-2">
-        <p className="text-sm  text-black-400">Recipient Address</p>
-        <p className="text-base font-medium  break-all">{recipientAddress}</p>
-      </div>
-
-      <Separator className="bg-white-600" />
-
-      {/* Contribution Form */}
-      <div className="flex flex-col gap-4 w-full">
-        <p className="text-base font-semibold ">Make your contribution</p>
-
-        <div className="flex flex-col gap-2 w-full">
-          <div className="flex flex-col gap-3">
-            <div
-              className={cn(
-                "flex w-full items-stretch overflow-hidden rounded-xl border border-black-50 bg-white transition focus-within:border-blue-500 focus-within:ring-2 focus-within:ring-blue-200",
-                isAmountFieldDisabled && "opacity-60",
-              )}
-            >
-              <input
-                type="number"
-                inputMode="decimal"
-                step="any"
-                min="0"
-                value={contributionAmount}
-                onChange={(event) =>
-                  handleContributionChange(event.target.value)
-                }
-                onKeyDown={handleContributionKeyDown}
-                onWheel={(event) => event.currentTarget.blur()}
-                placeholder="0.00"
-                className="flex-1 h-[56px] bg-transparent px-4 text-lg font-semibold text-foreground placeholder:text-black-100 focus:outline-none"
-                disabled={isAmountFieldDisabled}
-              />
-              <Select
-                value={selectedToken?.coinType ?? ""}
-                onValueChange={(value) => {
-                  setSelectedCoinType(value);
-                  setValidationError(null);
-                }}
-                disabled={
-                  isTokensLoading || !enabledTokens.length || isProcessing
-                }
+        {/* Timeline */}
+        {(startDateLabel || endDateLabel) && (
+          <div
+            className={`flex flex-wrap items-center gap-2 sm:gap-3 lg:gap-4 ${
+              hasStarted && endDateLabel ? "justify-between" : "justify-start"
+            }`}
+          >
+            {startDateLabel && (
+              <Badge
+                variant="outline"
+                className="flex items-center bg-black-50 border-transparent text-black-500 text-xs font-medium leading-[1.5] tracking-[0.18px] px-2 py-0.5 h-6 rounded-lg gap-1.5"
               >
-                <SelectTrigger
-                  aria-label={selectedTokenDisplay?.label ?? "Select token"}
-                  className="flex h-[56px] min-w-[120px] max-w-[150px] shrink-0 items-center gap-2 rounded-none border-0 border-l border-black-50 bg-transparent px-3 text-sm font-semibold text-foreground shadow-none focus:ring-0 focus:ring-offset-0"
-                  disabled={isAmountFieldDisabled}
-                >
-                  {selectedTokenDisplay ? (
-                    <TokenChoiceContent display={selectedTokenDisplay} />
-                  ) : (
-                    <span className="text-sm font-semibold text-black-200">
-                      Token
-                    </span>
-                  )}
-                </SelectTrigger>
-                <SelectContent className="min-w-[200px] border border-black-50 p-0">
-                  {enabledTokens.map((token) => {
-                    const display =
-                      tokenDisplayByCoinType[token.coinType] ??
-                      getTokenDisplayData(token);
-                    return (
-                      <SelectItem
-                        key={token.coinType}
-                        value={token.coinType}
-                        className="py-2 pl-2 pr-8"
-                      >
-                        <TokenChoiceContent display={display} />
-                      </SelectItem>
-                    );
-                  })}
-                </SelectContent>
-              </Select>
-            </div>
-            <div className="flex items-center gap-2 text-xs text-black-400">
-              <span>Balance:</span>
-              <span className="font-semibold">{formattedBalance}</span>
-            </div>
-            {validationError && (
-              <p className="text-xs text-red-600">{validationError}</p>
+                <Clock className="size-3" />
+                {hasStarted
+                  ? `Started on ${startDateLabel}`
+                  : `Starts ${startDateLabel}`}
+              </Badge>
             )}
-            {profileOwnershipMismatch && (
-              <p className="text-xs text-red-600">
-                Connected wallet does not own the loaded donor profile. Refresh
-                or reconnect your wallet.
-              </p>
-            )}
-            {campaignNotStarted && startDateLabel && (
-              <p className="text-xs text-orange-600">
-                Campaign accepts donations starting {startDateLabel}.
-              </p>
-            )}
-            {campaignEnded && endDateLabel && (
-              <p className="text-xs text-orange-600">
-                Campaign ended on {endDateLabel}. Donations are closed.
-              </p>
-            )}
-            {insufficientBalance && selectedToken && (
-              <p className="text-xs text-orange-600">
-                Insufficient {selectedToken.symbol} balance.
-              </p>
-            )}
-            {donatingEntireSuiBalance && (
-              <p className="text-xs text-orange-600">
-                Leave a small amount of SUI in your wallet to cover gas fees.
-              </p>
-            )}
-            {balanceError && (
-              <p className="text-xs text-orange-600">
-                Failed to load balance. {balanceError.message}
-              </p>
-            )}
-            {tokensError && (
-              <p className="text-xs text-orange-600">
-                Unable to load donation tokens. {tokensError.message}
-              </p>
-            )}
-            {profileError && (
-              <p className="text-xs text-orange-600">{profileError.message}</p>
-            )}
-            {lastUsdQuote !== null && (
-              <p className="text-xs text-black-400">
-                Last quoted value: ≈ ${formatUsdLocaleFromMicros(lastUsdQuote)}
-                {quoteTimestamp
-                  ? ` (as of ${new Date(quoteTimestamp).toLocaleTimeString()})`
-                  : ""}
-              </p>
+            {hasStarted && endDateLabel && (
+              <Badge
+                variant="outline"
+                className="flex items-center bg-black-50 border-transparent text-black-500 text-xs font-medium leading-[1.5] tracking-[0.18px] px-2 py-0.5 h-6 rounded-lg gap-1.5"
+              >
+                <Clock className="size-3" />
+                {`Ends on ${endDateLabel}`}
+              </Badge>
             )}
           </div>
-        </div>
-      </div>
+        )}
 
-      {/* Action Buttons */}
-      <div className="flex flex-col gap-4 w-full">
-        <Button
-          className="w-full h-10 bg-primary text-primary-foreground  text-sm font-medium tracking-[0.07px] rounded-lg hover:bg-primary/90 disabled:opacity-50"
-          disabled={!canDonate}
-          onClick={handleDonate}
-        >
-          {isProcessing ? (
-            <span className="flex items-center gap-2">
-              <Loader2 className="size-4 animate-spin" />
-              Processing...
-            </span>
-          ) : (
-            "Contribute Now"
+        {/* Amount Raised */}
+        <div className="flex flex-col gap-2">
+          <h2 className="font-['Inter_Tight'] text-2xl sm:text-3xl md:text-[36px] lg:text-[40px] font-bold leading-[1.2] tracking-[0.4px]">
+            {`$${formattedRaised} raised`}
+          </h2>
+          <p className="text-base sm:text-lg lg:text-xl">
+            from {contributorsCount} contributors
+          </p>
+        </div>
+
+        {/* Progress Bar */}
+        <div className="flex flex-col gap-4 w-full">
+          <div className="h-2.5 w-full bg-black-50 rounded-[10px] overflow-hidden relative">
+            {fundingPercentage > 0 && (
+              <div
+                className="h-full bg-sgreen-700 rounded-[10px] absolute top-0 left-0"
+                style={{ width: `${Math.min(fundingPercentage, 100)}%` }}
+              />
+            )}
+          </div>
+          <div className="flex items-center justify-between text-xl ">
+            <p className="font-semibold">
+              Goal {formatUsdLocaleFromMicros(fundingGoalUsdMicro)}
+            </p>
+            <p>{fundingPercentage.toFixed(0)}% funded</p>
+          </div>
+        </div>
+
+        {/* Recipient Address */}
+        <div className="flex flex-col gap-2">
+          <p className="text-sm  text-black-400">Recipient Address</p>
+          <p className="text-base font-medium  break-all">{recipientAddress}</p>
+        </div>
+
+        <Separator className="bg-white-600" />
+
+        {/* Contribution Form */}
+        <div className="flex flex-col gap-4 w-full">
+          <p className="text-base font-semibold ">Make your contribution</p>
+
+          <div className="flex flex-col gap-2 w-full">
+            <div className="flex flex-col gap-3">
+              <div
+                className={cn(
+                  "flex w-full items-stretch overflow-hidden rounded-xl border border-black-50 bg-white transition focus-within:border-blue-500 focus-within:ring-2 focus-within:ring-blue-200",
+                  isAmountFieldDisabled && "opacity-60",
+                )}
+              >
+                <input
+                  type="number"
+                  inputMode="decimal"
+                  step="any"
+                  min="0"
+                  value={contributionAmount}
+                  onChange={(event) =>
+                    handleContributionChange(event.target.value)
+                  }
+                  onKeyDown={handleContributionKeyDown}
+                  onWheel={(event) => event.currentTarget.blur()}
+                  placeholder="0.00"
+                  className="flex-1 h-[56px] bg-transparent px-4 text-lg font-semibold text-foreground placeholder:text-black-100 focus:outline-none"
+                  disabled={isAmountFieldDisabled}
+                />
+                <Select
+                  value={selectedToken?.coinType ?? ""}
+                  onValueChange={(value) => {
+                    setSelectedCoinType(value);
+                    setValidationError(null);
+                  }}
+                  disabled={
+                    isTokensLoading || !enabledTokens.length || isProcessing
+                  }
+                >
+                  <SelectTrigger
+                    aria-label={selectedTokenDisplay?.label ?? "Select token"}
+                    className="flex h-[56px] min-w-[120px] max-w-[150px] shrink-0 items-center gap-2 rounded-none border-0 border-l border-black-50 bg-transparent px-3 text-sm font-semibold text-foreground shadow-none focus:ring-0 focus:ring-offset-0"
+                    disabled={isAmountFieldDisabled}
+                  >
+                    {selectedTokenDisplay ? (
+                      <TokenChoiceContent display={selectedTokenDisplay} />
+                    ) : (
+                      <span className="text-sm font-semibold text-black-200">
+                        Token
+                      </span>
+                    )}
+                  </SelectTrigger>
+                  <SelectContent className="min-w-[200px] border border-black-50 p-0">
+                    {enabledTokens.map((token) => {
+                      const display =
+                        tokenDisplayByCoinType[token.coinType] ??
+                        getTokenDisplayData(token);
+                      return (
+                        <SelectItem
+                          key={token.coinType}
+                          value={token.coinType}
+                          className="py-2 pl-2 pr-8"
+                        >
+                          <TokenChoiceContent display={display} />
+                        </SelectItem>
+                      );
+                    })}
+                  </SelectContent>
+                </Select>
+              </div>
+              <div className="flex items-center gap-2 text-xs text-black-400">
+                <span>Balance:</span>
+                <span className="font-semibold">{formattedBalance}</span>
+              </div>
+              {validationError && (
+                <p className="text-xs text-red-600">{validationError}</p>
+              )}
+              {profileOwnershipMismatch && (
+                <p className="text-xs text-red-600">
+                  Connected wallet does not own the loaded donor profile.
+                  Refresh or reconnect your wallet.
+                </p>
+              )}
+              {campaignNotStarted && startDateLabel && (
+                <p className="text-xs text-orange-600">
+                  Campaign accepts donations starting {startDateLabel}.
+                </p>
+              )}
+              {campaignEnded && endDateLabel && (
+                <p className="text-xs text-orange-600">
+                  Campaign ended on {endDateLabel}. Donations are closed.
+                </p>
+              )}
+              {insufficientBalance && selectedToken && (
+                <p className="text-xs text-orange-600">
+                  Insufficient {selectedToken.symbol} balance.
+                </p>
+              )}
+              {donatingEntireSuiBalance && (
+                <p className="text-xs text-orange-600">
+                  Leave a small amount of SUI in your wallet to cover gas fees.
+                </p>
+              )}
+              {balanceError && (
+                <p className="text-xs text-orange-600">
+                  Failed to load balance. {balanceError.message}
+                </p>
+              )}
+              {tokensError && (
+                <p className="text-xs text-orange-600">
+                  Unable to load donation tokens. {tokensError.message}
+                </p>
+              )}
+              {profileError && (
+                <p className="text-xs text-orange-600">
+                  {profileError.message}
+                </p>
+              )}
+              {lastUsdQuote !== null && (
+                <p className="text-xs text-black-400">
+                  Last quoted value: ≈ $
+                  {formatUsdLocaleFromMicros(lastUsdQuote)}
+                  {quoteTimestamp
+                    ? ` (as of ${new Date(quoteTimestamp).toLocaleTimeString()})`
+                    : ""}
+                </p>
+              )}
+            </div>
+          </div>
+        </div>
+
+        {/* Action Buttons */}
+        <div className="flex flex-col gap-4 w-full">
+          <Button
+            className="w-full h-10 bg-primary text-primary-foreground  text-sm font-medium tracking-[0.07px] rounded-lg hover:bg-primary/90 disabled:opacity-50"
+            disabled={!canDonate}
+            onClick={handleDonate}
+          >
+            {isProcessing ? (
+              <span className="flex items-center gap-2">
+                <Loader2 className="size-4 animate-spin" />
+                Processing...
+              </span>
+            ) : (
+              "Contribute Now"
+            )}
+          </Button>
+          {!currentAccount?.address && (
+            <p className="text-xs text-center text-black-400">
+              Connect your wallet to donate.
+            </p>
           )}
-        </Button>
-        {!currentAccount?.address && (
-          <p className="text-xs text-center text-black-400">
-            Connect your wallet to donate.
-          </p>
-        )}
-        {!isActive && (
-          <p className="text-xs text-center text-black-400">
-            Campaign is not accepting donations right now.
-          </p>
-        )}
-        {!enabledTokens.length && !isTokensLoading && (
-          <p className="text-xs text-center text-black-400">
-            No donation tokens are enabled yet.
-          </p>
-        )}
-        <Button
-          variant="secondary"
-          className="w-full h-10 bg-blue-50 text-blue-500  text-sm font-medium tracking-[0.07px] rounded-lg hover:bg-[#e0d9ff] gap-2"
-        >
-          Share
-          <Share2 className="size-3.5" />
-        </Button>
-      </div>
+          {!isActive && (
+            <p className="text-xs text-center text-black-400">
+              Campaign is not accepting donations right now.
+            </p>
+          )}
+          {!enabledTokens.length && !isTokensLoading && (
+            <p className="text-xs text-center text-black-400">
+              No donation tokens are enabled yet.
+            </p>
+          )}
+          <Button
+            variant="secondary"
+            className="w-full h-10 bg-blue-50 text-blue-500  text-sm font-medium tracking-[0.07px] rounded-lg hover:bg-[#e0d9ff] gap-2"
+            onClick={() => setIsShareModalOpen(true)}
+          >
+            Share
+            <Share2 className="size-3.5" />
+          </Button>
+        </div>
       </div>
 
       <DonationProcessingModal
@@ -1112,12 +1126,21 @@ export function DonationCard({
         open={isSuccessModalOpen}
         receipt={successReceipt}
         onClose={handleSuccessModalClose}
-        onViewContributions={currentAccount?.address ? handleViewContributions : undefined}
+        onViewContributions={
+          currentAccount?.address ? handleViewContributions : undefined
+        }
       />
       <BadgeRewardModal
         open={isBadgeModalOpen}
         badges={badgeAwards}
         onClose={handleBadgeModalClose}
+      />
+      <ShareModal
+        open={isShareModalOpen}
+        campaignId={campaignId}
+        campaignName={campaignName}
+        subdomainName={subdomainName}
+        onClose={() => setIsShareModalOpen(false)}
       />
     </>
   );
