@@ -13,7 +13,7 @@ interface ProfileBadgeShowcaseProps {
 
 export function ProfileBadgeShowcase({
   badges,
-  title = "Your user level",
+  title = "User level",
 }: ProfileBadgeShowcaseProps) {
   if (!badges.length) {
     return null;
