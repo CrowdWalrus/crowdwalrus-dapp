@@ -43,7 +43,9 @@ const formatAddressForDisplay = (address?: string | null) => {
 export function ProfilePage() {
   const { address: addressParam } = useParams<{ address: string }>();
   const { isOwner } = useProfileOwnership({ profileAddress: addressParam });
-  const { badges: donorBadges } = useDonorBadges({ ownerAddress: addressParam });
+  const { badges: donorBadges } = useDonorBadges({
+    ownerAddress: addressParam,
+  });
   const [searchParams, setSearchParams] = useSearchParams();
   const myCampaigns = useMyCampaigns();
   const campaignCount = myCampaigns.campaigns.length;
@@ -70,7 +72,7 @@ export function ProfilePage() {
     return [
       {
         id: "contributions",
-        label: "Your Contributions",
+        label: "Contributions",
         value: "10",
         icon: HandHeart,
       },
@@ -82,7 +84,7 @@ export function ProfilePage() {
       },
       {
         id: "campaigns",
-        label: "Your Campaigns",
+        label: "Campaigns",
         value: campaignCount.toString(),
         icon: FileSpreadsheet,
       },
@@ -136,9 +138,7 @@ export function ProfilePage() {
   ];
 
   const tabParam = searchParams.get("tab");
-  const activeTab = PROFILE_TAB_VALUES.includes(
-    tabParam as ProfileTabValue,
-  )
+  const activeTab = PROFILE_TAB_VALUES.includes(tabParam as ProfileTabValue)
     ? (tabParam as ProfileTabValue)
     : "overview";
 
