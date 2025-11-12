@@ -716,6 +716,7 @@ export function DonationCard({
                 <SelectTrigger
                   aria-label={selectedTokenDisplay?.label ?? "Select token"}
                   className="flex h-[56px] min-w-[120px] max-w-[150px] shrink-0 items-center gap-2 rounded-none border-0 border-l border-black-50 bg-transparent px-3 text-sm font-semibold text-foreground shadow-none focus:ring-0 focus:ring-offset-0"
+                  disabled={isAmountFieldDisabled}
                 >
                   {selectedTokenDisplay ? (
                     <TokenChoiceContent display={selectedTokenDisplay} />
