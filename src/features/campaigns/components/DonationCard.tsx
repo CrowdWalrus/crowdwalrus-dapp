@@ -154,8 +154,11 @@ export function DonationCard({
     if (!selectedCoinType) {
       return enabledTokens[0];
     }
-    return enabledTokens.find((token) => token.coinType === selectedCoinType) ??
-      enabledTokens[0] ?? null;
+    return (
+      enabledTokens.find((token) => token.coinType === selectedCoinType) ??
+      enabledTokens[0] ??
+      null
+    );
   }, [enabledTokens, selectedCoinType]);
 
   const tokenDisplayByCoinType = useMemo(() => {
@@ -169,8 +172,8 @@ export function DonationCard({
   }, [enabledTokens]);
 
   const selectedTokenDisplay = selectedToken
-    ? tokenDisplayByCoinType[selectedToken.coinType] ??
-      getTokenDisplayData(selectedToken)
+    ? (tokenDisplayByCoinType[selectedToken.coinType] ??
+      getTokenDisplayData(selectedToken))
     : null;
 
   const {
@@ -240,9 +243,7 @@ export function DonationCard({
   }, [contributionAmount, selectedToken]);
 
   const insufficientBalance = Boolean(
-    balanceRaw !== null &&
-      parsedAmount !== null &&
-      parsedAmount > balanceRaw,
+    balanceRaw !== null && parsedAmount !== null && parsedAmount > balanceRaw,
   );
 
   const formattedRaised = formatUsdLocaleFromMicros(raisedUsdMicro);
@@ -383,7 +384,9 @@ export function DonationCard({
       return;
     }
     if (isBalanceLoading) {
-      setValidationError("Fetching your wallet balance. Please try again in a moment.");
+      setValidationError(
+        "Fetching your wallet balance. Please try again in a moment.",
+      );
       return;
     }
     if (profileOwnershipMismatch) {
@@ -429,32 +432,34 @@ export function DonationCard({
 
     setIsProcessing(true);
 
-    const donationFlow: DonationFlow = hasProfile && profileId ? "repeat" : "firstTime";
+    const donationFlow: DonationFlow =
+      hasProfile && profileId ? "repeat" : "firstTime";
     const shouldRefreshProfile = donationFlow === "firstTime";
     let buildResult: DonationBuildResult;
     try {
-      buildResult = donationFlow === "repeat"
-        ? await buildRepeatDonationTx({
-            suiClient,
-            accountAddress: currentAccount.address,
-            campaignId,
-            statsId,
-            token: selectedToken,
-            rawAmount,
-            network,
-            slippageBps: DEFAULT_SLIPPAGE_BPS,
-            profileId: profileId!,
-          })
-        : await buildFirstTimeDonationTx({
-            suiClient,
-            accountAddress: currentAccount.address,
-            campaignId,
-            statsId,
-            token: selectedToken,
-            rawAmount,
-            network,
-            slippageBps: DEFAULT_SLIPPAGE_BPS,
-          });
+      buildResult =
+        donationFlow === "repeat"
+          ? await buildRepeatDonationTx({
+              suiClient,
+              accountAddress: currentAccount.address,
+              campaignId,
+              statsId,
+              token: selectedToken,
+              rawAmount,
+              network,
+              slippageBps: DEFAULT_SLIPPAGE_BPS,
+              profileId: profileId!,
+            })
+          : await buildFirstTimeDonationTx({
+              suiClient,
+              accountAddress: currentAccount.address,
+              campaignId,
+              statsId,
+              token: selectedToken,
+              rawAmount,
+              network,
+              slippageBps: DEFAULT_SLIPPAGE_BPS,
+            });
     } catch (error) {
       const message = formatDonationError(error, {
         flow: donationFlow,
@@ -480,16 +485,15 @@ export function DonationCard({
     setQuoteTimestamp(buildResult.pricePublishTimeMs ?? Date.now());
 
     try {
-      const response = await signAndExecuteWithWallet(
-        buildResult.transaction,
-        {
-          showEffects: true,
-          showEvents: true,
-        },
-      );
+      const response = await signAndExecuteWithWallet(buildResult.transaction, {
+        showEffects: true,
+        showEvents: true,
+      });
+
+      const transactionDigest = response.digest;
 
       console.log("[donation] transaction executed", {
-        digest: response.digest,
+        digest: transactionDigest,
         eventsCount: response.events?.length ?? 0,
       });
 
@@ -501,7 +505,8 @@ export function DonationCard({
       const mintedLevels = events
         .filter((event) => event.type === badgeEventType)
         .map((event) => {
-          const levelRaw = (event.parsedJson as { level?: number | string })?.level;
+          const levelRaw = (event.parsedJson as { level?: number | string })
+            ?.level;
           if (typeof levelRaw === "number" && Number.isFinite(levelRaw)) {
             return levelRaw;
           }
@@ -562,6 +567,21 @@ export function DonationCard({
             profileRefreshError,
           );
         }
+      }
+
+      try {
+        await suiClient.waitForTransaction({
+          digest: transactionDigest,
+          options: {
+            showEffects: false,
+            showEvents: false,
+          },
+        });
+      } catch (finalityError) {
+        console.warn(
+          "[donation] failed to confirm transaction finality",
+          finalityError,
+        );
       }
 
       await onDonationComplete?.();
@@ -625,7 +645,9 @@ export function DonationCard({
         <h2 className="font-['Inter_Tight'] text-2xl sm:text-3xl md:text-[36px] lg:text-[40px] font-bold leading-[1.2] tracking-[0.4px]">
           {`$${formattedRaised} raised`}
         </h2>
-        <p className="text-base sm:text-lg lg:text-xl">from {contributorsCount} contributors</p>
+        <p className="text-base sm:text-lg lg:text-xl">
+          from {contributorsCount} contributors
+        </p>
       </div>
 
       {/* Progress Bar */}
@@ -672,7 +694,9 @@ export function DonationCard({
                 step="any"
                 min="0"
                 value={contributionAmount}
-                onChange={(event) => handleContributionChange(event.target.value)}
+                onChange={(event) =>
+                  handleContributionChange(event.target.value)
+                }
                 onKeyDown={handleContributionKeyDown}
                 onWheel={(event) => event.currentTarget.blur()}
                 placeholder="0.00"
@@ -686,9 +710,7 @@ export function DonationCard({
                   setValidationError(null);
                 }}
                 disabled={
-                  isTokensLoading ||
-                  !enabledTokens.length ||
-                  isProcessing
+                  isTokensLoading || !enabledTokens.length || isProcessing
                 }
               >
                 <SelectTrigger
@@ -765,15 +787,11 @@ export function DonationCard({
               </p>
             )}
             {profileError && (
-              <p className="text-xs text-orange-600">
-                {profileError.message}
-              </p>
+              <p className="text-xs text-orange-600">{profileError.message}</p>
             )}
             {lastUsdQuote !== null && (
               <p className="text-xs text-black-400">
-                Last quoted value: ≈ ${
-                  formatUsdLocaleFromMicros(lastUsdQuote)
-                }
+                Last quoted value: ≈ ${formatUsdLocaleFromMicros(lastUsdQuote)}
                 {quoteTimestamp
                   ? ` (as of ${new Date(quoteTimestamp).toLocaleTimeString()})`
                   : ""}
@@ -901,7 +919,9 @@ function formatDonationError(
   options: { flow: DonationFlow },
 ): string {
   const fallback =
-    error instanceof Error ? error.message : "Donation failed. Please try again.";
+    error instanceof Error
+      ? error.message
+      : "Donation failed. Please try again.";
   const abortCode = extractAbortCode(fallback);
 
   if (abortCode !== null) {
