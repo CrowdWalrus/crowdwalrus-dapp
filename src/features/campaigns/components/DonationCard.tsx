@@ -3,8 +3,9 @@
  * Campaign contribution and progress display with on-chain donation wiring.
  */
 
-import { useCallback, useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import type { KeyboardEvent } from "react";
+import { useNavigate } from "react-router-dom";
 import {
   useCurrentAccount,
   useCurrentWallet,
@@ -29,6 +30,7 @@ import { VerificationBadge } from "./CampaignBadges";
 import { formatUsdLocaleFromMicros } from "@/shared/utils/currency";
 import { useEnabledTokens } from "@/features/tokens/hooks";
 import { useProfile } from "@/features/profiles/hooks/useProfile";
+import { useDonorBadges } from "@/features/badges/hooks/useDonorBadges";
 import {
   buildFirstTimeDonationTx,
   buildRepeatDonationTx,
@@ -37,7 +39,8 @@ import {
   DEFAULT_SLIPPAGE_BPS,
   type DonationBuildResult,
 } from "@/services/donations";
-import { DEFAULT_NETWORK } from "@/shared/config/networkConfig";
+import { DEFAULT_NETWORK, SUI_EXPLORER_URLS } from "@/shared/config/networkConfig";
+import type { SupportedNetwork } from "@/shared/types/network";
 import type { TokenRegistryEntry } from "@/services/tokenRegistry";
 import { isUserRejectedError } from "@/shared/utils/errors";
 import { getContractConfig } from "@/shared/config/contracts";
@@ -45,7 +48,17 @@ import {
   getTokenDisplayData,
   type TokenDisplayData,
 } from "@/shared/config/tokenDisplay";
+import { buildProfileDetailPath } from "@/shared/utils/routes";
 import { cn } from "@/shared/lib/utils";
+import { DonationProcessingModal } from "./modals/DonationProcessingModal";
+import {
+  DonationSuccessModal,
+  type DonationReceiptSummary,
+} from "./modals/DonationSuccessModal";
+import {
+  BadgeRewardModal,
+  type BadgeRewardItem,
+} from "./modals/BadgeRewardModal";
 
 interface DonationCardProps {
   campaignId: string;
@@ -74,6 +87,7 @@ export function DonationCard({
   isActive,
   onDonationComplete,
 }: DonationCardProps) {
+  const navigate = useNavigate();
   const network = DEFAULT_NETWORK;
   const contractConfig = useMemo(() => getContractConfig(network), [network]);
   const currentAccount = useCurrentAccount();
@@ -121,11 +135,45 @@ export function DonationCard({
   const [isProcessing, setIsProcessing] = useState(false);
   const [lastUsdQuote, setLastUsdQuote] = useState<bigint | null>(null);
   const [quoteTimestamp, setQuoteTimestamp] = useState<number | null>(null);
+  const [isProcessingModalOpen, setIsProcessingModalOpen] = useState(false);
+  const [isSuccessModalOpen, setIsSuccessModalOpen] = useState(false);
+  const [successReceipt, setSuccessReceipt] =
+    useState<DonationReceiptSummary | null>(null);
+  const [badgeAwards, setBadgeAwards] = useState<BadgeRewardItem[]>([]);
+  const [isBadgeModalOpen, setIsBadgeModalOpen] = useState(false);
+  const [shouldOpenBadgeModal, setShouldOpenBadgeModal] = useState(false);
+  const [pendingBadgeLevels, setPendingBadgeLevels] = useState<number[]>([]);
+  const [badgeBaselineIds, setBadgeBaselineIds] =
+    useState<string[] | null>(null);
+  const [pendingDonation, setPendingDonation] =
+    useState<PendingDonationContext | null>(null);
+  const [isBuildingDonation, setIsBuildingDonation] = useState(false);
+  const [isWalletRequestPending, setIsWalletRequestPending] = useState(false);
+  const [hasAttemptedWalletConfirmation, setHasAttemptedWalletConfirmation] =
+    useState(false);
+  const donationFlowRef = useRef(0);
 
   const handleContributionChange = useCallback((rawValue: string) => {
     const sanitized = sanitizeNumericInput(rawValue);
     setContributionAmount(sanitized);
     setValidationError(null);
+  }, []);
+
+  const resetDonationFlow = useCallback(() => {
+    donationFlowRef.current += 1;
+    setIsProcessing(false);
+    setIsProcessingModalOpen(false);
+    setPendingDonation(null);
+    setIsBuildingDonation(false);
+    setIsWalletRequestPending(false);
+    setHasAttemptedWalletConfirmation(false);
+    setIsSuccessModalOpen(false);
+    setSuccessReceipt(null);
+    setIsBadgeModalOpen(false);
+    setBadgeAwards([]);
+    setPendingBadgeLevels([]);
+    setBadgeBaselineIds(null);
+    setShouldOpenBadgeModal(false);
   }, []);
 
   const handleContributionKeyDown = useCallback(
@@ -140,6 +188,34 @@ export function DonationCard({
     },
     [],
   );
+
+  const handleProcessingModalCancel = useCallback(() => {
+    resetDonationFlow();
+  }, [resetDonationFlow]);
+
+  const handleSuccessModalClose = useCallback(() => {
+    setIsSuccessModalOpen(false);
+    if (!shouldOpenBadgeModal) {
+      setBadgeAwards([]);
+    }
+  }, [shouldOpenBadgeModal]);
+
+  const handleViewContributions = useCallback(() => {
+    if (!currentAccount?.address) {
+      return;
+    }
+    const profilePath = buildProfileDetailPath(currentAccount.address);
+    navigate(`${profilePath}?tab=contributions`);
+    setIsSuccessModalOpen(false);
+  }, [currentAccount?.address, navigate]);
+
+  const handleBadgeModalClose = useCallback(() => {
+    setIsBadgeModalOpen(false);
+    setBadgeAwards([]);
+    setPendingBadgeLevels([]);
+    setBadgeBaselineIds(null);
+    setShouldOpenBadgeModal(false);
+  }, []);
 
   useEffect(() => {
     if (!selectedCoinType && enabledTokens.length > 0) {
@@ -188,6 +264,11 @@ export function DonationCard({
     enabled: Boolean(currentAccount?.address),
   });
 
+  const { badges: ownedBadges, refetch: refetchDonorBadges } = useDonorBadges({
+    ownerAddress: currentAccount?.address,
+    enabled: Boolean(currentAccount?.address),
+  });
+
   const {
     data: balanceData,
     isPending: isBalanceLoading,
@@ -210,6 +291,61 @@ export function DonationCard({
     }
     return BigInt(balanceData.totalBalance ?? "0");
   }, [balanceData]);
+
+  useEffect(() => {
+    if (!pendingBadgeLevels.length || !badgeBaselineIds?.length) {
+      return;
+    }
+    const baselineSet = new Set(badgeBaselineIds);
+    const mintedMatches = ownedBadges.filter(
+      (badge) =>
+        pendingBadgeLevels.includes(badge.level) &&
+        !baselineSet.has(badge.objectId),
+    );
+
+    if (!mintedMatches.length) {
+      return;
+    }
+
+    setBadgeAwards((previous) => {
+      const updated = [...previous];
+      mintedMatches.forEach((badge) => {
+        const replacement: BadgeRewardItem = {
+          id: badge.objectId,
+          level: badge.level,
+          imageUrl: badge.imageUrl,
+          objectId: badge.objectId,
+          explorerUrl: buildExplorerObjectUrl(badge.objectId, network),
+        };
+        const existingIndex = updated.findIndex(
+          (item) => item.level === badge.level,
+        );
+        if (existingIndex >= 0) {
+          updated[existingIndex] = replacement;
+        } else {
+          updated.push(replacement);
+        }
+      });
+      return updated;
+    });
+
+    setPendingBadgeLevels((levels) => {
+      const remaining = levels.filter(
+        (level) => !mintedMatches.some((badge) => badge.level === level),
+      );
+      if (!remaining.length) {
+        setBadgeBaselineIds(null);
+      }
+      return remaining;
+    });
+  }, [pendingBadgeLevels, badgeBaselineIds, ownedBadges, network]);
+
+  useEffect(() => {
+    if (shouldOpenBadgeModal && !isSuccessModalOpen && badgeAwards.length) {
+      setIsBadgeModalOpen(true);
+      setShouldOpenBadgeModal(false);
+    }
+  }, [shouldOpenBadgeModal, isSuccessModalOpen, badgeAwards.length]);
 
   const normalizedAccountAddress = useMemo(
     () => currentAccount?.address?.toLowerCase() ?? null,
@@ -430,7 +566,22 @@ export function DonationCard({
       return;
     }
 
+    donationFlowRef.current += 1;
+    const flowToken = donationFlowRef.current;
+
     setIsProcessing(true);
+    setIsProcessingModalOpen(true);
+    setIsSuccessModalOpen(false);
+    setSuccessReceipt(null);
+    setIsBadgeModalOpen(false);
+    setBadgeAwards([]);
+    setPendingBadgeLevels([]);
+    setBadgeBaselineIds(null);
+    setShouldOpenBadgeModal(false);
+    setPendingDonation(null);
+    setIsBuildingDonation(true);
+    setIsWalletRequestPending(false);
+    setHasAttemptedWalletConfirmation(false);
 
     const donationFlow: DonationFlow =
       hasProfile && profileId ? "repeat" : "firstTime";
@@ -466,6 +617,11 @@ export function DonationCard({
       });
       setValidationError(message);
       setIsProcessing(false);
+      setIsProcessingModalOpen(false);
+      setIsBuildingDonation(false);
+      setPendingDonation(null);
+      setIsWalletRequestPending(false);
+      setHasAttemptedWalletConfirmation(false);
       console.error("[donation] failed to build transaction", {
         error,
         donationFlow,
@@ -483,6 +639,37 @@ export function DonationCard({
 
     setLastUsdQuote(buildResult.quotedUsdMicro);
     setQuoteTimestamp(buildResult.pricePublishTimeMs ?? Date.now());
+    setIsBuildingDonation(false);
+    if (donationFlowRef.current !== flowToken) {
+      return;
+    }
+
+    setPendingDonation({
+      buildResult,
+      rawAmount,
+      selectedToken,
+      selectedTokenDisplay,
+      donationFlow,
+      shouldRefreshProfile,
+    });
+  }
+
+  const executePendingDonation = useCallback(async () => {
+    if (!pendingDonation || isWalletRequestPending) {
+      return;
+    }
+
+    setHasAttemptedWalletConfirmation(true);
+    setIsWalletRequestPending(true);
+
+    const {
+      buildResult,
+      rawAmount,
+      selectedToken,
+      selectedTokenDisplay,
+      donationFlow,
+      shouldRefreshProfile,
+    } = pendingDonation;
 
     try {
       const response = await signAndExecuteWithWallet(buildResult.transaction, {
@@ -518,6 +705,10 @@ export function DonationCard({
         })
         .filter((level): level is number => level !== null);
 
+      const uniqueMintedLevels = Array.from(new Set(mintedLevels)).sort(
+        (a, b) => a - b,
+      );
+
       const amountUsdMicro = donationEvent
         ? parseBigIntField(
             (donationEvent.parsedJson as { amount_usd_micro?: string })
@@ -531,13 +722,11 @@ export function DonationCard({
           )
         : rawAmount;
 
-      const amountHuman = selectedToken
-        ? formatRawAmount(
-            amountRawFromEvent ?? rawAmount,
-            selectedToken.decimals,
-            6,
-          )
-        : contributionAmount;
+      const amountHuman = formatRawAmount(
+        amountRawFromEvent ?? rawAmount,
+        selectedToken.decimals,
+        6,
+      );
 
       const usdDisplay = amountUsdMicro
         ? `$${formatUsdLocaleFromMicros(amountUsdMicro)}`
@@ -546,14 +735,46 @@ export function DonationCard({
       const parts = [
         `Sent ${amountHuman} ${selectedToken.symbol}`,
         usdDisplay ? `≈ ${usdDisplay}` : null,
-        mintedLevels.length
-          ? `Earned badge level${mintedLevels.length > 1 ? "s" : ""} ${mintedLevels.join(", ")}`
+        uniqueMintedLevels.length
+          ? `Earned badge level${uniqueMintedLevels.length > 1 ? "s" : ""} ${uniqueMintedLevels.join(", ")}`
           : null,
       ].filter(Boolean);
 
       toast.success("Donation submitted", {
         description: parts.join(" · "),
       });
+
+      const explorerUrl = buildExplorerTxUrl(transactionDigest, network);
+      setSuccessReceipt({
+        amountDisplay: amountHuman,
+        tokenSymbol: selectedToken.symbol,
+        tokenLabel: selectedTokenDisplay?.label ?? selectedToken.symbol,
+        approxUsdDisplay: usdDisplay,
+        explorerUrl,
+        transactionDigest,
+        TokenIcon: selectedTokenDisplay?.Icon ?? null,
+      });
+      setIsProcessingModalOpen(false);
+      setIsSuccessModalOpen(true);
+
+      if (uniqueMintedLevels.length) {
+        const placeholders: BadgeRewardItem[] = uniqueMintedLevels.map(
+          (level, index) => ({
+            id: `pending-${transactionDigest}-${level}-${index}`,
+            level,
+            imageUrl: null,
+          }),
+        );
+        setBadgeAwards(placeholders);
+        setPendingBadgeLevels(uniqueMintedLevels);
+        setBadgeBaselineIds(ownedBadges.map((badge) => badge.objectId));
+        setShouldOpenBadgeModal(true);
+      } else {
+        setBadgeAwards([]);
+        setPendingBadgeLevels([]);
+        setBadgeBaselineIds(null);
+        setShouldOpenBadgeModal(false);
+      }
 
       setContributionAmount("");
       setValidationError(null);
@@ -584,7 +805,29 @@ export function DonationCard({
         );
       }
 
-      await onDonationComplete?.();
+      if (uniqueMintedLevels.length) {
+        try {
+          await refetchDonorBadges();
+        } catch (badgeRefreshError) {
+          console.warn(
+            "[donation] failed to refresh badges after mint",
+            badgeRefreshError,
+          );
+        }
+      }
+
+      try {
+        await onDonationComplete?.();
+      } catch (callbackError) {
+        console.warn(
+          "[donation] onDonationComplete callback failed",
+          callbackError,
+        );
+      }
+
+      setPendingDonation(null);
+      setIsProcessing(false);
+      setHasAttemptedWalletConfirmation(false);
     } catch (error) {
       if (isUserRejectedError(error)) {
         toast.info("Transaction cancelled. No funds were sent.");
@@ -599,12 +842,25 @@ export function DonationCard({
         });
       }
     } finally {
-      setIsProcessing(false);
+      setIsWalletRequestPending(false);
     }
-  }
+  }, [
+    pendingDonation,
+    isWalletRequestPending,
+    signAndExecuteWithWallet,
+    badgeEventType,
+    donationEventType,
+    network,
+    ownedBadges,
+    refetchDonorBadges,
+    refetchProfile,
+    suiClient,
+    onDonationComplete,
+  ]);
 
   return (
-    <div className="bg-white rounded-2xl sm:rounded-3xl p-6 sm:p-8 lg:p-10 flex flex-col gap-4 sm:gap-5 lg:gap-6 w-full shadow-[0px_0px_16px_0px_rgba(0,0,0,0.16)]">
+    <>
+      <div className="bg-white rounded-2xl sm:rounded-3xl p-6 sm:p-8 lg:p-10 flex flex-col gap-4 sm:gap-5 lg:gap-6 w-full shadow-[0px_0px_16px_0px_rgba(0,0,0,0.16)]">
       {/* Verification Badge */}
       <div className="flex items-start">
         <VerificationBadge isVerified={isVerified} />
@@ -841,7 +1097,29 @@ export function DonationCard({
           <Share2 className="size-3.5" />
         </Button>
       </div>
-    </div>
+      </div>
+
+      <DonationProcessingModal
+        open={isProcessingModalOpen}
+        isBuilding={isBuildingDonation}
+        hasAttemptedConfirmation={hasAttemptedWalletConfirmation}
+        isWalletRequestPending={isWalletRequestPending}
+        canConfirm={Boolean(pendingDonation && !isBuildingDonation)}
+        onCancel={handleProcessingModalCancel}
+        onConfirm={executePendingDonation}
+      />
+      <DonationSuccessModal
+        open={isSuccessModalOpen}
+        receipt={successReceipt}
+        onClose={handleSuccessModalClose}
+        onViewContributions={currentAccount?.address ? handleViewContributions : undefined}
+      />
+      <BadgeRewardModal
+        open={isBadgeModalOpen}
+        badges={badgeAwards}
+        onClose={handleBadgeModalClose}
+      />
+    </>
   );
 }
 
@@ -900,6 +1178,41 @@ function parseBigIntField(value?: string | number | null): bigint | null {
     return BigInt(Math.floor(value));
   }
   return null;
+}
+
+function resolveExplorerBaseUrl(network: SupportedNetwork): string {
+  return SUI_EXPLORER_URLS[network] ?? SUI_EXPLORER_URLS.testnet;
+}
+
+function buildExplorerTxUrl(
+  digest: string,
+  network: SupportedNetwork,
+): string | null {
+  if (!digest) {
+    return null;
+  }
+  const baseUrl = resolveExplorerBaseUrl(network);
+  return `${baseUrl}/txblock/${digest}`;
+}
+
+function buildExplorerObjectUrl(
+  objectId: string,
+  network: SupportedNetwork,
+): string | null {
+  if (!objectId) {
+    return null;
+  }
+  const baseUrl = resolveExplorerBaseUrl(network);
+  return `${baseUrl}/object/${objectId}`;
+}
+
+interface PendingDonationContext {
+  buildResult: DonationBuildResult;
+  rawAmount: bigint;
+  selectedToken: TokenRegistryEntry;
+  selectedTokenDisplay: TokenDisplayData | null;
+  donationFlow: DonationFlow;
+  shouldRefreshProfile: boolean;
 }
 
 type DonationFlow = "firstTime" | "repeat";
