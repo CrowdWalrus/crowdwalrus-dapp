@@ -16,6 +16,7 @@ import type { TokenRegistryEntry } from "@/services/tokenRegistry";
 
 const MAX_U64 = (1n << 64n) - 1n;
 const DEFAULT_SLIPPAGE_BPS = 100; // 1%
+const SUI_DONATION_GAS_BUFFER = 200_000_000n; // Reserve ~0.2 SUI so the gas coin retains enough balance after splitting.
 
 export interface DonationBuildResult {
   transaction: Transaction;
@@ -70,6 +71,7 @@ export async function buildFirstTimeDonationTx(
 
   const config = getContractConfig(network);
   const tx = new Transaction();
+  tx.setSenderIfNotSet(accountAddress);
 
   const donationCoin = await prepareDonationCoin({
     tx,
@@ -150,6 +152,7 @@ export async function buildRepeatDonationTx(
 
   const config = getContractConfig(network);
   const tx = new Transaction();
+  tx.setSenderIfNotSet(accountAddress);
 
   const donationCoin = await prepareDonationCoin({
     tx,
@@ -288,8 +291,12 @@ async function prepareDonationCoin({
   rawAmount: bigint;
 }): Promise<TransactionObjectArgument> {
   if (coinType === SUI_TYPE_ARG) {
-    const [donationCoin] = tx.splitCoins(tx.gas, [rawAmount]);
-    return donationCoin;
+    return await prepareSuiDonationCoin({
+      tx,
+      suiClient,
+      ownerAddress,
+      rawAmount,
+    });
   }
 
   const normalizedOwner = normalizeSuiAddress(ownerAddress);
@@ -325,6 +332,71 @@ async function prepareDonationCoin({
   }
 
   const [donationCoin] = tx.splitCoins(primaryCoin, [rawAmount]);
+  return donationCoin;
+}
+
+async function prepareSuiDonationCoin({
+  tx,
+  suiClient,
+  ownerAddress,
+  rawAmount,
+}: {
+  tx: Transaction;
+  suiClient: SuiClient;
+  ownerAddress: string;
+  rawAmount: bigint;
+}): Promise<TransactionObjectArgument> {
+  tx.setSenderIfNotSet(ownerAddress);
+  const normalizedOwner = normalizeSuiAddress(ownerAddress);
+  const requiredAmountWithBuffer = rawAmount + SUI_DONATION_GAS_BUFFER;
+  if (requiredAmountWithBuffer > MAX_U64) {
+    throw new Error("Donation amount exceeds supported range.");
+  }
+
+  const coins = await selectCoinsForAmount({
+    suiClient,
+    owner: normalizedOwner,
+    coinType: SUI_TYPE_ARG,
+    rawAmount: requiredAmountWithBuffer,
+  });
+
+  if (!coins.length) {
+    throw new Error("No spendable SUI coins found for this wallet.");
+  }
+
+  const sortedCoins = [...coins].sort((a, b) => {
+    const balanceA = BigInt(a.balance ?? "0");
+    const balanceB = BigInt(b.balance ?? "0");
+    return balanceB > balanceA ? 1 : balanceB < balanceA ? -1 : 0;
+  });
+
+  const totalBalance = sortedCoins.reduce((sum, coin) => {
+    const balance = coin.balance ? BigInt(coin.balance) : 0n;
+    return sum + balance;
+  }, 0n);
+
+  if (totalBalance < requiredAmountWithBuffer) {
+    throw new Error("Insufficient SUI to cover the donation plus gas fees.");
+  }
+
+  const [gasCoin, ...extraCoins] = sortedCoins;
+  if (!gasCoin?.digest || !gasCoin?.version) {
+    throw new Error("Unable to resolve metadata for the selected SUI coin.");
+  }
+
+  tx.setGasPayment([
+    {
+      objectId: gasCoin.coinObjectId,
+      digest: gasCoin.digest,
+      version: gasCoin.version,
+    },
+  ]);
+
+  extraCoins.forEach((coin) => {
+    tx.mergeCoins(tx.gas, [tx.object(coin.coinObjectId)]);
+  });
+
+  const [donationCoin] = tx.splitCoins(tx.gas, [rawAmount]);
   return donationCoin;
 }
 
@@ -410,6 +482,8 @@ export { DEFAULT_SLIPPAGE_BPS };
 interface SelectedCoin {
   coinObjectId: string;
   balance: string;
+  digest?: string;
+  version?: string;
 }
 
 interface SelectCoinsParams {
@@ -471,6 +545,8 @@ async function fetchCoinsManually({
       coins.push({
         coinObjectId: coin.coinObjectId,
         balance: coin.balance,
+        digest: coin.digest,
+        version: coin.version,
       });
       aggregated += BigInt(coin.balance ?? "0");
     });
