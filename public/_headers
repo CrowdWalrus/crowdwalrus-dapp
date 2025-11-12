@@ -1,7 +1,11 @@
 # Required headers for WebAssembly (Walrus WASM)
 # These headers enable SharedArrayBuffer and cross-origin isolation
-# which are required by @mysten/walrus-wasm
+# which are required by @mysten/walrus-wasm. We use COEP=credentialless so
+# Walrus aggregator assets without CORP headers can still load.
+# Image CSP keeps COEP relaxed but still allowlists Walrus domains.
 
 /*
   Cross-Origin-Opener-Policy: same-origin
-  Cross-Origin-Embedder-Policy: require-corp
+  Cross-Origin-Embedder-Policy: credentialless
+  Referrer-Policy: strict-origin-when-cross-origin
+  Content-Security-Policy: img-src 'self' data: blob: https://aggregator.walrus-testnet.walrus.space https://aggregator.walrus.space https://aggregator.walrus.site https://aggregator.walrus-testnet.walrus.site;
