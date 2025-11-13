@@ -71,6 +71,12 @@ export const STORAGE_DURATION_OPTIONS = {
   ] as StorageDurationOption[],
 } as const;
 
+export const SUI_EXPLORER_URLS: Record<SupportedNetwork, string> = {
+  mainnet: "https://suivision.xyz",
+  testnet: "https://testnet.suivision.xyz",
+  devnet: "https://testnet.suivision.xyz",
+};
+
 const devnetContracts = contractsConfig.devnet.contracts;
 const testnetContracts = contractsConfig.testnet.contracts;
 const mainnetContracts = contractsConfig.mainnet.contracts;

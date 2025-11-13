@@ -144,9 +144,7 @@ export function CampaignCard({
             <div className="flex items-center gap-2 flex-wrap">
               <CategoriesBadgeGroup categories={campaign.category} />
               {supportersCount > 0 && (
-                <ContributorsBadge
-                  contributorsCount={supportersCount}
-                />
+                <ContributorsBadge contributorsCount={supportersCount} />
               )}
             </div>
           </div>
@@ -157,7 +155,7 @@ export function CampaignCard({
               {/* Progress Bar */}
               <div className="w-full h-2 bg-black-50 rounded-[10px] overflow-hidden">
                 <div
-                  className="h-full bg-gradient-to-r from-sgreen-500 to-sgreen-400 rounded-[10px] transition-all"
+                  className="h-full bg-sgreen-700 rounded-[10px] transition-all"
                   style={{ width: `${fundingPercentage}%` }}
                 />
               </div>

@@ -136,7 +136,6 @@ export function useCampaignStats(
     }
 
     const fields = content.fields as CampaignStatsMoveFields;
-
     return {
       statsId: derivedStatsId,
       campaignId:
@@ -258,8 +257,13 @@ export function useCampaignStats(
     [client, config.contracts.packageId, derivedStatsId],
   );
 
-  const isPending = Boolean(isCampaignPending || isStatsPending);
-  const combinedError = (campaignError ?? statsError) as Error | null;
+  const effectiveCampaignPending = shouldFetchCampaign ? isCampaignPending : false;
+  const isPending = Boolean(effectiveCampaignPending || isStatsPending);
+
+  const normalizedCampaignError = shouldFetchCampaign
+    ? (campaignError as Error | null)
+    : null;
+  const combinedError = (normalizedCampaignError ?? statsError) as Error | null;
 
   const refetch = useCallback(async () => {
     if (shouldFetchCampaign) {

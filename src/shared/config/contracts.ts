@@ -105,15 +105,15 @@ const TESTNET_CONFIG: NetworkContractConfig = {
   contracts: {
     // Package ID from deployment
     packageId:
-      "0xc762a509c02849b7ca0b63eb4226c1fb87aed519af51258424a3591faaacac10",
+      "0x5abd06b4c77fca5cdf684f77a2a06c1303218bf85ac27dde3cb07243655a3e9e",
 
     // CrowdWalrus shared object from deployment
     crowdWalrusObjectId:
-      "0x10e5b1e7f63c33d8e49eeac79168badfb9b271209bd12a59bbcde1ecd0187596",
+      "0xc6632fb8fc6b2ceb5dee81292855a5def8a7c4289c8c7aa9908d0d5373e1376b",
 
     // SuiNS Manager shared object from deployment
     suinsManagerObjectId:
-      "0x48ceb4364109da3b9cd889d29dc9e14bafa5983777ccaa3f5d6385958b8190cf",
+      "0x73d8313a788722f5be2ea362cbb33ee9afac241d2bb88541aa6a93bf08e245ac",
 
     // SuiNS registry object ID for custom deployment (crowdwalrus-testnet-core-v2)
     suinsObjectId:
@@ -121,19 +121,19 @@ const TESTNET_CONFIG: NetworkContractConfig = {
 
     // PolicyRegistry shared object from Phase 2 deployment
     policyRegistryObjectId:
-      "0xaf5058f1ff30262fdeeeaa325b4b1ce12a73015abbf22867f63e9f449bb9e8c3",
+      "0xd8f6ef8263676816f298c1f7f311829dd3ee67e26993832e842cb7660859f906",
 
     // ProfilesRegistry shared object from Phase 2 deployment
     profilesRegistryObjectId:
-      "0xd72f3907908b0575afea266c457c0109690ab11e8568106364c76e2444c2aeac",
+      "0x2284d6443cbe5720da6b658237b66176a7c9746d2f8322c8a5cd0310357766b0",
 
     // TokenRegistry shared object from Phase 2 deployment
     tokenRegistryObjectId:
-      "0xee1330d94cd954ae58fd18a8336738562f05487fae56dda9c655f461eac52b6f",
+      "0x92909eb4d9ff776ef04ff37fb5e100426dabc3e2a3bae2e549bde01ebd410ae4",
 
     // BadgeConfig shared object from Phase 2 deployment
     badgeConfigObjectId:
-      "0x71c1e75eb42a29a81680f9f1e454e87468561a5cd28e2217e841c6693d00ea23",
+      "0x6faec79a14bcd741a97d5a42722c49e6abed148955e87cdce0ad9e505b6c5412",
   },
   walrus: {
     network: "testnet",
@@ -147,8 +147,9 @@ const TESTNET_CONFIG: NetworkContractConfig = {
   campaignDomain: "crowdwalrus-test.sui",
   pyth: {
     hermesUrl: "https://hermes-beta.pyth.network",
+    // Temporary Beta channel until the on-chain package is upgraded.
     pythStateId:
-      "0xd3e79c2c083b934e78b3bd58a490ec6b092561954da6e7322e1e2b3c8abfddc0",
+      "0x243759059f4c3111179da5878c12f68d612c21a8d54d85edc86164bb18be1c7c",
     wormholeStateId:
       "0x31358d198147da50db32eda2562951d53973a0c0ad5ed738e9b17d88b213d790",
   },

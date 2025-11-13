@@ -18,6 +18,7 @@ import {
 } from "@/features/profiles/components/profile-page";
 import { MyCampaignsSection } from "@/features/profiles/components/my-campaigns";
 import { useMyCampaigns } from "@/features/campaigns/hooks/useMyCampaigns";
+import { useDonorBadges } from "@/features/badges/hooks/useDonorBadges";
 import { useProfileOwnership } from "@/features/profiles/hooks/useProfileOwnership";
 import { useDocumentTitle } from "@/shared/hooks/useDocumentTitle";
 import { Button } from "@/shared/components/ui/button";
@@ -26,15 +27,6 @@ import { ROUTES } from "@/shared/config/routes";
 const DESCRIPTION_EMPTY_STATE =
   "It appears that your profile is currently incomplete. Please take a moment to create your profile and share information about yourself.";
 
-// TODO: Replace placeholder badge assets once on-chain badge metadata lands.
-const BADGE_ASSETS = [
-  "/assets/images/placeholders/profile-badge-1.png",
-  "/assets/images/placeholders/profile-badge-2.png",
-  "/assets/images/placeholders/profile-badge-3.png",
-  "/assets/images/placeholders/profile-badge-4.png",
-];
-
-const DEFAULT_BADGE_ALT = "CrowdWalrus profile badge placeholder";
 const PROFILE_TAB_VALUES: ProfileTabValue[] = [
   "overview",
   "campaigns",
@@ -51,6 +43,9 @@ const formatAddressForDisplay = (address?: string | null) => {
 export function ProfilePage() {
   const { address: addressParam } = useParams<{ address: string }>();
   const { isOwner } = useProfileOwnership({ profileAddress: addressParam });
+  const { badges: donorBadges } = useDonorBadges({
+    ownerAddress: addressParam,
+  });
   const [searchParams, setSearchParams] = useSearchParams();
   const myCampaigns = useMyCampaigns();
   const campaignCount = myCampaigns.campaigns.length;
@@ -64,12 +59,12 @@ export function ProfilePage() {
 
   const badges = useMemo(
     () =>
-      BADGE_ASSETS.map((src, index) => ({
-        id: `badge-${index}`,
-        src,
-        alt: `${DEFAULT_BADGE_ALT} ${index + 1}`,
+      donorBadges.map((badge) => ({
+        id: badge.objectId,
+        src: badge.imageUrl,
+        alt: `CrowdWalrus donor badge level ${badge.level}`,
       })),
-    [],
+    [donorBadges],
   );
 
   const placeholderStats = useMemo(() => {
@@ -77,7 +72,7 @@ export function ProfilePage() {
     return [
       {
         id: "contributions",
-        label: "Your Contributions",
+        label: "Contributions",
         value: "10",
         icon: HandHeart,
       },
@@ -89,7 +84,7 @@ export function ProfilePage() {
       },
       {
         id: "campaigns",
-        label: "Your Campaigns",
+        label: "Campaigns",
         value: campaignCount.toString(),
         icon: FileSpreadsheet,
       },
@@ -143,9 +138,7 @@ export function ProfilePage() {
   ];
 
   const tabParam = searchParams.get("tab");
-  const activeTab = PROFILE_TAB_VALUES.includes(
-    tabParam as ProfileTabValue,
-  )
+  const activeTab = PROFILE_TAB_VALUES.includes(tabParam as ProfileTabValue)
     ? (tabParam as ProfileTabValue)
     : "overview";
 
