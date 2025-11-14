@@ -29,8 +29,8 @@ export interface TransactionConfirmStateProps {
   /** Called when user clicks "Cancel" */
   onCancel?: () => void
 
-  /** Controls copy for campaign vs update flow */
-  mode?: "campaign" | "campaign-update"
+  /** Controls copy for campaign vs update vs profile flow */
+  mode?: "campaign" | "campaign-update" | "profile"
 }
 
 export const TransactionConfirmState = ({
@@ -41,14 +41,23 @@ export const TransactionConfirmState = ({
   // TODO: Implement your UI here
 
   const isUpdate = mode === "campaign-update";
-  const title = isUpdate ? "Post Campaign Update" : "Create Campaign";
-  const subtitle = isUpdate
-    ? "You're ready to share this update with your supporters."
-    : "You're ready to launch your campaign!";
-  const bodyCopy = isUpdate
-    ? "Your update content is encoded on Walrus storage. Posting will submit a transaction that links this blob to your campaign."
-    : "Your campaign is ready to be published on the blockchain.";
-  const ctaLabel = isUpdate ? "Post Update" : "Create Campaign";
+  const isProfile = mode === "profile";
+  const title = isProfile
+    ? "Save Profile Image"
+    : isUpdate
+      ? "Post Campaign Update"
+      : "Create Campaign";
+  const subtitle = isProfile
+    ? "You're ready to attach this Walrus-hosted avatar to your profile."
+    : isUpdate
+      ? "You're ready to share this update with your supporters."
+      : "You're ready to launch your campaign!";
+  const bodyCopy = isProfile
+    ? "Your profile image has been stored with Walrus. Saving will link this blob to your on-chain metadata."
+    : isUpdate
+      ? "Your update content is encoded on Walrus storage. Posting will submit a transaction that links this blob to your campaign."
+      : "Your campaign is ready to be published on the blockchain.";
+  const ctaLabel = isProfile ? "Save Profile" : isUpdate ? "Post Update" : "Create Campaign";
 
   return (
     <div className="space-y-4">
@@ -81,9 +90,11 @@ export const TransactionConfirmState = ({
 
       {/* TODO: Explanation */}
       <div className="text-sm text-muted-foreground">
-        {isUpdate
-          ? "Clicking \"Post Update\" will submit a transaction that records this update on-chain."
-          : "Clicking \"Create Campaign\" will submit a transaction to create your campaign on the Sui blockchain."}
+        {isProfile
+          ? "Clicking \"Save Profile\" will submit a transaction updating your profile metadata with this Walrus blob."
+          : isUpdate
+            ? "Clicking \"Post Update\" will submit a transaction that records this update on-chain."
+            : "Clicking \"Create Campaign\" will submit a transaction to create your campaign on the Sui blockchain."}
       </div>
 
       {/* TODO: Action buttons */}
