@@ -144,7 +144,15 @@ const parseFundingGoalUsdMicro = (
   return parseU64BigIntFromMove(fields.funding_goal_usd_micro, 0n);
 };
 
-export function useAllCampaigns(network: SupportedNetwork = DEFAULT_NETWORK) {
+interface UseAllCampaignsOptions {
+  enabled?: boolean;
+}
+
+export function useAllCampaigns(
+  network: SupportedNetwork = DEFAULT_NETWORK,
+  options: UseAllCampaignsOptions = {},
+) {
+  const { enabled = true } = options;
   const config = getContractConfig(network);
 
   const {
@@ -152,13 +160,19 @@ export function useAllCampaigns(network: SupportedNetwork = DEFAULT_NETWORK) {
     isPending: isEventsPending,
     error: eventsError,
     refetch: refetchEvents,
-  } = useSuiClientQuery("queryEvents", {
-    query: {
-      MoveEventType: `${config.contracts.packageId}::crowd_walrus::CampaignCreated`,
+  } = useSuiClientQuery(
+    "queryEvents",
+    {
+      query: {
+        MoveEventType: `${config.contracts.packageId}::crowd_walrus::CampaignCreated`,
+      },
+      limit: 100,
+      order: "descending",
     },
-    limit: 100,
-    order: "descending",
-  });
+    {
+      enabled,
+    },
+  );
 
   const { campaignIds, creatorMap } = useMemo(() => {
     if (!eventsData?.data) {
@@ -197,7 +211,7 @@ export function useAllCampaigns(network: SupportedNetwork = DEFAULT_NETWORK) {
       },
     },
     {
-      enabled: campaignIds.length > 0,
+      enabled: enabled && campaignIds.length > 0,
     },
   );
 
@@ -297,15 +311,18 @@ export function useAllCampaigns(network: SupportedNetwork = DEFAULT_NETWORK) {
     return processedCampaigns;
   }, [campaignObjects, network, creatorMap]);
 
-  const isPending = isEventsPending || isCampaignsPending;
+  const isPending = enabled && (isEventsPending || isCampaignsPending);
   const error = eventsError || campaignsError;
 
   const refetch = useCallback(() => {
+    if (!enabled) {
+      return;
+    }
     refetchEvents();
     if (campaignIds.length > 0) {
       refetchCampaigns();
     }
-  }, [campaignIds.length, refetchCampaigns, refetchEvents]);
+  }, [campaignIds.length, enabled, refetchCampaigns, refetchEvents]);
 
   return {
     campaigns,
