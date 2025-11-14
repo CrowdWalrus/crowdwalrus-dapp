@@ -72,17 +72,25 @@ export function CertificationErrorAlert({
   );
 }
 
-export function StorageRegistrationSuccessAlert() {
+interface StorageRegistrationSuccessAlertProps {
+  title?: string;
+  description?: string;
+}
+
+export function StorageRegistrationSuccessAlert({
+  title = "Storage registration completed successfully!",
+  description = "You can now proceed to publish your campaign.",
+}: StorageRegistrationSuccessAlertProps) {
   return (
     <Alert className="bg-sgreen-50 border-sgreen-200">
       <div className="flex items-start gap-3">
         <CheckCircle2 className="size-4 text-sgreen-700 mt-0.5" />
         <div className="flex-1 flex flex-col gap-0">
           <AlertDescription className="text-sm font-medium text-sgreen-700 leading-[1.5]">
-            Storage registration completed successfully!
+            {title}
           </AlertDescription>
           <AlertDescription className="text-sm font-medium text-sgreen-900 leading-[1.5]">
-            You can now proceed to publish your campaign.
+            {description}
           </AlertDescription>
         </div>
       </div>

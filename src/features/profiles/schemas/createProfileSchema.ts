@@ -15,7 +15,7 @@ const imageFileSchema = z
     "Image size must be less than 5MB.",
   );
 
-export const profileCreateSchema = z.object({
+export const createProfileSchema = z.object({
   profileImage: imageFileSchema.nullable(),
   fullName: z
     .string()
@@ -47,4 +47,4 @@ export const profileCreateSchema = z.object({
     .max(MAX_SOCIAL_LINKS, "You can add up to 5 social links."),
 });
 
-export type ProfileCreateFormData = z.infer<typeof profileCreateSchema>;
+export type CreateProfileFormData = z.infer<typeof createProfileSchema>;

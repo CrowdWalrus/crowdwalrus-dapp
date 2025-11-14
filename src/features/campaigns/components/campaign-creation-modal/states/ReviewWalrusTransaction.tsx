@@ -36,12 +36,16 @@ export interface ReviewWalrusTransactionProps {
 
   /** Called when user clicks "Cancel" */
   onCancel?: () => void;
+
+  /** Controls contextual copy */
+  mode?: "campaign" | "campaign-update" | "profile";
 }
 
 export const ReviewWalrusTransaction = ({
   estimatedCost,
   onConfirm,
   onCancel,
+  mode = "campaign",
 }: ReviewWalrusTransactionProps) => {
   const epochConfig = useNetworkVariable("epochConfig") as {
     epochDurationDays: number;
@@ -68,6 +72,15 @@ export const ReviewWalrusTransaction = ({
     ? `${estimatedCost.subsidizedTotalCost.toFixed(6)} WAL`
     : "Calculate first";
 
+  const descriptionCopy = {
+  campaign:
+    "Please review the cost details before confirming your transaction to publish this campaign.",
+    "campaign-update":
+      "Please review the Walrus storage details before sharing your update.",
+    profile:
+      "Please review the Walrus storage details for your profile image before saving.",
+  } as const;
+
   return (
     <div className="flex flex-col gap-8 items-center">
       <img
@@ -78,8 +91,7 @@ export const ReviewWalrusTransaction = ({
       <div className="flex flex-col gap-2 text-center">
         <h2 className="text-lg font-semibold">Review transaction</h2>
         <p className="text-sm text-muted-foreground">
-          Please review details to confirm your transaction to complete publish
-          campaign.
+          {descriptionCopy[mode]}
         </p>
       </div>
 

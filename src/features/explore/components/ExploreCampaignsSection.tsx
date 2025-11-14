@@ -4,7 +4,7 @@
  * Main section displaying campaigns with filters and tabs
  */
 
-import { useEffect, useMemo, useState } from "react";
+import { useMemo, useState } from "react";
 import { Button } from "@/shared/components/ui/button";
 import { Separator } from "@/shared/components/ui/separator";
 import {
@@ -13,12 +13,8 @@ import {
   TabsList,
   TabsTrigger,
 } from "@/shared/components/ui/tabs";
-import {
-  useAllCampaigns,
-  type CampaignData,
-} from "@/features/campaigns/hooks/useAllCampaigns";
-import { useCampaignStats } from "@/features/campaigns/hooks/useCampaignStats";
-import { CampaignCard } from "./CampaignCard";
+import { useAllCampaigns } from "@/features/campaigns/hooks/useAllCampaigns";
+import { CampaignCardWithStats } from "@/features/campaigns/components/CampaignCardWithStats";
 import { getCampaignStatus } from "@/features/campaigns/utils/campaignStatus";
 import { ChevronDown } from "lucide-react";
 
@@ -145,7 +141,7 @@ export function ExploreCampaignsSection() {
                     ) : (
                       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
                         {displayedCampaigns.map((campaign) => (
-                          <ExploreCampaignCard
+                          <CampaignCardWithStats
                             key={campaign.id}
                             campaign={campaign}
                           />
@@ -176,36 +172,4 @@ export function ExploreCampaignsSection() {
   );
 }
 
-interface ExploreCampaignCardProps {
-  campaign: CampaignData;
-}
-
-function ExploreCampaignCard({ campaign }: ExploreCampaignCardProps) {
-  const {
-    totalUsdMicro,
-    totalDonationsCount,
-    isPending,
-    error: statsError,
-  } = useCampaignStats({
-    campaignId: campaign.id,
-    statsId: campaign.statsId,
-    enabled: Boolean(campaign.statsId || campaign.id),
-  });
-
-  useEffect(() => {
-    if (statsError) {
-      console.warn(
-        `[ExploreCampaignCard] Failed to load stats for ${campaign.id}:`,
-        statsError,
-      );
-    }
-  }, [campaign.id, statsError]);
-
-  return (
-    <CampaignCard
-      campaign={campaign}
-      raisedUsdMicro={statsError || isPending ? 0n : totalUsdMicro}
-      supportersCount={statsError || isPending ? 0 : totalDonationsCount}
-    />
-  );
-}
+// Component extracted to CampaignCardWithStats

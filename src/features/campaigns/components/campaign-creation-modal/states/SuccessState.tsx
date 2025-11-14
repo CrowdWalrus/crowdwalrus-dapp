@@ -16,8 +16,8 @@ export interface SuccessStateProps {
   /** Campaign update result data */
   updateResult?: CampaignUpdateResult | null;
 
-  /** Controls copy for campaign creation vs update flow */
-  mode?: "campaign" | "campaign-update";
+  /** Controls copy for campaign creation vs update vs profile flow */
+  mode?: "campaign" | "campaign-update" | "profile";
 
   /** Explicit subdomain to use when computing the redirect path */
   subdomainName?: string | null;
@@ -36,6 +36,7 @@ export const SuccessState = ({
     | undefined;
 
   const isUpdate = mode === "campaign-update";
+  const isProfile = mode === "profile";
   const effectiveCampaignId = isUpdate
     ? updateResult?.campaignId
     : campaignResult?.campaignId;
@@ -131,12 +132,18 @@ export const SuccessState = ({
       {/* Success message */}
       <div className="flex flex-col gap-2 text-center pb-6">
         <h2 className="text-2xl font-bold">
-          {isUpdate ? "Update Published 🎉" : "Congratulations 🥳"}
+          {isProfile
+            ? "Profile Updated 🎉"
+            : isUpdate
+              ? "Update Published 🎉"
+              : "Congratulations 🥳"}
         </h2>
         <p className="text-sm text-muted-foreground">
-          {isUpdate
-            ? "Your campaign update is live and visible to your supporters."
-            : "Your campaign has been published successfully."}
+          {isProfile
+            ? "Your profile image is now ready to use everywhere on Crowd Walrus."
+            : isUpdate
+              ? "Your campaign update is live and visible to your supporters."
+              : "Your campaign has been published successfully."}
         </p>
       </div>
 
@@ -171,9 +178,16 @@ export const SuccessState = ({
 
       {/* Action buttons */}
       <div>
-        <Button onClick={handleViewCampaign} className="w-full">
-          {isUpdate ? "View Updates" : "View Campaign"}
-        </Button>
+        {!isProfile && (
+          <Button onClick={handleViewCampaign} className="w-full">
+            {isUpdate ? "View Updates" : "View Campaign"}
+          </Button>
+        )}
+        {isProfile && (
+          <Button onClick={onClose} className="w-full">
+            Close
+          </Button>
+        )}
       </div>
     </div>
   );
