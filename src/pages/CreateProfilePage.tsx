@@ -34,9 +34,9 @@ import { Textarea } from "@/shared/components/ui/textarea";
 import { Alert, AlertDescription } from "@/shared/components/ui/alert";
 import { ProfileAvatarUpload } from "@/features/profiles/components/ProfileAvatarUpload";
 import {
-  profileCreateSchema,
-  type ProfileCreateFormData,
-} from "@/features/profiles/schemas/profileCreateSchema";
+  createProfileSchema,
+  type CreateProfileFormData,
+} from "@/features/profiles/schemas/createProfileSchema";
 import { SubnameField } from "@/features/suins/components/SubnameField";
 import {
   CampaignSocialsSection,
@@ -78,11 +78,12 @@ import {
   type RegisterResult,
   type WalrusFlowState,
 } from "@/features/campaigns/hooks/useWalrusUpload";
+import type { StorageCostEstimate } from "@/features/campaigns/types/campaign";
 import { getWalrusUrl } from "@/services/walrus";
 import { WizardStep } from "@/features/campaigns/types/campaign";
 import { useEstimateProfileAvatarCost } from "@/features/profiles/hooks/useProfileAvatarStorage";
 
-const DEFAULT_VALUES: ProfileCreateFormData = {
+const DEFAULT_VALUES: CreateProfileFormData = {
   profileImage: null,
   fullName: "",
   email: "",
@@ -104,6 +105,9 @@ const PROFILE_REFETCH_ATTEMPTS = 4;
 const PROFILE_REFETCH_DELAY_MS = 1000;
 const STORAGE_PENDING_LABEL = "Upload an image to calculate";
 const AUTO_CALCULATING_LABEL = "Calculating...";
+
+const buildAvatarFileKey = (file: File) =>
+  `${file.name ?? "file"}-${file.size}-${file.lastModified}`;
 
 function extractSubdomainLabel(
   storedValue: string | undefined,
@@ -165,7 +169,7 @@ function addMetadataUpdate(
 }
 
 function buildProfileMetadataUpdates(
-  values: ProfileCreateFormData,
+  values: CreateProfileFormData,
   currentMetadata: Record<string, string>,
   rawMetadata: Record<string, string>,
   campaignDomain: string | null,
@@ -234,11 +238,11 @@ function buildProfileMetadataUpdates(
   return updates;
 }
 
-export default function ProfileCreatePage() {
+export default function CreateProfilePage() {
   useDocumentTitle("Create Profile");
 
-  const form = useForm<ProfileCreateFormData>({
-    resolver: zodResolver(profileCreateSchema),
+  const form = useForm<CreateProfileFormData>({
+    resolver: zodResolver(createProfileSchema),
     mode: "onChange",
     defaultValues: DEFAULT_VALUES,
   });
@@ -282,7 +286,6 @@ export default function ProfileCreatePage() {
   const {
     mutate: estimateAvatarCost,
     mutateAsync: estimateAvatarCostAsync,
-    data: avatarCostEstimate,
     isPending: isEstimatingAvatarCost,
     reset: resetAvatarCost,
   } = useEstimateProfileAvatarCost();
@@ -297,6 +300,10 @@ export default function ProfileCreatePage() {
   const [pendingAvatarWalrusUrl, setPendingAvatarWalrusUrl] =
     useState<string | null>(null);
   const [walrusError, setWalrusError] = useState<Error | null>(null);
+  const [avatarCostState, setAvatarCostState] = useState<{
+    estimate: StorageCostEstimate | null;
+    fileKey: string | null;
+  }>({ estimate: null, fileKey: null });
   const isRegistrationPending =
     walrus.register.isPending ||
     walrus.upload.isPending ||
@@ -334,6 +341,16 @@ export default function ProfileCreatePage() {
   const lastInitializedProfileIdRef = useRef<string | null>(null);
 
   const hasProfileImage = profileImageValue instanceof File;
+  const profileImageFile = hasProfileImage
+    ? (profileImageValue as File)
+    : null;
+  const currentImageFileKey = profileImageFile
+    ? buildAvatarFileKey(profileImageFile)
+    : null;
+  const avatarCostEstimate =
+    avatarCostState.fileKey === currentImageFileKey
+      ? avatarCostState.estimate
+      : null;
   const isWalletConnected = Boolean(account?.address);
 
   useEffect(() => {
@@ -502,25 +519,24 @@ export default function ProfileCreatePage() {
   };
 
   useEffect(() => {
-    if (!hasProfileImage) {
+    if (!profileImageFile) {
       resetAvatarCost();
+      setAvatarCostState({ estimate: null, fileKey: null });
       return;
     }
 
-    const imageFile = profileImageValue instanceof File ? profileImageValue : null;
-    if (!imageFile) {
-      resetAvatarCost();
-      return;
-    }
+    const fileKey = buildAvatarFileKey(profileImageFile);
+    setAvatarCostState({ estimate: null, fileKey });
 
-    estimateAvatarCost({ file: imageFile, epochs: selectedEpochs });
-  }, [
-    estimateAvatarCost,
-    hasProfileImage,
-    profileImageValue,
-    resetAvatarCost,
-    selectedEpochs,
-  ]);
+    estimateAvatarCost(
+      { file: profileImageFile, epochs: selectedEpochs },
+      {
+        onSuccess: (result) => {
+          setAvatarCostState({ estimate: result, fileKey });
+        },
+      },
+    );
+  }, [estimateAvatarCost, profileImageFile, resetAvatarCost, selectedEpochs]);
 
   useEffect(() => {
     if (!profileId || !profile) {
@@ -702,7 +718,7 @@ export default function ProfileCreatePage() {
   );
 
   const handleRegisterStorageClick = useCallback(async () => {
-    if (!hasProfileImage || !(profileImageValue instanceof File)) {
+    if (!profileImageFile) {
       toast.error("Upload a profile image before registering storage.");
       return;
     }
@@ -718,17 +734,19 @@ export default function ProfileCreatePage() {
     }
 
     try {
-      if (!avatarCostEstimate) {
-        await estimateAvatarCostAsync({
-          file: profileImageValue,
+      const fileKey = buildAvatarFileKey(profileImageFile);
+      if (avatarCostState.fileKey !== fileKey || !avatarCostEstimate) {
+        const freshEstimate = await estimateAvatarCostAsync({
+          file: profileImageFile,
           epochs: selectedEpochs,
         });
+        setAvatarCostState({ estimate: freshEstimate, fileKey });
       }
 
       walrus.prepare.mutate(
         {
           purpose: "profile-avatar",
-          avatar: profileImageValue,
+          avatar: profileImageFile,
           network: DEFAULT_NETWORK,
           storageEpochs: selectedEpochs,
         },
@@ -758,11 +776,12 @@ export default function ProfileCreatePage() {
   }, [
     account?.address,
     avatarCostEstimate,
+    avatarCostState.fileKey,
     estimateAvatarCostAsync,
     form,
-    hasProfileImage,
-    profileImageValue,
+    profileImageFile,
     selectedEpochs,
+    setAvatarCostState,
     walrus.prepare,
   ]);
 
