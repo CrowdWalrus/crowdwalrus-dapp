@@ -9,6 +9,7 @@ import PostCampaignUpdatePage from "@/pages/PostCampaignUpdatePage";
 import ProfileCreatePage from "@/pages/ProfileCreatePage";
 import { ProfilePage } from "@/pages/ProfilePage";
 import { ROUTES } from "@/shared/config/routes";
+import { NotFoundPage } from "@/pages/NotFoundPage";
 
 export function AppRoutes() {
   return (
@@ -25,6 +26,8 @@ export function AppRoutes() {
       />
       <Route path={ROUTES.PROFILE_CREATE} element={<ProfileCreatePage />} />
       <Route path={ROUTES.PROFILE_DETAIL} element={<ProfilePage />} />
+      <Route path={ROUTES.NOT_FOUND} element={<NotFoundPage />} />
+      <Route path="*" element={<NotFoundPage />} />
     </Routes>
   );
 }
