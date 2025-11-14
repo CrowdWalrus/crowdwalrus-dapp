@@ -44,6 +44,12 @@ export const WALRUS_EPOCH_CONFIG = {
   },
 } as const;
 
+export const PROFILE_AVATAR_STORAGE_DEFAULT_EPOCHS = {
+  testnet: 20, // 20 days on Walrus testnet
+  mainnet: 13, // 13 epochs × 14 days ≈ 6 months
+  devnet: 20,
+} as const;
+
 /**
  * Storage duration options for registration period dropdown
  */
@@ -95,6 +101,8 @@ const { networkConfig, useNetworkVariable, useNetworkVariables } =
         storageDurationOptions: STORAGE_DURATION_OPTIONS.devnet,
         contracts: devnetContracts,
         campaignDomain: devnetCampaignDomain,
+        avatarStorageEpochs:
+          PROFILE_AVATAR_STORAGE_DEFAULT_EPOCHS.devnet,
       },
     },
     testnet: {
@@ -105,6 +113,8 @@ const { networkConfig, useNetworkVariable, useNetworkVariables } =
         storageDurationOptions: STORAGE_DURATION_OPTIONS.testnet,
         contracts: testnetContracts,
         campaignDomain: testnetCampaignDomain,
+        avatarStorageEpochs:
+          PROFILE_AVATAR_STORAGE_DEFAULT_EPOCHS.testnet,
       },
     },
     mainnet: {
@@ -115,6 +125,8 @@ const { networkConfig, useNetworkVariable, useNetworkVariables } =
         storageDurationOptions: STORAGE_DURATION_OPTIONS.mainnet,
         contracts: mainnetContracts,
         campaignDomain: mainnetCampaignDomain,
+        avatarStorageEpochs:
+          PROFILE_AVATAR_STORAGE_DEFAULT_EPOCHS.mainnet,
       },
     },
   });
