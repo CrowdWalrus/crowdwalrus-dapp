@@ -15,7 +15,10 @@ import {
 } from "@/features/campaigns/types/campaign";
 import type { CampaignUpdateStorageData } from "@/features/campaigns/types/campaignUpdate";
 import { getContractConfig } from "@/shared/config/contracts";
-import { WALRUS_EPOCH_CONFIG } from "@/shared/config/networkConfig";
+import {
+  PROFILE_AVATAR_STORAGE_DEFAULT_EPOCHS,
+  WALRUS_EPOCH_CONFIG,
+} from "@/shared/config/networkConfig";
 import type { SupportedNetwork } from "@/shared/types/network";
 import { lexicalToPlainText } from "@/shared/utils/lexical";
 import {
@@ -450,9 +453,9 @@ export async function calculateProfileAvatarStorageCost(
 ): Promise<StorageCostEstimate> {
   const preparation = await prepareProfileAvatarFile(file);
 
+  const resolvedNetwork = network === "devnet" ? "devnet" : network;
   const storageEpochs =
-    epochs ||
-    WALRUS_EPOCH_CONFIG[network === "devnet" ? "devnet" : network].defaultEpochs;
+    epochs ?? PROFILE_AVATAR_STORAGE_DEFAULT_EPOCHS[resolvedNetwork];
 
   const cost: CampaignStorageCost = await calculateCampaignStorageCost(
     suiClient,
