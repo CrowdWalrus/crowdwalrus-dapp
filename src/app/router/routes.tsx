@@ -6,7 +6,7 @@ import NewCampaignPage from "@/pages/NewCampaignPage";
 import { CampaignPage } from "@/pages/CampaignPage";
 import EditCampaignPage from "@/pages/EditCampaignPage";
 import PostCampaignUpdatePage from "@/pages/PostCampaignUpdatePage";
-import ProfileCreatePage from "@/pages/ProfileCreatePage";
+import CreateProfilePage from "@/pages/CreateProfilePage";
 import { ProfilePage } from "@/pages/ProfilePage";
 import { ROUTES } from "@/shared/config/routes";
 import { NotFoundPage } from "@/pages/NotFoundPage";
@@ -24,7 +24,7 @@ export function AppRoutes() {
         path={ROUTES.CAMPAIGNS_ADD_UPDATE}
         element={<PostCampaignUpdatePage />}
       />
-      <Route path={ROUTES.PROFILE_CREATE} element={<ProfileCreatePage />} />
+      <Route path={ROUTES.PROFILE_CREATE} element={<CreateProfilePage />} />
       <Route path={ROUTES.PROFILE_DETAIL} element={<ProfilePage />} />
       <Route path={ROUTES.NOT_FOUND} element={<NotFoundPage />} />
       <Route path="*" element={<NotFoundPage />} />
