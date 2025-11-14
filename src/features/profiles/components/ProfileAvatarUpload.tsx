@@ -26,7 +26,7 @@ import {
   DialogHeader,
   DialogTitle,
 } from "@/shared/components/ui/dialog";
-import type { ProfileCreateFormData } from "@/features/profiles/schemas/profileCreateSchema";
+import type { CreateProfileFormData } from "@/features/profiles/schemas/createProfileSchema";
 
 import "react-image-crop/dist/ReactCrop.css";
 
@@ -141,7 +141,7 @@ export function ProfileAvatarUpload({
   disabled = false,
   initialPreviewUrl = null,
 }: ProfileAvatarUploadProps) {
-  const form = useFormContext<ProfileCreateFormData>();
+  const form = useFormContext<CreateProfileFormData>();
   const { control, watch } = form;
 
   const fileInputRef = useRef<HTMLInputElement | null>(null);
