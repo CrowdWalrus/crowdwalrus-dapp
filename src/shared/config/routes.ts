@@ -8,4 +8,5 @@ export const ROUTES = {
   CAMPAIGNS_ADD_UPDATE: "/campaigns/:id/add-update",
   PROFILE_CREATE: "/profile/create",
   PROFILE_DETAIL: "/profile/:address",
+  NOT_FOUND: "/404",
 } as const;
