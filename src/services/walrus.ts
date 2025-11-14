@@ -25,6 +25,8 @@ import {
 // Import WASM file with ?url suffix for Vite
 import walrusWasmUrl from "@mysten/walrus-wasm/web/walrus_wasm_bg.wasm?url";
 
+const SUPPORTED_AVATAR_MIME_TYPES = new Set(["image/jpeg", "image/png"]);
+
 /**
  * Create and configure a WalrusClient instance
  */
@@ -121,6 +123,52 @@ export async function prepareCampaignUpdateFiles(
   files.push(updateFile);
 
   return files;
+}
+
+interface ProfileAvatarPreparationResult {
+  files: WalrusFile[];
+  identifier: string;
+  mimeType: string;
+  size: number;
+}
+
+/**
+ * Prepare a profile avatar image for Walrus upload.
+ */
+export async function prepareProfileAvatarFile(
+  file: File,
+): Promise<ProfileAvatarPreparationResult> {
+  if (!(file instanceof File)) {
+    throw new WalrusUploadError("A valid profile image file is required.");
+  }
+
+  if (!SUPPORTED_AVATAR_MIME_TYPES.has(file.type)) {
+    throw new WalrusUploadError(
+      `Unsupported image format: ${file.type || "unknown"}. Please upload a JPEG or PNG image.`,
+    );
+  }
+
+  const normalizedType = file.type as "image/jpeg" | "image/png";
+
+  const buffer = await file.arrayBuffer();
+  const extension = normalizedType === "image/png" ? "png" : "jpg";
+  const identifier = `avatar.${extension}`;
+
+  const walrusFile = WalrusFile.from({
+    contents: new Uint8Array(buffer),
+    identifier,
+    tags: {
+      "content-type": normalizedType,
+      "file-type": "profile-avatar",
+    },
+  });
+
+  return {
+    files: [walrusFile],
+    identifier,
+    mimeType: normalizedType,
+    size: buffer.byteLength,
+  };
 }
 
 /**
@@ -385,6 +433,50 @@ export async function calculateUpdateStorageCost(
     breakdown: {
       jsonSize: updateSize,
       imagesSize: 0,
+    },
+    pricingTimestamp: cost.pricing.timestamp,
+    network: cost.pricing.network,
+  };
+}
+
+/**
+ * Calculate storage cost for a profile avatar image upload.
+ */
+export async function calculateProfileAvatarStorageCost(
+  suiClient: SuiClient,
+  network: SupportedNetwork,
+  file: File,
+  epochs?: number,
+): Promise<StorageCostEstimate> {
+  const preparation = await prepareProfileAvatarFile(file);
+
+  const storageEpochs =
+    epochs ||
+    WALRUS_EPOCH_CONFIG[network === "devnet" ? "devnet" : network].defaultEpochs;
+
+  const cost: CampaignStorageCost = await calculateCampaignStorageCost(
+    suiClient,
+    network === "devnet" ? "testnet" : network,
+    preparation.size,
+    storageEpochs,
+  );
+
+  return {
+    rawSize: preparation.size,
+    encodedSize: cost.encodedSize,
+    metadataSize: cost.metadataSize,
+    epochs: storageEpochs,
+    storageCostWal: cost.storageCostWal,
+    uploadCostWal: cost.uploadCostWal,
+    totalCostWal: cost.totalCostWal,
+    subsidizedStorageCost: cost.subsidizedStorageCost,
+    subsidizedUploadCost: cost.subsidizedUploadCost,
+    subsidizedTotalCost: cost.subsidizedTotalCost,
+    subsidyRate: cost.pricing.subsidyRate,
+    estimatedCost: cost.subsidizedTotalCost.toFixed(6),
+    breakdown: {
+      jsonSize: 0,
+      imagesSize: preparation.size,
     },
     pricingTimestamp: cost.pricing.timestamp,
     network: cost.pricing.network,
