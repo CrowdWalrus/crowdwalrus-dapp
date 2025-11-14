@@ -47,6 +47,8 @@ interface CampaignStorageRegistrationCardProps {
   registrationPeriodSummary?: string;
   registrationPeriodHint?: string;
   registrationExpiresOverride?: string;
+  successDescription?: string;
+  successTitle?: string;
 }
 
 export function CampaignStorageRegistrationCard({
@@ -71,6 +73,8 @@ export function CampaignStorageRegistrationCard({
   registrationPeriodSummary,
   registrationPeriodHint,
   registrationExpiresOverride,
+  successDescription,
+  successTitle,
 }: CampaignStorageRegistrationCardProps) {
   // Get network-specific storage duration options
   const storageDurationOptions = useNetworkVariable(
@@ -237,7 +241,12 @@ export function CampaignStorageRegistrationCard({
           </div>
 
           {/* Error Alerts */}
-          {storageRegistered && <StorageRegistrationSuccessAlert />}
+          {storageRegistered && (
+            <StorageRegistrationSuccessAlert
+              title={successTitle}
+              description={successDescription}
+            />
+          )}
 
           {!storageRegistered && hasInsufficientBalance && (
             <InsufficientBalanceAlert requiredWalAmount={requiredWalAmount} />
