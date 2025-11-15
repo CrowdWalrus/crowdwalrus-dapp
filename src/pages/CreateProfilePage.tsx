@@ -37,7 +37,8 @@ import {
   createProfileSchema,
   type CreateProfileFormData,
 } from "@/features/profiles/schemas/createProfileSchema";
-import { SubnameField } from "@/features/suins/components/SubnameField";
+// TODO: Re-enable suiNS subname registration once Move profile supports subname registration.
+// import { SubnameField } from "@/features/suins/components/SubnameField";
 import {
   CampaignSocialsSection,
   CampaignStorageRegistrationCard,
@@ -1082,11 +1083,14 @@ export default function CreateProfilePage() {
                       />
                     </div>
 
-                    <SubnameField
-                      label="Setup your nick name"
-                      placeholder="your-name"
-                      disabled={isFormReadOnly}
-                    />
+                    {/* TODO: Re-enable suiNS SubnameField once Move profile supports subname registration again. */}
+                    {/*
+                      <SubnameField
+                        label="Setup your nick name"
+                        placeholder="your-name"
+                        disabled={isFormReadOnly}
+                      />
+                    */}
 
                     <FormField
                       control={form.control}
