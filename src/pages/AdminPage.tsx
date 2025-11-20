@@ -1,5 +1,6 @@
-import { useState, useMemo, useEffect } from "react";
+import { useState, useMemo, useEffect, useCallback } from "react";
 import { ConnectButton } from "@mysten/dapp-kit";
+import { normalizeSuiAddress } from "@mysten/sui/utils";
 import { Tabs, TabsList, TabsTrigger } from "@/shared/components/ui/tabs";
 import { Button } from "@/shared/components/ui/button";
 import {
@@ -23,6 +24,14 @@ import { VerifierManagementPanel } from "@/features/admin/components/VerifierMan
 import { useDocumentTitle } from "@/shared/hooks/useDocumentTitle";
 
 type TabValue = "all" | "verified" | "unverified";
+
+const normalizeCampaignId = (id: string): string => {
+  try {
+    return normalizeSuiAddress(id);
+  } catch {
+    return id.toLowerCase();
+  }
+};
 
 export function AdminPage() {
   useDocumentTitle("Admin Dashboard");
@@ -48,6 +57,18 @@ export function AdminPage() {
     refetch: refetchState,
   } = useCrowdWalrusAdminState();
 
+  const isCampaignVerified = useCallback(
+    (campaign: CampaignData) => {
+      const normalizedId = normalizeCampaignId(campaign.id);
+      return (
+        campaign.isVerified ||
+        verifiedCampaignIdSet.has(normalizedId) ||
+        verifiedCampaignIdSet.has(campaign.id.toLowerCase())
+      );
+    },
+    [verifiedCampaignIdSet],
+  );
+
   // Fetch all campaigns
   const {
     campaigns,
@@ -68,17 +89,13 @@ export function AdminPage() {
   // Filter campaigns based on active tab
   const filteredCampaigns = useMemo(() => {
     if (activeTab === "verified") {
-      return campaigns.filter((c) =>
-        verifiedCampaignIdSet.has(c.id.toLowerCase()),
-      );
+      return campaigns.filter((c) => isCampaignVerified(c));
     }
     if (activeTab === "unverified") {
-      return campaigns.filter(
-        (c) => !verifiedCampaignIdSet.has(c.id.toLowerCase()),
-      );
+      return campaigns.filter((c) => !isCampaignVerified(c));
     }
     return campaigns;
-  }, [campaigns, verifiedCampaignIdSet, activeTab]);
+  }, [campaigns, isCampaignVerified, activeTab]);
 
   // Loading state
   const isLoading = isCapsLoading || isStateLoading || isCampaignsLoading;
@@ -215,9 +232,7 @@ export function AdminPage() {
             ) : (
               <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
                 {filteredCampaigns.map((campaign) => {
-                  const isVerified = verifiedCampaignIdSet.has(
-                    campaign.id.toLowerCase(),
-                  );
+                  const isVerified = isCampaignVerified(campaign);
 
                   return (
                     <CampaignCardWithActions
