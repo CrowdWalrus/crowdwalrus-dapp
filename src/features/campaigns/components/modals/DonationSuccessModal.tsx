@@ -14,9 +14,11 @@ const SUCCESS_ICON = "/assets/images/modal-icons/modal-donation-success.png";
 
 export interface DonationReceiptSummary {
   amountDisplay: string;
+  netAmountDisplay?: string;
   tokenSymbol: string;
   tokenLabel: string;
   approxUsdDisplay?: string | null;
+  netApproxUsdDisplay?: string | null;
   explorerUrl?: string | null;
   transactionDigest: string;
   TokenIcon?: ComponentType<{ className?: string }> | null;
@@ -36,10 +38,12 @@ export function DonationSuccessModal({
   onViewContributions,
 }: DonationSuccessModalProps) {
   const canViewContributions = Boolean(onViewContributions);
-  const netAmount = receipt?.amountDisplay ?? "--";
+  const netAmount =
+    receipt?.netAmountDisplay ?? receipt?.amountDisplay ?? "--";
   const tokenSymbol = receipt?.tokenSymbol ?? "";
 
-  const approxUsd = receipt?.approxUsdDisplay ?? null;
+  const approxUsd =
+    receipt?.netApproxUsdDisplay ?? receipt?.approxUsdDisplay ?? null;
   const TokenIcon = receipt?.TokenIcon ?? null;
   const explorerHref = receipt?.explorerUrl ?? null;
 

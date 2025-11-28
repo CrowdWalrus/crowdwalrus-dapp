@@ -28,8 +28,20 @@ export function DonationProcessingModal({
   onCancel,
   onConfirm,
 }: DonationProcessingModalProps) {
-  const confirmLabel = hasAttemptedConfirmation ? "Try again" : "Confirm";
-  const confirmDisabled = isBuilding || isWalletRequestPending || !canConfirm;
+  const awaitingWallet = isWalletRequestPending;
+  const confirmLabel = awaitingWallet
+    ? "Waiting for wallet"
+    : hasAttemptedConfirmation
+      ? "Try again"
+      : "Confirm";
+  const confirmDisabled = isBuilding || awaitingWallet || !canConfirm;
+
+  const title = awaitingWallet
+    ? "Waiting for wallet approval"
+    : "Confirm transaction";
+  const description = awaitingWallet
+    ? "Approve the transaction in your wallet to continue."
+    : "Please confirm transaction from your wallet";
 
   return (
     <Dialog
@@ -44,10 +56,10 @@ export function DonationProcessingModal({
 
           <div className="flex flex-col gap-2">
             <DialogTitle className="text-2xl font-semibold text-black-500">
-              Confirm transaction
+              {title}
             </DialogTitle>
             <DialogDescription className="text-sm text-black-300">
-              Please confirm transaction from your wallet
+              {description}
             </DialogDescription>
           </div>
         </div>
@@ -65,7 +77,7 @@ export function DonationProcessingModal({
             onClick={onConfirm}
             disabled={confirmDisabled}
           >
-            {isWalletRequestPending ? (
+            {awaitingWallet ? (
               <span className="flex items-center justify-center gap-2 text-sm font-semibold">
                 <Loader2 className="size-4 animate-spin" />
                 {confirmLabel}

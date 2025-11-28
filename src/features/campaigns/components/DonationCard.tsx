@@ -64,6 +64,9 @@ import {
 } from "./modals/BadgeRewardModal";
 import { ShareModal } from "./modals/ShareModal";
 
+const BPS_DENOMINATOR = 10_000n;
+const PLATFORM_FEE_BPS = 500n;
+
 interface DonationCardProps {
   campaignId: string;
   statsId: string;
@@ -738,8 +741,26 @@ export function DonationCard({
         6,
       );
 
+      const netRawAmount =
+        ((amountRawFromEvent ?? rawAmount) *
+          (BPS_DENOMINATOR - PLATFORM_FEE_BPS)) /
+        BPS_DENOMINATOR;
+      const netAmountHuman = formatRawAmount(
+        netRawAmount,
+        selectedToken.decimals,
+        6,
+      );
+
       const usdDisplay = amountUsdMicro
         ? `$${formatUsdLocaleFromMicros(amountUsdMicro)}`
+        : null;
+
+      const netUsdMicro = amountUsdMicro
+        ? (amountUsdMicro * (BPS_DENOMINATOR - PLATFORM_FEE_BPS)) /
+          BPS_DENOMINATOR
+        : null;
+      const netUsdDisplay = netUsdMicro
+        ? `$${formatUsdLocaleFromMicros(netUsdMicro)}`
         : null;
 
       const parts = [
@@ -757,9 +778,11 @@ export function DonationCard({
       const explorerUrl = buildExplorerTxUrl(transactionDigest, network);
       setSuccessReceipt({
         amountDisplay: amountHuman,
+        netAmountDisplay: netAmountHuman,
         tokenSymbol: selectedToken.symbol,
         tokenLabel: selectedTokenDisplay?.label ?? selectedToken.symbol,
         approxUsdDisplay: usdDisplay,
+        netApproxUsdDisplay: netUsdDisplay,
         explorerUrl,
         transactionDigest,
         TokenIcon: selectedTokenDisplay?.Icon ?? null,
