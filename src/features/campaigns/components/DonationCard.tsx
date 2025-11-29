@@ -1029,7 +1029,7 @@ export function DonationCard({
           </div>
           <div className="flex items-center justify-between text-xl ">
             <p className="font-semibold">
-              Goal {formatUsdLocaleFromMicros(fundingGoalUsdMicro)}
+              Goal ${formatUsdLocaleFromMicros(fundingGoalUsdMicro)}
             </p>
             <p>{fundingPercentage.toFixed(0)}% funded</p>
           </div>
