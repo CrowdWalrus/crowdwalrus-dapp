@@ -32,6 +32,8 @@ import { formatUsdLocaleFromMicros } from "@/shared/utils/currency";
 import { useEnabledTokens } from "@/features/tokens/hooks";
 import { useProfile } from "@/features/profiles/hooks/useProfile";
 import { useDonorBadges } from "@/features/badges/hooks/useDonorBadges";
+import { useDebounce } from "@/shared/hooks/useDebounce";
+import { Skeleton } from "@/shared/components/ui/skeleton";
 import {
   buildFirstTimeDonationTx,
   buildRepeatDonationTx,
@@ -40,6 +42,7 @@ import {
   DEFAULT_SLIPPAGE_BPS,
   type DonationBuildResult,
 } from "@/services/donations";
+import { previewPriceOracleQuote } from "@/services/priceOracle";
 import {
   DEFAULT_NETWORK,
   SUI_EXPLORER_URLS,
@@ -146,7 +149,8 @@ export function DonationCard({
   const [validationError, setValidationError] = useState<string | null>(null);
   const [isProcessing, setIsProcessing] = useState(false);
   const [lastUsdQuote, setLastUsdQuote] = useState<bigint | null>(null);
-  const [quoteTimestamp, setQuoteTimestamp] = useState<number | null>(null);
+  const [quoteError, setQuoteError] = useState<string | null>(null);
+  const [isQuoteLoading, setIsQuoteLoading] = useState(false);
   const [isProcessingModalOpen, setIsProcessingModalOpen] = useState(false);
   const [isSuccessModalOpen, setIsSuccessModalOpen] = useState(false);
   const [successReceipt, setSuccessReceipt] =
@@ -166,6 +170,7 @@ export function DonationCard({
     useState(false);
   const [isShareModalOpen, setIsShareModalOpen] = useState(false);
   const donationFlowRef = useRef(0);
+  const priceQuoteRequestRef = useRef(0);
 
   const handleContributionChange = useCallback((rawValue: string) => {
     const sanitized = sanitizeNumericInput(rawValue);
@@ -395,6 +400,62 @@ export function DonationCard({
       return null;
     }
   }, [contributionAmount, selectedToken]);
+
+  const debouncedParsedAmount = useDebounce(parsedAmount, 400);
+
+  useEffect(() => {
+    if (
+      !selectedToken ||
+      debouncedParsedAmount === null ||
+      debouncedParsedAmount <= 0n
+    ) {
+      setIsQuoteLoading(false);
+      setQuoteError(null);
+      setLastUsdQuote(null);
+      return;
+    }
+
+    const requestId = priceQuoteRequestRef.current + 1;
+    priceQuoteRequestRef.current = requestId;
+    setIsQuoteLoading(true);
+    setQuoteError(null);
+
+    let isCancelled = false;
+
+    previewPriceOracleQuote({
+      network,
+      token: selectedToken,
+      rawAmount: debouncedParsedAmount,
+    })
+      .then((quote) => {
+        if (isCancelled || priceQuoteRequestRef.current !== requestId) {
+          return;
+        }
+        setLastUsdQuote(quote.quotedUsdMicro);
+        setQuoteError(null);
+      })
+      .catch((error) => {
+        if (isCancelled || priceQuoteRequestRef.current !== requestId) {
+          return;
+        }
+        const message =
+          error instanceof Error
+            ? error.message
+            : "Unable to fetch a live price quote.";
+        setQuoteError(message);
+        setLastUsdQuote(null);
+      })
+      .finally(() => {
+        if (isCancelled || priceQuoteRequestRef.current !== requestId) {
+          return;
+        }
+        setIsQuoteLoading(false);
+      });
+
+    return () => {
+      isCancelled = true;
+    };
+  }, [network, debouncedParsedAmount, selectedToken]);
 
   const insufficientBalance = Boolean(
     balanceRaw !== null && parsedAmount !== null && parsedAmount > balanceRaw,
@@ -658,7 +719,6 @@ export function DonationCard({
     });
 
     setLastUsdQuote(buildResult.quotedUsdMicro);
-    setQuoteTimestamp(buildResult.pricePublishTimeMs ?? Date.now());
     setIsBuildingDonation(false);
     if (donationFlowRef.current !== flowToken) {
       return;
@@ -984,6 +1044,9 @@ export function DonationCard({
                   onValueChange={(value) => {
                     setSelectedCoinType(value);
                     setValidationError(null);
+                    setLastUsdQuote(null);
+                    setQuoteError(null);
+                    setIsQuoteLoading(false);
                   }}
                   disabled={
                     !isWalletConnected ||
@@ -1075,13 +1138,9 @@ export function DonationCard({
                   {profileError.message}
                 </p>
               )}
-              {lastUsdQuote !== null && (
-                <p className="text-xs text-black-400">
-                  Last quoted value: ≈ $
-                  {formatUsdLocaleFromMicros(lastUsdQuote)}
-                  {quoteTimestamp
-                    ? ` (as of ${new Date(quoteTimestamp).toLocaleTimeString()})`
-                    : ""}
+              {quoteError && (
+                <p className="text-xs text-orange-600">
+                  Live price unavailable. {quoteError}
                 </p>
               )}
             </div>
@@ -1122,7 +1181,12 @@ export function DonationCard({
                         )}{" "}
                         {selectedToken.symbol}
                       </span>
-                      {lastUsdQuote !== null && (
+                      {isQuoteLoading ? (
+                        <Skeleton
+                          className="h-4 bg-white-600 w-16"
+                          aria-label="Fetching live USD quote"
+                        />
+                      ) : lastUsdQuote !== null ? (
                         <span className="text-black-200 font-normal">
                           ~$
                           {formatUsdLocaleFromMicros(
@@ -1130,7 +1194,7 @@ export function DonationCard({
                               (lastUsdQuote * BigInt(platformBps)) / 10000n,
                           )}
                         </span>
-                      )}
+                      ) : null}
                     </div>
                   </div>
                 </div>
