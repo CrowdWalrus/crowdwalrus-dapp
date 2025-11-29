@@ -16,7 +16,7 @@ import {
 import type { Transaction } from "@mysten/sui/transactions";
 import { normalizeSuiAddress, SUI_TYPE_ARG } from "@mysten/sui/utils";
 import { toast } from "sonner";
-import { Share2, Clock, Loader2 } from "lucide-react";
+import { Share2, Clock, Loader2, AlertTriangleIcon } from "lucide-react";
 
 import { Button } from "@/shared/components/ui/button";
 import { Badge } from "@/shared/components/ui/badge";
@@ -1081,6 +1081,7 @@ export function DonationCard({
                       ? "text-red-600 placeholder:text-red-300"
                       : "text-foreground placeholder:text-black-100",
                   )}
+                  style={{ fontWeight: 600 }}
                   disabled={isAmountFieldDisabled}
                 />
                 <div
@@ -1184,9 +1185,12 @@ export function DonationCard({
                 </p>
               )}
               {insufficientBalance && selectedToken && (
-                <p className="text-xs text-red-600">
-                  Entered amount exceeds current balance!
-                </p>
+                <div className="flex text-red-600 items-center align-middle gap-1 font-medium">
+                  <AlertTriangleIcon className="size-3" />
+                  <p className="text-xs">
+                    Entered amount exceeds current balance!
+                  </p>
+                </div>
               )}
               {showSuiGasReminder && (
                 <p
