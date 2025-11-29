@@ -8,6 +8,7 @@ import type { KeyboardEvent } from "react";
 import { useNavigate } from "react-router-dom";
 import {
   useCurrentAccount,
+  ConnectButton,
   useCurrentWallet,
   useSuiClient,
   useSuiClientQuery,
@@ -101,6 +102,7 @@ export function DonationCard({
   const currentAccount = useCurrentAccount();
   const suiClient = useSuiClient();
   const { currentWallet } = useCurrentWallet();
+  const connectButtonRef = useRef<HTMLDivElement>(null);
 
   const signAndExecuteWithWallet = useCallback(
     async (
@@ -167,6 +169,10 @@ export function DonationCard({
     const sanitized = sanitizeNumericInput(rawValue);
     setContributionAmount(sanitized);
     setValidationError(null);
+  }, []);
+
+  const handleConnectWalletClick = useCallback(() => {
+    connectButtonRef.current?.querySelector("button")?.click();
   }, []);
 
   const resetDonationFlow = useCallback(() => {
@@ -394,8 +400,10 @@ export function DonationCard({
 
   const formattedRaised = formatUsdLocaleFromMicros(raisedUsdMicro);
 
+  const isWalletConnected = Boolean(currentAccount?.address);
+
   const isAmountFieldDisabled =
-    !isActive || !currentAccount?.address || !selectedToken || isProcessing;
+    !isActive || !isWalletConnected || !selectedToken || isProcessing;
 
   const formatDate = (timestampMs: number) => {
     if (!Number.isFinite(timestampMs) || timestampMs <= 0) {
@@ -444,8 +452,8 @@ export function DonationCard({
     if (!selectedToken) {
       return "--";
     }
-    if (!currentAccount) {
-      return "Connect wallet";
+    if (!isWalletConnected) {
+      return null;
     }
     if (isBalanceLoading) {
       return "Fetching…";
@@ -454,12 +462,12 @@ export function DonationCard({
       return "0";
     }
     return `${formatRawAmount(balanceRaw, selectedToken.decimals, 4)} ${selectedToken.symbol}`;
-  }, [balanceRaw, currentAccount, isBalanceLoading, selectedToken]);
+  }, [balanceRaw, isBalanceLoading, isWalletConnected, selectedToken]);
 
   const canDonate = Boolean(
     isActive &&
       statsId &&
-      currentAccount?.address &&
+      isWalletConnected &&
       selectedToken &&
       parsedAmount &&
       !insufficientBalance &&
@@ -976,7 +984,10 @@ export function DonationCard({
                     setValidationError(null);
                   }}
                   disabled={
-                    isTokensLoading || !enabledTokens.length || isProcessing
+                    !isWalletConnected ||
+                    isTokensLoading ||
+                    !enabledTokens.length ||
+                    isProcessing
                   }
                 >
                   <SelectTrigger
@@ -1010,10 +1021,14 @@ export function DonationCard({
                   </SelectContent>
                 </Select>
               </div>
-              <div className="flex items-center gap-2 text-xs text-black-400">
-                <span>Balance:</span>
-                <span className="font-semibold">{formattedBalance}</span>
-              </div>
+              {isWalletConnected && (
+                <div className="flex items-center gap-2 text-xs text-black-400">
+                  <span>Balance:</span>
+                  <span className="font-semibold">
+                    {formattedBalance ?? "--"}
+                  </span>
+                </div>
+              )}
               {validationError && (
                 <p className="text-xs text-red-600">{validationError}</p>
               )}
@@ -1075,23 +1090,20 @@ export function DonationCard({
         <div className="flex flex-col gap-4 w-full">
           <Button
             className="w-full h-10 bg-primary text-primary-foreground  text-sm font-medium tracking-[0.07px] rounded-lg hover:bg-primary/90 disabled:opacity-50"
-            disabled={!canDonate}
-            onClick={handleDonate}
+            disabled={isWalletConnected ? !canDonate : false}
+            onClick={isWalletConnected ? handleDonate : handleConnectWalletClick}
           >
             {isProcessing ? (
               <span className="flex items-center gap-2">
                 <Loader2 className="size-4 animate-spin" />
                 Processing...
               </span>
-            ) : (
+            ) : isWalletConnected ? (
               "Contribute Now"
+            ) : (
+              "Connect Wallet"
             )}
           </Button>
-          {!currentAccount?.address && (
-            <p className="text-xs text-center text-black-400">
-              Connect your wallet to donate.
-            </p>
-          )}
           {!isActive && (
             <p className="text-xs text-center text-black-400">
               Campaign is not accepting donations right now.
@@ -1142,6 +1154,10 @@ export function DonationCard({
         subdomainName={subdomainName}
         onClose={() => setIsShareModalOpen(false)}
       />
+
+      <div ref={connectButtonRef} className="hidden">
+        <ConnectButton />
+      </div>
     </>
   );
 }
