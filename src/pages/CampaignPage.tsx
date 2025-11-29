@@ -605,6 +605,7 @@ export function CampaignPage() {
                 recipientAddress={campaign.recipientAddress}
                 isActive={campaign.isActive}
                 subdomainName={campaign.subdomainName}
+                platformBps={campaign.payoutPlatformBps}
                 onDonationComplete={handleDonationComplete}
               />
             </div>
