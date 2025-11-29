@@ -44,7 +44,7 @@ export interface PriceOracleQuotePreview {
   registryMaxAgeMs: number;
 }
 
-interface PriceQuotePreparationOptions {
+export interface PriceQuotePreparationOptions {
   network: SupportedNetwork;
   token: TokenRegistryEntry;
   rawAmount: bigint;
@@ -55,11 +55,56 @@ interface PreparedPriceQuote extends PriceOracleQuotePreview {
   priceUpdateData: Buffer[];
 }
 
+interface PreparedPricePreview extends PriceOracleQuotePreview {
+  feedId: HexString;
+}
+
 export interface PriceInfoArgOptions {
   network: SupportedNetwork;
   token: TokenRegistryEntry;
   suiClient: SuiClient;
   transaction: Transaction;
+}
+
+function validatePriceQuoteInputs({
+  token,
+  rawAmount,
+}: {
+  token: TokenRegistryEntry;
+  rawAmount: bigint;
+}) {
+  if (rawAmount <= 0n) {
+    throw new Error("Donation amount must be greater than zero.");
+  }
+  if (!token.pythFeedId) {
+    throw new Error("Token registry entry is missing a Pyth feed id.");
+  }
+  if (token.decimals < 0 || token.decimals > MAX_DECIMALS) {
+    throw new Error("Token decimals exceed supported precision.");
+  }
+  if (token.pythFeedId.length !== 66) {
+    throw new Error(
+      `Invalid Pyth feed id length for ${token.symbol}. Expected 66 chars, received ${token.pythFeedId.length}.`,
+    );
+  }
+}
+
+/**
+ * Lightweight helper to preview a USD quote without mutating a transaction block.
+ * Useful for UI displays where we only need the price and timestamp while the
+ * user is entering an amount.
+ */
+export async function previewPriceOracleQuote(
+  options: PriceQuotePreparationOptions,
+): Promise<PriceOracleQuotePreview> {
+  const prepared = await preparePricePreviewQuote(options);
+
+  return {
+    quotedUsdMicro: prepared.quotedUsdMicro,
+    publishTimeMs: prepared.publishTimeMs,
+    feedId: prepared.feedId,
+    registryMaxAgeMs: prepared.registryMaxAgeMs,
+  };
 }
 
 const hermesConnections = new Map<string, SuiPriceServiceConnection>();
@@ -240,25 +285,54 @@ function pow10BigInt(exp: number): bigint {
   return result;
 }
 
+async function preparePricePreviewQuote({
+  network,
+  token,
+  rawAmount,
+}: PriceQuotePreparationOptions): Promise<PreparedPricePreview> {
+  validatePriceQuoteInputs({ token, rawAmount });
+
+  const config = getContractConfig(network);
+  const hermes = getHermesConnection(config.pyth.hermesUrl);
+  const feedId = token.pythFeedId!.toLowerCase() as HexString;
+
+  const latestPriceUpdate = await hermes.getLatestPriceUpdates([feedId], {
+    parsed: true,
+  });
+
+  const parsedPrice = extractParsedPrice(latestPriceUpdate, feedId);
+  const publishTimeMs = parsedPrice.price.publish_time * 1000;
+  const nowMs = Date.now();
+  if (token.maxAgeMs > 0 && nowMs - publishTimeMs > token.maxAgeMs) {
+    throw new Error(
+      `Latest ${token.symbol} price (${new Date(publishTimeMs).toISOString()}) exceeds max_age_ms (${token.maxAgeMs}ms).`,
+    );
+  }
+
+  const quotedUsdMicro = quoteUsdFromPrice(
+    rawAmount,
+    token.decimals,
+    parsedPrice.price.price,
+    parsedPrice.price.expo,
+  );
+  if (quotedUsdMicro > MAX_U64) {
+    throw new Error("USD quote exceeds Move u64 range.");
+  }
+
+  return {
+    feedId,
+    publishTimeMs,
+    quotedUsdMicro,
+    registryMaxAgeMs: token.maxAgeMs,
+  };
+}
+
 async function preparePriceQuote({
   network,
   token,
   rawAmount,
 }: PriceQuotePreparationOptions): Promise<PreparedPriceQuote> {
-  if (rawAmount <= 0n) {
-    throw new Error("Donation amount must be greater than zero.");
-  }
-  if (!token.pythFeedId) {
-    throw new Error("Token registry entry is missing a Pyth feed id.");
-  }
-  if (token.decimals < 0 || token.decimals > MAX_DECIMALS) {
-    throw new Error("Token decimals exceed supported precision.");
-  }
-  if (token.pythFeedId.length !== 66) {
-    throw new Error(
-      `Invalid Pyth feed id length for ${token.symbol}. Expected 66 chars, received ${token.pythFeedId.length}.`,
-    );
-  }
+  validatePriceQuoteInputs({ token, rawAmount });
 
   const config = getContractConfig(network);
   const hermes = getHermesConnection(config.pyth.hermesUrl);
