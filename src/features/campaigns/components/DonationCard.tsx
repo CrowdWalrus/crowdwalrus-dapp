@@ -1039,6 +1039,16 @@ export function DonationCard({
                   className="flex-1 h-[56px] bg-transparent px-4 text-lg font-semibold text-foreground placeholder:text-black-100 focus:outline-none"
                   disabled={isAmountFieldDisabled}
                 />
+                <div className="flex items-center px-3 text-sm font-medium text-[#737373] min-w-[80px] justify-end">
+                  {isQuoteLoading ? (
+                    <Skeleton
+                      className="h-4 w-14"
+                      aria-label="Fetching live USD quote"
+                    />
+                  ) : lastUsdQuote !== null ? (
+                    <span>~${formatUsdLocaleFromMicros(lastUsdQuote)}</span>
+                  ) : null}
+                </div>
                 <Select
                   value={selectedToken?.coinType ?? ""}
                   onValueChange={(value) => {
