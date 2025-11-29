@@ -1036,13 +1036,20 @@ export function DonationCard({
                   onKeyDown={handleContributionKeyDown}
                   onWheel={(event) => event.currentTarget.blur()}
                   placeholder="0.00"
-                  className="flex-1 h-[56px] bg-transparent px-4 text-lg font-semibold text-foreground placeholder:text-black-100 focus:outline-none"
+                  className="flex-1 min-w-0 h-[56px] bg-transparent px-4 text-lg font-semibold text-foreground placeholder:text-black-100 focus:outline-none"
                   disabled={isAmountFieldDisabled}
                 />
-                <div className="flex items-center px-3 text-sm font-medium text-[#737373] min-w-[80px] justify-end">
+                <div
+                  className="flex items-center px-3 text-sm font-medium text-[#737373] min-w-[96px] max-w-[168px] justify-end whitespace-nowrap overflow-hidden text-ellipsis flex-shrink-0"
+                  title={
+                    lastUsdQuote !== null
+                      ? `~$${formatUsdLocaleFromMicros(lastUsdQuote)}`
+                      : undefined
+                  }
+                >
                   {isQuoteLoading ? (
                     <Skeleton
-                      className="h-4 w-14"
+                      className="h-4 w-16"
                       aria-label="Fetching live USD quote"
                     />
                   ) : lastUsdQuote !== null ? (
