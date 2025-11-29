@@ -14,7 +14,7 @@ import {
   useSuiClientQuery,
 } from "@mysten/dapp-kit";
 import type { Transaction } from "@mysten/sui/transactions";
-import { SUI_TYPE_ARG } from "@mysten/sui/utils";
+import { normalizeSuiAddress, SUI_TYPE_ARG } from "@mysten/sui/utils";
 import { toast } from "sonner";
 import { Share2, Clock, Loader2 } from "lucide-react";
 
@@ -79,6 +79,7 @@ interface DonationCardProps {
   contributorsCount: number;
   fundingGoalUsdMicro: bigint;
   recipientAddress: string;
+  ownerAddress: string;
   isActive: boolean;
   subdomainName?: string | null;
   platformBps?: number;
@@ -96,6 +97,7 @@ export function DonationCard({
   contributorsCount,
   fundingGoalUsdMicro,
   recipientAddress,
+  ownerAddress,
   isActive,
   subdomainName,
   platformBps,
@@ -371,13 +373,23 @@ export function DonationCard({
   }, [shouldOpenBadgeModal, isSuccessModalOpen, badgeAwards.length]);
 
   const normalizedAccountAddress = useMemo(
-    () => currentAccount?.address?.toLowerCase() ?? null,
+    () => safeNormalizeAddress(currentAccount?.address ?? null),
     [currentAccount?.address],
   );
 
   const normalizedProfileOwner = useMemo(
-    () => profile?.ownerAddress?.toLowerCase() ?? null,
+    () => safeNormalizeAddress(profile?.ownerAddress ?? null),
     [profile?.ownerAddress],
+  );
+
+  const normalizedRecipientAddress = useMemo(
+    () => safeNormalizeAddress(recipientAddress),
+    [recipientAddress],
+  );
+
+  const normalizedOwnerAddress = useMemo(
+    () => safeNormalizeAddress(ownerAddress),
+    [ownerAddress],
   );
 
   const profileOwnershipMismatch = Boolean(
@@ -386,6 +398,20 @@ export function DonationCard({
         !normalizedAccountAddress ||
         normalizedProfileOwner !== normalizedAccountAddress),
   );
+
+  const isRecipientWallet = Boolean(
+    normalizedRecipientAddress &&
+      normalizedAccountAddress &&
+      normalizedRecipientAddress === normalizedAccountAddress,
+  );
+
+  const isOwnerWallet = Boolean(
+    normalizedOwnerAddress &&
+      normalizedAccountAddress &&
+      normalizedOwnerAddress === normalizedAccountAddress,
+  );
+
+  const isSelfContribution = isOwnerWallet || isRecipientWallet;
 
   const parsedAmount = useMemo(() => {
     if (!selectedToken || !contributionAmount.trim()) {
@@ -466,7 +492,11 @@ export function DonationCard({
   const isWalletConnected = Boolean(currentAccount?.address);
 
   const isAmountFieldDisabled =
-    !isActive || !isWalletConnected || !selectedToken || isProcessing;
+    !isActive ||
+    !isWalletConnected ||
+    !selectedToken ||
+    isProcessing ||
+    isSelfContribution;
 
   const formatDate = (timestampMs: number) => {
     if (!Number.isFinite(timestampMs) || timestampMs <= 0) {
@@ -541,7 +571,8 @@ export function DonationCard({
       !campaignNotStarted &&
       !campaignEnded &&
       (!hasProfile || profileId) &&
-      !isProcessing,
+      !isProcessing &&
+      !isSelfContribution,
   );
 
   const donationEventType = `${contractConfig.contracts.packageId}::donations::DonationReceived`;
@@ -1069,7 +1100,8 @@ export function DonationCard({
                     !isWalletConnected ||
                     isTokensLoading ||
                     !enabledTokens.length ||
-                    isProcessing
+                    isProcessing ||
+                    isSelfContribution
                   }
                 >
                   <SelectTrigger
@@ -1223,7 +1255,9 @@ export function DonationCard({
         <div className="flex flex-col gap-4 w-full">
           <Button
             className="w-full h-10 bg-primary text-primary-foreground  text-sm font-medium tracking-[0.07px] rounded-lg hover:bg-primary/90 disabled:opacity-50"
-            disabled={isWalletConnected ? !canDonate : false}
+            disabled={
+              isSelfContribution || (isWalletConnected ? !canDonate : false)
+            }
             onClick={
               isWalletConnected ? handleDonate : handleConnectWalletClick
             }
@@ -1239,6 +1273,11 @@ export function DonationCard({
               "Connect Wallet"
             )}
           </Button>
+          {isSelfContribution && (
+            <p className="text-xs text-center text-black-400">
+              You can&apos;t contribute to your project.
+            </p>
+          )}
           {!isActive && (
             <p className="text-xs text-center text-black-400">
               Campaign is not accepting donations right now.
@@ -1298,6 +1337,18 @@ export function DonationCard({
 }
 
 const BLOCKED_NUMBER_INPUT_KEYS = new Set(["e", "E", "+", "-", " "]);
+
+function safeNormalizeAddress(value?: string | null): string | null {
+  if (!value) {
+    return null;
+  }
+
+  try {
+    return normalizeSuiAddress(value);
+  } catch {
+    return value.toLowerCase();
+  }
+}
 
 function sanitizeNumericInput(value: string) {
   const numericValue = value.replace(/[^0-9.]/g, "");
