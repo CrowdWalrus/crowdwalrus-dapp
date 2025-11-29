@@ -78,6 +78,7 @@ interface DonationCardProps {
   recipientAddress: string;
   isActive: boolean;
   subdomainName?: string | null;
+  platformBps?: number;
   onDonationComplete?: () => Promise<void> | void;
 }
 
@@ -94,6 +95,7 @@ export function DonationCard({
   recipientAddress,
   isActive,
   subdomainName,
+  platformBps,
   onDonationComplete,
 }: DonationCardProps) {
   const navigate = useNavigate();
@@ -1083,6 +1085,56 @@ export function DonationCard({
                 </p>
               )}
             </div>
+            {parsedAmount !== null &&
+              parsedAmount > 0n &&
+              platformBps !== undefined &&
+              platformBps > 0 &&
+              selectedToken && (
+                <div className="flex flex-col gap-2 pt-2">
+                  <div className="flex justify-between text-sm text-black-400">
+                    <span>Your donation</span>
+                    <span>
+                      {formatRawAmount(parsedAmount, selectedToken.decimals, 4)}{" "}
+                      {selectedToken.symbol}
+                    </span>
+                  </div>
+                  <div className="flex justify-between text-sm text-black-400">
+                    <span>Platform Fee ({platformBps / 100}%)</span>
+                    <span>
+                      {formatRawAmount(
+                        (parsedAmount * BigInt(platformBps)) / 10000n,
+                        selectedToken.decimals,
+                        4,
+                      )}{" "}
+                      {selectedToken.symbol}
+                    </span>
+                  </div>
+                  <Separator className="bg-black-50" />
+                  <div className="flex justify-between text-sm font-semibold bg-white-500 py-1 px-2 rounded-lg">
+                    <span className="text-black-400">Net Amount</span>
+                    <div className="flex items-center gap-1">
+                      <span className="text-black-400">
+                        {formatRawAmount(
+                          parsedAmount -
+                            (parsedAmount * BigInt(platformBps)) / 10000n,
+                          selectedToken.decimals,
+                          4,
+                        )}{" "}
+                        {selectedToken.symbol}
+                      </span>
+                      {lastUsdQuote !== null && (
+                        <span className="text-black-200 font-normal">
+                          ~$
+                          {formatUsdLocaleFromMicros(
+                            lastUsdQuote -
+                              (lastUsdQuote * BigInt(platformBps)) / 10000n,
+                          )}
+                        </span>
+                      )}
+                    </div>
+                  </div>
+                </div>
+              )}
           </div>
         </div>
 
@@ -1091,7 +1143,9 @@ export function DonationCard({
           <Button
             className="w-full h-10 bg-primary text-primary-foreground  text-sm font-medium tracking-[0.07px] rounded-lg hover:bg-primary/90 disabled:opacity-50"
             disabled={isWalletConnected ? !canDonate : false}
-            onClick={isWalletConnected ? handleDonate : handleConnectWalletClick}
+            onClick={
+              isWalletConnected ? handleDonate : handleConnectWalletClick
+            }
           >
             {isProcessing ? (
               <span className="flex items-center gap-2">
