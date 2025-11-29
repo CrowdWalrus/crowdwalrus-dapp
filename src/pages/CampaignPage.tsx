@@ -603,6 +603,7 @@ export function CampaignPage() {
                 contributorsCount={contributorsCount}
                 fundingGoalUsdMicro={campaign.fundingGoalUsdMicro}
                 recipientAddress={campaign.recipientAddress}
+                ownerAddress={campaign.creatorAddress}
                 isActive={campaign.isActive}
                 subdomainName={campaign.subdomainName}
                 platformBps={campaign.payoutPlatformBps}
