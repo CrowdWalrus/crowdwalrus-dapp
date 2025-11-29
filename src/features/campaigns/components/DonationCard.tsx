@@ -413,6 +413,8 @@ export function DonationCard({
 
   const isSelfContribution = isOwnerWallet || isRecipientWallet;
 
+  const hasContributionValue = contributionAmount.trim().length > 0;
+
   const parsedAmount = useMemo(() => {
     if (!selectedToken || !contributionAmount.trim()) {
       return null;
@@ -540,6 +542,7 @@ export function DonationCard({
       parsedAmount !== null &&
       parsedAmount >= balanceRaw,
   );
+  const showSuiGasReminder = hasContributionValue;
 
   const formattedBalance = useMemo(() => {
     if (!selectedToken) {
@@ -658,7 +661,7 @@ export function DonationCard({
     }
 
     if (balanceRaw !== null && rawAmount > balanceRaw) {
-      const message = `Insufficient ${selectedToken.symbol} balance for this donation.`;
+      const message = "Entered amount exceeds current balance!";
       setValidationError(message);
       return;
     }
@@ -1053,6 +1056,8 @@ export function DonationCard({
                 className={cn(
                   "flex w-full items-stretch overflow-hidden rounded-xl border border-black-50 bg-white transition focus-within:border-blue-500 focus-within:ring-2 focus-within:ring-blue-200",
                   isAmountFieldDisabled && "opacity-60",
+                  insufficientBalance &&
+                    "border-red-200 bg-red-50 focus-within:border-red-300 focus-within:ring-red-100",
                 )}
               >
                 <input
@@ -1064,14 +1069,25 @@ export function DonationCard({
                   onChange={(event) =>
                     handleContributionChange(event.target.value)
                   }
+                  name="contributionAmount"
+                  id="contributionAmount"
+                  aria-label="Contribution Amount"
                   onKeyDown={handleContributionKeyDown}
                   onWheel={(event) => event.currentTarget.blur()}
                   placeholder="0.00"
-                  className="flex-1 min-w-0 h-[56px] bg-transparent px-4 text-lg font-semibold text-foreground placeholder:text-black-100 focus:outline-none"
+                  className={cn(
+                    "flex-1 min-w-0 h-[56px] bg-transparent px-4 text-lg font-semibold focus:outline-none",
+                    insufficientBalance
+                      ? "text-red-600 placeholder:text-red-300"
+                      : "text-foreground placeholder:text-black-100",
+                  )}
                   disabled={isAmountFieldDisabled}
                 />
                 <div
-                  className="flex items-center px-3 text-sm font-medium text-[#737373] min-w-[96px] max-w-[168px] justify-end whitespace-nowrap overflow-hidden text-ellipsis flex-shrink-0"
+                  className={cn(
+                    "flex items-center px-3 text-sm font min-w-[96px] max-w-[168px] justify-end whitespace-nowrap overflow-hidden text-ellipsis flex-shrink-0",
+                    insufficientBalance ? "text-red-600" : "text-[#737373]",
+                  )}
                   title={
                     lastUsdQuote !== null
                       ? `~$${formatUsdLocaleFromMicros(lastUsdQuote)}`
@@ -1106,7 +1122,12 @@ export function DonationCard({
                 >
                   <SelectTrigger
                     aria-label={selectedTokenDisplay?.label ?? "Select token"}
-                    className="flex h-[56px] min-w-[120px] max-w-[150px] shrink-0 items-center gap-2 rounded-none border-0 border-l border-black-50 bg-transparent px-3 text-sm font-semibold text-foreground shadow-none focus:ring-0 focus:ring-offset-0"
+                    className={cn(
+                      "flex h-[56px] min-w-[120px] max-w-[150px] shrink-0 items-center gap-2 rounded-none border-0 border-l px-3 text-sm font-semibold shadow-none focus:ring-0 focus:ring-offset-0",
+                      insufficientBalance
+                        ? "border-red-200 bg-white text-red-600"
+                        : "border-black-50 bg-transparent text-foreground",
+                    )}
                     disabled={isAmountFieldDisabled}
                   >
                     {selectedTokenDisplay ? (
@@ -1163,12 +1184,19 @@ export function DonationCard({
                 </p>
               )}
               {insufficientBalance && selectedToken && (
-                <p className="text-xs text-orange-600">
-                  Insufficient {selectedToken.symbol} balance.
+                <p className="text-xs text-red-600">
+                  Entered amount exceeds current balance!
                 </p>
               )}
-              {donatingEntireSuiBalance && (
-                <p className="text-xs text-orange-600">
+              {showSuiGasReminder && (
+                <p
+                  className={cn(
+                    "text-xs",
+                    donatingEntireSuiBalance
+                      ? "text-orange-600"
+                      : "text-black-400",
+                  )}
+                >
                   Leave a small amount of SUI in your wallet to cover gas fees.
                 </p>
               )}
