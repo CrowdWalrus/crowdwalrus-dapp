@@ -129,7 +129,8 @@ export function CampaignHero({
               )}
             {!isUpcoming &&
               isActive &&
-              normalizedEndDays !== null && (
+              normalizedEndDays !== null &&
+              normalizedEndDays > 0 && (
                 <EndsInBadge daysUntilEnd={normalizedEndDays} />
               )}
             {categoryValues.map((cat) => (
