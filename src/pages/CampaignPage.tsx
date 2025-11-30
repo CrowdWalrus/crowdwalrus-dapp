@@ -608,6 +608,7 @@ export function CampaignPage() {
                 subdomainName={campaign.subdomainName}
                 platformBps={campaign.payoutPlatformBps}
                 onDonationComplete={handleDonationComplete}
+                onViewUpdates={() => handleTabChange("updates")}
               />
             </div>
           </div>
