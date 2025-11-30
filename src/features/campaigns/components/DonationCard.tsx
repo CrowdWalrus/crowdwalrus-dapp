@@ -544,6 +544,7 @@ export function DonationCard({
   const campaignNotStarted = hasValidStart && startDateMs > nowMs;
   const campaignEnded = hasValidEnd && endDateMs < nowMs;
   const donationsClosed = campaignEnded || campaignNotStarted;
+  const showViewUpdatesButton = campaignEnded;
   const statusInfo = getCampaignStatusInfo(
     startDateMs,
     endDateMs,
@@ -1063,13 +1064,15 @@ export function DonationCard({
 
         {donationsClosed ? (
           <div className="flex flex-col gap-4 w-full">
-            <Button
-              variant="secondary"
-              className="w-full h-10 border border-black-50 bg-white text-black-500 text-sm font-semibold tracking-[0.07px] rounded-lg hover:bg-black-50"
-              onClick={handleViewUpdates}
-            >
-              View Updates
-            </Button>
+            {showViewUpdatesButton && (
+              <Button
+                variant="secondary"
+                className="w-full h-10 border border-black-50 bg-white text-black-500 text-sm font-semibold tracking-[0.07px] rounded-lg hover:bg-black-50"
+                onClick={handleViewUpdates}
+              >
+                View Updates
+              </Button>
+            )}
             <Button
               variant="secondary"
               className="w-full h-10 bg-blue-50 text-blue-500  text-sm font-medium tracking-[0.07px] rounded-lg hover:bg-[#e0d9ff] gap-2"
