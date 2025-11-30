@@ -1,8 +1,25 @@
-import type { ComponentType, SVGProps } from "react";
-import { SuiTokenIcon, UsdCoinTokenIcon } from "@/shared/components/icons/tokens";
+import type { ComponentType } from "react";
+import {
+  BluefinTokenIcon,
+  SuiTokenIcon,
+  SuinsTokenIcon,
+  TetherTokenIcon,
+  UsdCoinTokenIcon,
+  WalTokenIcon,
+} from "@/shared/components/icons/tokens";
+import type { TokenIconProps } from "@/shared/components/icons/tokens";
+import { WAL_COIN_TYPE } from "@/shared/config/networkConfig";
 import type { TokenRegistryEntry } from "@/services/tokenRegistry";
 
-export type TokenIconComponent = ComponentType<SVGProps<SVGSVGElement>>;
+export type TokenIconComponent = ComponentType<TokenIconProps>;
+
+const WAL_ICON_TYPES = Array.from(
+  new Set([
+    WAL_COIN_TYPE.testnet,
+    WAL_COIN_TYPE.mainnet,
+    WAL_COIN_TYPE.devnet,
+  ]),
+);
 
 export interface TokenDisplayData {
   label: string;
@@ -22,12 +39,47 @@ const TOKEN_DISPLAY_OVERRIDES: Record<string, TokenDisplayOverride> = {
   SUI: {
     Icon: SuiTokenIcon,
   },
-  "0xa1ec7fc00a6f40db9693ad1415d0c193ad3906494428cf252621037bd7117e29::usdc::USDC": {
-    Icon: UsdCoinTokenIcon,
-  },
+  "0xa1ec7fc00a6f40db9693ad1415d0c193ad3906494428cf252621037bd7117e29::usdc::USDC":
+    {
+      Icon: UsdCoinTokenIcon,
+    },
   USDC: {
     Icon: UsdCoinTokenIcon,
   },
+  WAL: {
+    Icon: WalTokenIcon,
+  },
+  USDT: {
+    Icon: TetherTokenIcon,
+  },
+  TETHER: {
+    Icon: TetherTokenIcon,
+  },
+  TETHER_USDT: {
+    Icon: TetherTokenIcon,
+  },
+  SUINS: {
+    Icon: SuinsTokenIcon,
+  },
+  NS: {
+    Icon: SuinsTokenIcon,
+  },
+  BLUEFIN: {
+    Icon: BluefinTokenIcon,
+  },
+  BLUE: {
+    Icon: BluefinTokenIcon,
+  },
+  BFN: {
+    Icon: BluefinTokenIcon,
+  },
+  ...WAL_ICON_TYPES.reduce<Record<string, TokenDisplayOverride>>(
+    (acc, coinType) => {
+      acc[coinType] = { Icon: WalTokenIcon };
+      return acc;
+    },
+    {},
+  ),
 };
 
 export function getTokenDisplayData(
