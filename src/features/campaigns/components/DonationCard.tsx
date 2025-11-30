@@ -16,14 +16,7 @@ import {
 import type { Transaction } from "@mysten/sui/transactions";
 import { normalizeSuiAddress, SUI_TYPE_ARG } from "@mysten/sui/utils";
 import { toast } from "sonner";
-import {
-  Share2,
-  Clock,
-  Loader2,
-  AlertTriangleIcon,
-  CheckIcon,
-  CircleCheck,
-} from "lucide-react";
+import { Share2, Clock, Loader2, AlertTriangleIcon } from "lucide-react";
 
 import { Button } from "@/shared/components/ui/button";
 import { Badge } from "@/shared/components/ui/badge";
@@ -34,7 +27,10 @@ import {
   SelectItem,
   SelectTrigger,
 } from "@/shared/components/ui/select";
-import { VerificationBadge } from "./CampaignBadges";
+import {
+  CampaignTimelineBadge,
+  VerificationBadge,
+} from "./CampaignBadges";
 import { formatUsdLocaleFromMicros } from "@/shared/utils/currency";
 import { useEnabledTokens } from "@/features/tokens/hooks";
 import { useProfile } from "@/features/profiles/hooks/useProfile";
@@ -64,6 +60,7 @@ import {
 } from "@/shared/config/tokenDisplay";
 import { buildProfileDetailPath } from "@/shared/utils/routes";
 import { cn } from "@/shared/lib/utils";
+import { getCampaignStatusInfo } from "../utils/campaignStatus";
 import { DonationProcessingModal } from "./modals/DonationProcessingModal";
 import {
   DonationSuccessModal,
@@ -88,6 +85,7 @@ interface DonationCardProps {
   recipientAddress: string;
   ownerAddress: string;
   isActive: boolean;
+  isDeleted?: boolean;
   subdomainName?: string | null;
   platformBps?: number;
   onDonationComplete?: () => Promise<void> | void;
@@ -107,6 +105,7 @@ export function DonationCard({
   recipientAddress,
   ownerAddress,
   isActive,
+  isDeleted = false,
   subdomainName,
   platformBps,
   onDonationComplete,
@@ -547,6 +546,12 @@ export function DonationCard({
   const endDateLabel = hasValidEnd ? formatDate(endDateMs) : null;
   const campaignNotStarted = hasValidStart && startDateMs > nowMs;
   const campaignEnded = hasValidEnd && endDateMs < nowMs;
+  const statusInfo = getCampaignStatusInfo(
+    startDateMs,
+    endDateMs,
+    isActive,
+    isDeleted,
+  );
 
   const isSuiDonation = selectedToken?.coinType === SUI_TYPE_ARG;
   const donatingEntireSuiBalance = Boolean(
@@ -1012,29 +1017,12 @@ export function DonationCard({
               </Badge>
             )}
             {hasStarted && endDateLabel && (
-              <Badge
-                variant="outline"
-                className="flex items-center bg-black-50 border-transparent text-black-500 text-xs font-medium leading-[1.5] tracking-[0.18px] px-2 py-0.5 h-6 rounded-lg gap-1.5"
-              >
-                {campaignEnded ? (
-                  isActive ? (
-                    <>
-                      <CheckIcon className="size-3" />
-                      {`Completed on ${endDateLabel}`}
-                    </>
-                  ) : (
-                    <>
-                      <CircleCheck className="size-3" />
-                      {`Delivered on ${endDateLabel}`}
-                    </>
-                  )
-                ) : (
-                  <>
-                    <Clock className="size-3" />
-                    {`Ends on ${endDateLabel}`}
-                  </>
-                )}
-              </Badge>
+              <CampaignTimelineBadge
+                label={statusInfo.dateLabel}
+                value={statusInfo.dateValue}
+                iconName={statusInfo.timelineIcon}
+                className="bg-black-50 border-transparent text-black-500"
+              />
             )}
           </div>
         )}
