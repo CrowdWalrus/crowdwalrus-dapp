@@ -182,8 +182,6 @@ export function DonationCard({
     useState<PendingDonationContext | null>(null);
   const [isBuildingDonation, setIsBuildingDonation] = useState(false);
   const [isWalletRequestPending, setIsWalletRequestPending] = useState(false);
-  const [hasAttemptedWalletConfirmation, setHasAttemptedWalletConfirmation] =
-    useState(false);
   const [isShareModalOpen, setIsShareModalOpen] = useState(false);
   const donationFlowRef = useRef(0);
   const priceQuoteRequestRef = useRef(0);
@@ -199,7 +197,6 @@ export function DonationCard({
     setPendingDonation(null);
     setIsBuildingDonation(false);
     setIsWalletRequestPending(false);
-    setHasAttemptedWalletConfirmation(false);
     setIsSuccessModalOpen(false);
     setSuccessReceipt(null);
     setIsBadgeModalOpen(false);
@@ -735,7 +732,6 @@ export function DonationCard({
     setPendingDonation(null);
     setIsBuildingDonation(true);
     setIsWalletRequestPending(false);
-    setHasAttemptedWalletConfirmation(false);
 
     const donationFlow: DonationFlow =
       hasProfile && profileId ? "repeat" : "firstTime";
@@ -775,7 +771,6 @@ export function DonationCard({
       setIsBuildingDonation(false);
       setPendingDonation(null);
       setIsWalletRequestPending(false);
-      setHasAttemptedWalletConfirmation(false);
       console.error("[donation] failed to build transaction", {
         error,
         donationFlow,
@@ -797,219 +792,247 @@ export function DonationCard({
       return;
     }
 
-    setPendingDonation({
+    const pendingContext: PendingDonationContext = {
       buildResult,
       rawAmount,
       selectedToken,
       selectedTokenDisplay,
       donationFlow,
       shouldRefreshProfile,
-    });
+    };
+
+    setPendingDonation(pendingContext);
+    void executePendingDonation(pendingContext);
   }
 
-  const executePendingDonation = useCallback(async () => {
-    if (!pendingDonation || isWalletRequestPending) {
-      return;
-    }
+  const executePendingDonation = useCallback(
+    async (overrideContext?: unknown) => {
+      const context = isPendingDonationContext(overrideContext)
+        ? overrideContext
+        : pendingDonation;
 
-    setHasAttemptedWalletConfirmation(true);
-    setIsWalletRequestPending(true);
-
-    const {
-      buildResult,
-      rawAmount,
-      selectedToken,
-      selectedTokenDisplay,
-      donationFlow,
-      shouldRefreshProfile,
-    } = pendingDonation;
-
-    try {
-      const response = await signAndExecuteWithWallet(buildResult.transaction, {
-        showEffects: true,
-        showEvents: true,
-      });
-
-      const transactionDigest = response.digest;
-
-      console.log("[donation] transaction executed", {
-        digest: transactionDigest,
-        eventsCount: response.events?.length ?? 0,
-      });
-
-      const events = response.events ?? [];
-      const donationEvent = events.find(
-        (event) => event.type === donationEventType,
-      );
-
-      const mintedLevels = events
-        .filter((event) => event.type === badgeEventType)
-        .map((event) => {
-          const levelRaw = (event.parsedJson as { level?: number | string })
-            ?.level;
-          if (typeof levelRaw === "number" && Number.isFinite(levelRaw)) {
-            return levelRaw;
-          }
-          if (typeof levelRaw === "string") {
-            const parsedLevel = Number(levelRaw);
-            return Number.isFinite(parsedLevel) ? parsedLevel : null;
-          }
-          return null;
-        })
-        .filter((level): level is number => level !== null);
-
-      const uniqueMintedLevels = Array.from(new Set(mintedLevels)).sort(
-        (a, b) => a - b,
-      );
-
-      const amountUsdMicro = donationEvent
-        ? parseBigIntField(
-            (donationEvent.parsedJson as { amount_usd_micro?: string })
-              ?.amount_usd_micro,
-          )
-        : null;
-
-      const amountRawFromEvent = donationEvent
-        ? parseBigIntField(
-            (donationEvent.parsedJson as { amount_raw?: string })?.amount_raw,
-          )
-        : rawAmount;
-
-      const amountHuman = formatRawAmount(
-        amountRawFromEvent ?? rawAmount,
-        selectedToken.decimals,
-        6,
-      );
-
-      const usdDisplay = amountUsdMicro
-        ? `$${formatUsdLocaleFromMicros(amountUsdMicro)}`
-        : null;
-
-      const parts = [
-        `Sent ${amountHuman} ${selectedToken.symbol}`,
-        usdDisplay ? `≈ ${usdDisplay}` : null,
-        uniqueMintedLevels.length
-          ? `Earned badge level${uniqueMintedLevels.length > 1 ? "s" : ""} ${uniqueMintedLevels.join(", ")}`
-          : null,
-      ].filter(Boolean);
-
-      toast.success("Donation submitted", {
-        description: parts.join(" · "),
-      });
-
-      const explorerUrl = buildExplorerTxUrl(transactionDigest, network);
-      setSuccessReceipt({
-        amountDisplay: amountHuman,
-        tokenSymbol: selectedToken.symbol,
-        tokenLabel: selectedTokenDisplay?.label ?? selectedToken.symbol,
-        approxUsdDisplay: usdDisplay,
-        explorerUrl,
-        transactionDigest,
-        TokenIcon: selectedTokenDisplay?.Icon ?? null,
-      });
-      setIsProcessingModalOpen(false);
-      setIsSuccessModalOpen(true);
-
-      if (uniqueMintedLevels.length) {
-        const placeholders: BadgeRewardItem[] = uniqueMintedLevels.map(
-          (level, index) => ({
-            id: `pending-${transactionDigest}-${level}-${index}`,
-            level,
-            imageUrl: null,
-          }),
-        );
-        setBadgeAwards(placeholders);
-        setPendingBadgeLevels(uniqueMintedLevels);
-        setBadgeBaselineIds(ownedBadges.map((badge) => badge.objectId));
-        setShouldOpenBadgeModal(true);
-      } else {
-        setBadgeAwards([]);
-        setPendingBadgeLevels([]);
-        setBadgeBaselineIds(null);
-        setShouldOpenBadgeModal(false);
+      if (!context || isWalletRequestPending) {
+        return;
       }
 
-      setContributionAmount("");
-      setValidationError(null);
+      setIsWalletRequestPending(true);
 
-      if (shouldRefreshProfile) {
-        try {
-          await refetchProfile();
-        } catch (profileRefreshError) {
-          console.warn(
-            "[donation] failed to refresh profile after first-time donation",
-            profileRefreshError,
-          );
-        }
-      }
+      const {
+        buildResult,
+        rawAmount,
+        selectedToken,
+        selectedTokenDisplay,
+        donationFlow,
+        shouldRefreshProfile,
+      } = context;
 
       try {
-        await suiClient.waitForTransaction({
-          digest: transactionDigest,
-          options: {
-            showEffects: false,
-            showEvents: false,
+        const response = await signAndExecuteWithWallet(
+          buildResult.transaction,
+          {
+            showEffects: true,
+            showEvents: true,
           },
-        });
-      } catch (finalityError) {
-        console.warn(
-          "[donation] failed to confirm transaction finality",
-          finalityError,
         );
-      }
 
-      if (uniqueMintedLevels.length) {
+        const transactionDigest = response.digest;
+
+        console.log("[donation] transaction executed", {
+          digest: transactionDigest,
+          eventsCount: response.events?.length ?? 0,
+        });
+
+        const events = response.events ?? [];
+        const donationEvent = events.find(
+          (event) => event.type === donationEventType,
+        );
+
+        const mintedLevels = events
+          .filter((event) => event.type === badgeEventType)
+          .map((event) => {
+            const levelRaw = (event.parsedJson as { level?: number | string })
+              ?.level;
+            if (typeof levelRaw === "number" && Number.isFinite(levelRaw)) {
+              return levelRaw;
+            }
+            if (typeof levelRaw === "string") {
+              const parsedLevel = Number(levelRaw);
+              return Number.isFinite(parsedLevel) ? parsedLevel : null;
+            }
+            return null;
+          })
+          .filter((level): level is number => level !== null);
+
+        const uniqueMintedLevels = Array.from(new Set(mintedLevels)).sort(
+          (a, b) => a - b,
+        );
+
+        const amountUsdMicro = donationEvent
+          ? parseBigIntField(
+              (donationEvent.parsedJson as { amount_usd_micro?: string })
+                ?.amount_usd_micro,
+            )
+          : null;
+
+        const amountRawFromEvent = donationEvent
+          ? parseBigIntField(
+              (donationEvent.parsedJson as { amount_raw?: string })?.amount_raw,
+            )
+          : rawAmount;
+
+        const grossRawAmount = amountRawFromEvent ?? rawAmount;
+
+        const platformFeeBps = platformBps ?? 0;
+        const feeRawAmount =
+          platformFeeBps > 0
+            ? (grossRawAmount * BigInt(platformFeeBps)) / 10000n
+            : 0n;
+        const netRawAmount = grossRawAmount - feeRawAmount;
+
+        const amountHuman = formatRawAmount(
+          netRawAmount,
+          selectedToken.decimals,
+          6,
+        );
+
+        const usdDisplay = amountUsdMicro
+          ? (() => {
+              const feeUsdMicro =
+                platformFeeBps > 0
+                  ? (amountUsdMicro * BigInt(platformFeeBps)) / 10000n
+                  : 0n;
+              const netUsdMicro = amountUsdMicro - feeUsdMicro;
+              return `$${formatUsdLocaleFromMicros(netUsdMicro)}`;
+            })()
+          : null;
+
+        const parts = [
+          `Sent ${amountHuman} ${selectedToken.symbol}`,
+          usdDisplay ? `≈ ${usdDisplay}` : null,
+          uniqueMintedLevels.length
+            ? `Earned badge level${uniqueMintedLevels.length > 1 ? "s" : ""} ${uniqueMintedLevels.join(", ")}`
+            : null,
+        ].filter(Boolean);
+
+        toast.success("Donation submitted", {
+          description: parts.join(" · "),
+        });
+
+        const explorerUrl = buildExplorerTxUrl(transactionDigest, network);
+        setSuccessReceipt({
+          amountDisplay: amountHuman,
+          tokenSymbol: selectedToken.symbol,
+          tokenLabel: selectedTokenDisplay?.label ?? selectedToken.symbol,
+          approxUsdDisplay: usdDisplay,
+          explorerUrl,
+          transactionDigest,
+          TokenIcon: selectedTokenDisplay?.Icon ?? null,
+        });
+        setIsProcessingModalOpen(false);
+        setIsSuccessModalOpen(true);
+
+        if (uniqueMintedLevels.length) {
+          const placeholders: BadgeRewardItem[] = uniqueMintedLevels.map(
+            (level, index) => ({
+              id: `pending-${transactionDigest}-${level}-${index}`,
+              level,
+              imageUrl: null,
+            }),
+          );
+          setBadgeAwards(placeholders);
+          setPendingBadgeLevels(uniqueMintedLevels);
+          setBadgeBaselineIds(ownedBadges.map((badge) => badge.objectId));
+          setShouldOpenBadgeModal(true);
+        } else {
+          setBadgeAwards([]);
+          setPendingBadgeLevels([]);
+          setBadgeBaselineIds(null);
+          setShouldOpenBadgeModal(false);
+        }
+
+        setContributionAmount("");
+        setValidationError(null);
+
+        if (shouldRefreshProfile) {
+          try {
+            await refetchProfile();
+          } catch (profileRefreshError) {
+            console.warn(
+              "[donation] failed to refresh profile after first-time donation",
+              profileRefreshError,
+            );
+          }
+        }
+
         try {
-          await refetchDonorBadges();
-        } catch (badgeRefreshError) {
+          await suiClient.waitForTransaction({
+            digest: transactionDigest,
+            options: {
+              showEffects: false,
+              showEvents: false,
+            },
+          });
+        } catch (finalityError) {
           console.warn(
-            "[donation] failed to refresh badges after mint",
-            badgeRefreshError,
+            "[donation] failed to confirm transaction finality",
+            finalityError,
           );
         }
-      }
 
-      try {
-        await onDonationComplete?.();
-      } catch (callbackError) {
-        console.warn(
-          "[donation] onDonationComplete callback failed",
-          callbackError,
-        );
-      }
+        if (uniqueMintedLevels.length) {
+          try {
+            await refetchDonorBadges();
+          } catch (badgeRefreshError) {
+            console.warn(
+              "[donation] failed to refresh badges after mint",
+              badgeRefreshError,
+            );
+          }
+        }
 
-      setPendingDonation(null);
-      setIsProcessing(false);
-      setHasAttemptedWalletConfirmation(false);
-    } catch (error) {
-      if (isUserRejectedError(error)) {
-        toast.info("Transaction cancelled. No funds were sent.");
-      } else {
-        const message = formatDonationError(error, {
-          flow: donationFlow,
-        });
-        toast.error(message);
-        console.error("[donation] transaction execution failed", {
-          error,
-          donationFlow,
-        });
+        try {
+          await onDonationComplete?.();
+        } catch (callbackError) {
+          console.warn(
+            "[donation] onDonationComplete callback failed",
+            callbackError,
+          );
+        }
+
+        setPendingDonation(null);
+        setIsProcessing(false);
+      } catch (error) {
+        if (isUserRejectedError(error)) {
+          toast.info("Transaction cancelled. No funds were sent.");
+        } else {
+          const message = formatDonationError(error, {
+            flow: donationFlow,
+          });
+          toast.error(message);
+          console.error("[donation] transaction execution failed", {
+            error,
+            donationFlow,
+          });
+        }
+      } finally {
+        setIsWalletRequestPending(false);
       }
-    } finally {
-      setIsWalletRequestPending(false);
-    }
-  }, [
-    pendingDonation,
-    isWalletRequestPending,
-    signAndExecuteWithWallet,
-    badgeEventType,
-    donationEventType,
-    network,
-    ownedBadges,
-    refetchDonorBadges,
-    refetchProfile,
-    suiClient,
-    onDonationComplete,
-  ]);
+    },
+    [
+      pendingDonation,
+      isWalletRequestPending,
+      signAndExecuteWithWallet,
+      badgeEventType,
+      donationEventType,
+      network,
+      ownedBadges,
+      refetchDonorBadges,
+      refetchProfile,
+      suiClient,
+      onDonationComplete,
+      platformBps,
+    ],
+  );
 
   return (
     <>
@@ -1419,11 +1442,10 @@ export function DonationCard({
       <DonationProcessingModal
         open={isProcessingModalOpen}
         isBuilding={isBuildingDonation}
-        hasAttemptedConfirmation={hasAttemptedWalletConfirmation}
         isWalletRequestPending={isWalletRequestPending}
         canConfirm={Boolean(pendingDonation && !isBuildingDonation)}
         onCancel={handleProcessingModalCancel}
-        onConfirm={executePendingDonation}
+        onConfirm={() => executePendingDonation()}
       />
       <DonationSuccessModal
         open={isSuccessModalOpen}
@@ -1653,4 +1675,14 @@ function extractAbortCode(message: string): number | null {
 
   const parsed = Number(raw);
   return Number.isNaN(parsed) ? null : parsed;
+}
+
+function isPendingDonationContext(value: unknown): value is PendingDonationContext {
+  return (
+    typeof value === "object" &&
+    value !== null &&
+    "buildResult" in value &&
+    "rawAmount" in value &&
+    "selectedToken" in value
+  );
 }
