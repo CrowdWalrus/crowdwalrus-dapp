@@ -16,7 +16,14 @@ import {
 import type { Transaction } from "@mysten/sui/transactions";
 import { normalizeSuiAddress, SUI_TYPE_ARG } from "@mysten/sui/utils";
 import { toast } from "sonner";
-import { Share2, Clock, Loader2, AlertTriangleIcon } from "lucide-react";
+import {
+  Share2,
+  Clock,
+  Loader2,
+  AlertTriangleIcon,
+  CheckIcon,
+  CircleCheck,
+} from "lucide-react";
 
 import { Button } from "@/shared/components/ui/button";
 import { Badge } from "@/shared/components/ui/badge";
@@ -84,6 +91,7 @@ interface DonationCardProps {
   subdomainName?: string | null;
   platformBps?: number;
   onDonationComplete?: () => Promise<void> | void;
+  onViewUpdates?: () => void;
 }
 
 export function DonationCard({
@@ -102,6 +110,7 @@ export function DonationCard({
   subdomainName,
   platformBps,
   onDonationComplete,
+  onViewUpdates,
 }: DonationCardProps) {
   const navigate = useNavigate();
   const network = DEFAULT_NETWORK;
@@ -241,6 +250,10 @@ export function DonationCard({
     setBadgeBaselineIds(null);
     setShouldOpenBadgeModal(false);
   }, []);
+
+  const handleViewUpdates = useCallback(() => {
+    onViewUpdates?.();
+  }, [onViewUpdates]);
 
   useEffect(() => {
     if (!selectedCoinType && enabledTokens.length > 0) {
@@ -1003,8 +1016,24 @@ export function DonationCard({
                 variant="outline"
                 className="flex items-center bg-black-50 border-transparent text-black-500 text-xs font-medium leading-[1.5] tracking-[0.18px] px-2 py-0.5 h-6 rounded-lg gap-1.5"
               >
-                <Clock className="size-3" />
-                {`Ends on ${endDateLabel}`}
+                {campaignEnded ? (
+                  isActive ? (
+                    <>
+                      <CheckIcon className="size-3" />
+                      {`Completed on ${endDateLabel}`}
+                    </>
+                  ) : (
+                    <>
+                      <CircleCheck className="size-3" />
+                      {`Delivered on ${endDateLabel}`}
+                    </>
+                  )
+                ) : (
+                  <>
+                    <Clock className="size-3" />
+                    {`Ends on ${endDateLabel}`}
+                  </>
+                )}
               </Badge>
             )}
           </div>
@@ -1046,289 +1075,319 @@ export function DonationCard({
 
         <Separator className="bg-white-600" />
 
-        {/* Contribution Form */}
-        <div className="flex flex-col gap-4 w-full">
-          <p className="text-base font-semibold ">Make your contribution</p>
+        {campaignEnded ? (
+          <div className="flex flex-col gap-4 w-full">
+            <Button
+              variant="secondary"
+              className="w-full h-10 border border-black-50 bg-white text-black-500 text-sm font-semibold tracking-[0.07px] rounded-lg hover:bg-black-50"
+              onClick={handleViewUpdates}
+            >
+              View Updates
+            </Button>
+            <Button
+              variant="secondary"
+              className="w-full h-10 bg-blue-50 text-blue-500  text-sm font-medium tracking-[0.07px] rounded-lg hover:bg-[#e0d9ff] gap-2"
+              onClick={() => setIsShareModalOpen(true)}
+            >
+              Share
+              <Share2 className="size-3.5" />
+            </Button>
+          </div>
+        ) : (
+          <>
+            {/* Contribution Form */}
+            <div className="flex flex-col gap-4 w-full">
+              <p className="text-base font-semibold ">Make your contribution</p>
 
-          <div className="flex flex-col gap-2 w-full">
-            <div className="flex flex-col gap-3">
-              <div
-                className={cn(
-                  "flex w-full items-stretch overflow-hidden rounded-xl border border-black-50 bg-white transition focus-within:border-blue-500 focus-within:ring-2 focus-within:ring-blue-200",
-                  isAmountFieldDisabled && "opacity-60",
-                  insufficientBalance &&
-                    "border-red-200 bg-red-50 focus-within:border-red-300 focus-within:ring-red-100",
-                )}
-              >
-                <input
-                  type="number"
-                  inputMode="decimal"
-                  step="any"
-                  min="0"
-                  value={contributionAmount}
-                  onChange={(event) =>
-                    handleContributionChange(event.target.value)
-                  }
-                  name="contributionAmount"
-                  id="contributionAmount"
-                  aria-label="Contribution Amount"
-                  onKeyDown={handleContributionKeyDown}
-                  onWheel={(event) => event.currentTarget.blur()}
-                  placeholder="0.00"
-                  className={cn(
-                    "flex-1 min-w-0 h-[56px] bg-transparent px-4 text-lg font-semibold focus:outline-none",
-                    insufficientBalance
-                      ? "text-red-600 placeholder:text-red-300"
-                      : "text-foreground placeholder:text-black-100",
-                  )}
-                  style={{ fontWeight: 600 }}
-                  disabled={isAmountFieldDisabled}
-                />
-                <div
-                  className={cn(
-                    "flex items-center px-3 text-sm font min-w-[96px] max-w-[168px] justify-end whitespace-nowrap overflow-hidden text-ellipsis flex-shrink-0",
-                    insufficientBalance ? "text-red-600" : "text-[#737373]",
-                  )}
-                  title={
-                    lastUsdQuote !== null
-                      ? `~$${formatUsdLocaleFromMicros(lastUsdQuote)}`
-                      : undefined
-                  }
-                >
-                  {isQuoteLoading ? (
-                    <Skeleton
-                      className="h-4 w-16"
-                      aria-label="Fetching live USD quote"
-                    />
-                  ) : lastUsdQuote !== null ? (
-                    <span>~${formatUsdLocaleFromMicros(lastUsdQuote)}</span>
-                  ) : null}
-                </div>
-                <Select
-                  value={selectedToken?.coinType ?? ""}
-                  onValueChange={(value) => {
-                    setSelectedCoinType(value);
-                    setValidationError(null);
-                    setLastUsdQuote(null);
-                    setQuoteError(null);
-                    setIsQuoteLoading(false);
-                  }}
-                  disabled={
-                    !isWalletConnected ||
-                    isTokensLoading ||
-                    !enabledTokens.length ||
-                    isProcessing ||
-                    isSelfContribution
-                  }
-                >
-                  <SelectTrigger
-                    aria-label={selectedTokenDisplay?.label ?? "Select token"}
+              <div className="flex flex-col gap-2 w-full">
+                <div className="flex flex-col gap-3">
+                  <div
                     className={cn(
-                      "flex h-[56px] min-w-[120px] max-w-[150px] shrink-0 items-center gap-2 rounded-none border-0 border-l px-3 text-sm font-semibold shadow-none focus:ring-0 focus:ring-offset-0",
-                      insufficientBalance
-                        ? "border-red-200 bg-white text-red-600"
-                        : "border-black-50 bg-transparent text-foreground",
+                      "flex w-full items-stretch overflow-hidden rounded-xl border border-black-50 bg-white transition focus-within:border-blue-500 focus-within:ring-2 focus-within:ring-blue-200",
+                      isAmountFieldDisabled && "opacity-60",
+                      insufficientBalance &&
+                        "border-red-200 bg-red-50 focus-within:border-red-300 focus-within:ring-red-100",
                     )}
-                    disabled={isAmountFieldDisabled}
                   >
-                    {selectedTokenDisplay ? (
-                      <TokenChoiceContent display={selectedTokenDisplay} />
-                    ) : (
-                      <span className="text-sm font-semibold text-black-200">
-                        Token
-                      </span>
-                    )}
-                  </SelectTrigger>
-                  <SelectContent className="min-w-[200px] border border-black-50 p-0">
-                    {enabledTokens.map((token) => {
-                      const display =
-                        tokenDisplayByCoinType[token.coinType] ??
-                        getTokenDisplayData(token);
-                      return (
-                        <SelectItem
-                          key={token.coinType}
-                          value={token.coinType}
-                          className="py-2 pl-2 pr-8"
-                        >
-                          <TokenChoiceContent display={display} />
-                        </SelectItem>
-                      );
-                    })}
-                  </SelectContent>
-                </Select>
-              </div>
-              {isWalletConnected && (
-                <div className="flex items-center gap-2 text-xs text-black-400">
-                  <span>Balance:</span>
-                  <span className="font-semibold">
-                    {formattedBalance ?? "--"}
-                  </span>
-                </div>
-              )}
-              {validationError && (
-                <p className="text-xs text-red-600">{validationError}</p>
-              )}
-              {profileOwnershipMismatch && (
-                <p className="text-xs text-red-600">
-                  Connected wallet does not own the loaded donor profile.
-                  Refresh or reconnect your wallet.
-                </p>
-              )}
-              {campaignNotStarted && startDateLabel && (
-                <p className="text-xs text-orange-600">
-                  Campaign accepts donations starting {startDateLabel}.
-                </p>
-              )}
-              {campaignEnded && endDateLabel && (
-                <p className="text-xs text-orange-600">
-                  Campaign ended on {endDateLabel}. Donations are closed.
-                </p>
-              )}
-              {insufficientBalance && selectedToken && (
-                <div className="flex text-red-600 items-center align-middle gap-1 font-medium">
-                  <AlertTriangleIcon className="size-3" />
-                  <p className="text-xs">
-                    Entered amount exceeds current balance!
-                  </p>
-                </div>
-              )}
-              {showSuiGasReminder && (
-                <p
-                  className={cn(
-                    "text-xs",
-                    donatingEntireSuiBalance
-                      ? "text-orange-600"
-                      : "text-black-400",
-                  )}
-                >
-                  Leave a small amount of SUI in your wallet to cover gas fees.
-                </p>
-              )}
-              {balanceError && (
-                <p className="text-xs text-orange-600">
-                  Failed to load balance. {balanceError.message}
-                </p>
-              )}
-              {tokensError && (
-                <p className="text-xs text-orange-600">
-                  Unable to load donation tokens. {tokensError.message}
-                </p>
-              )}
-              {profileError && (
-                <p className="text-xs text-orange-600">
-                  {profileError.message}
-                </p>
-              )}
-              {quoteError && (
-                <p className="text-xs text-orange-600">
-                  Live price unavailable. {quoteError}
-                </p>
-              )}
-            </div>
-            {parsedAmount !== null &&
-              parsedAmount > 0n &&
-              platformBps !== undefined &&
-              platformBps > 0 &&
-              selectedToken && (
-                <div className="flex flex-col gap-2 pt-2">
-                  <div className="flex justify-between text-sm text-black-400">
-                    <span>Your donation</span>
-                    <span>
-                      {formatRawAmount(parsedAmount, selectedToken.decimals, 4)}{" "}
-                      {selectedToken.symbol}
-                    </span>
-                  </div>
-                  <div className="flex justify-between text-sm text-black-400">
-                    <span>Platform Fee ({platformBps / 100}%)</span>
-                    <span>
-                      {formatRawAmount(
-                        (parsedAmount * BigInt(platformBps)) / 10000n,
-                        selectedToken.decimals,
-                        4,
-                      )}{" "}
-                      {selectedToken.symbol}
-                    </span>
-                  </div>
-                  <Separator className="bg-black-50" />
-                  <div className="flex justify-between text-sm font-semibold bg-white-500 py-1 px-2 rounded-lg">
-                    <span className="text-black-400">Net Amount</span>
-                    <div className="flex items-center gap-1">
-                      <span className="text-black-400">
-                        {formatRawAmount(
-                          parsedAmount -
-                            (parsedAmount * BigInt(platformBps)) / 10000n,
-                          selectedToken.decimals,
-                          4,
-                        )}{" "}
-                        {selectedToken.symbol}
-                      </span>
+                    <input
+                      type="number"
+                      inputMode="decimal"
+                      step="any"
+                      min="0"
+                      value={contributionAmount}
+                      onChange={(event) =>
+                        handleContributionChange(event.target.value)
+                      }
+                      name="contributionAmount"
+                      id="contributionAmount"
+                      aria-label="Contribution Amount"
+                      onKeyDown={handleContributionKeyDown}
+                      onWheel={(event) => event.currentTarget.blur()}
+                      placeholder="0.00"
+                      className={cn(
+                        "flex-1 min-w-0 h-[56px] bg-transparent px-4 text-lg font-semibold focus:outline-none",
+                        insufficientBalance
+                          ? "text-red-600 placeholder:text-red-300"
+                          : "text-foreground placeholder:text-black-100",
+                      )}
+                      style={{ fontWeight: 600 }}
+                      disabled={isAmountFieldDisabled}
+                    />
+                    <div
+                      className={cn(
+                        "flex items-center px-3 text-sm font min-w-[96px] max-w-[168px] justify-end whitespace-nowrap overflow-hidden text-ellipsis flex-shrink-0",
+                        insufficientBalance
+                          ? "text-red-600"
+                          : "text-[#737373]",
+                      )}
+                      title={
+                        lastUsdQuote !== null
+                          ? `~$${formatUsdLocaleFromMicros(lastUsdQuote)}`
+                          : undefined
+                      }
+                    >
                       {isQuoteLoading ? (
                         <Skeleton
-                          className="h-4 bg-white-600 w-16"
+                          className="h-4 w-16"
                           aria-label="Fetching live USD quote"
                         />
                       ) : lastUsdQuote !== null ? (
-                        <span className="text-black-200 font-normal">
-                          ~$
-                          {formatUsdLocaleFromMicros(
-                            lastUsdQuote -
-                              (lastUsdQuote * BigInt(platformBps)) / 10000n,
-                          )}
+                        <span>
+                          ~${formatUsdLocaleFromMicros(lastUsdQuote)}
                         </span>
                       ) : null}
                     </div>
+                    <Select
+                      value={selectedToken?.coinType ?? ""}
+                      onValueChange={(value) => {
+                        setSelectedCoinType(value);
+                        setValidationError(null);
+                        setLastUsdQuote(null);
+                        setQuoteError(null);
+                        setIsQuoteLoading(false);
+                      }}
+                      disabled={
+                        !isWalletConnected ||
+                        isTokensLoading ||
+                        !enabledTokens.length ||
+                        isProcessing ||
+                        isSelfContribution
+                      }
+                    >
+                      <SelectTrigger
+                        aria-label={
+                          selectedTokenDisplay?.label ?? "Select token"
+                        }
+                        className={cn(
+                          "flex h-[56px] min-w-[120px] max-w-[150px] shrink-0 items-center gap-2 rounded-none border-0 border-l px-3 text-sm font-semibold shadow-none focus:ring-0 focus:ring-offset-0",
+                          insufficientBalance
+                            ? "border-red-200 bg-white text-red-600"
+                            : "border-black-50 bg-transparent text-foreground",
+                        )}
+                        disabled={isAmountFieldDisabled}
+                      >
+                        {selectedTokenDisplay ? (
+                          <TokenChoiceContent display={selectedTokenDisplay} />
+                        ) : (
+                          <span className="text-sm font-semibold text-black-200">
+                            Token
+                          </span>
+                        )}
+                      </SelectTrigger>
+                      <SelectContent className="min-w-[200px] border border-black-50 p-0">
+                        {enabledTokens.map((token) => {
+                          const display =
+                            tokenDisplayByCoinType[token.coinType] ??
+                            getTokenDisplayData(token);
+                          return (
+                            <SelectItem
+                              key={token.coinType}
+                              value={token.coinType}
+                              className="py-2 pl-2 pr-8"
+                            >
+                              <TokenChoiceContent display={display} />
+                            </SelectItem>
+                          );
+                        })}
+                      </SelectContent>
+                    </Select>
                   </div>
+                  {isWalletConnected && (
+                    <div className="flex items-center gap-2 text-xs text-black-400">
+                      <span>Balance:</span>
+                      <span className="font-semibold">
+                        {formattedBalance ?? "--"}
+                      </span>
+                    </div>
+                  )}
+                  {validationError && (
+                    <p className="text-xs text-red-600">{validationError}</p>
+                  )}
+                  {profileOwnershipMismatch && (
+                    <p className="text-xs text-red-600">
+                      Connected wallet does not own the loaded donor profile.
+                      Refresh or reconnect your wallet.
+                    </p>
+                  )}
+                  {campaignNotStarted && startDateLabel && (
+                    <p className="text-xs text-orange-600">
+                      Campaign accepts donations starting {startDateLabel}.
+                    </p>
+                  )}
+                  {campaignEnded && endDateLabel && (
+                    <p className="text-xs text-orange-600">
+                      Campaign ended on {endDateLabel}. Donations are closed.
+                    </p>
+                  )}
+                  {insufficientBalance && selectedToken && (
+                    <div className="flex text-red-600 items-center align-middle gap-1 font-medium">
+                      <AlertTriangleIcon className="size-3" />
+                      <p className="text-xs">
+                        Entered amount exceeds current balance!
+                      </p>
+                    </div>
+                  )}
+                  {showSuiGasReminder && (
+                    <p
+                      className={cn(
+                        "text-xs",
+                        donatingEntireSuiBalance
+                          ? "text-orange-600"
+                          : "text-black-400",
+                      )}
+                    >
+                      Leave a small amount of SUI in your wallet to cover gas fees.
+                    </p>
+                  )}
+                  {balanceError && (
+                    <p className="text-xs text-orange-600">
+                      Failed to load balance. {balanceError.message}
+                    </p>
+                  )}
+                  {tokensError && (
+                    <p className="text-xs text-orange-600">
+                      Unable to load donation tokens. {tokensError.message}
+                    </p>
+                  )}
+                  {profileError && (
+                    <p className="text-xs text-orange-600">
+                      {profileError.message}
+                    </p>
+                  )}
+                  {quoteError && (
+                    <p className="text-xs text-orange-600">
+                      Live price unavailable. {quoteError}
+                    </p>
+                  )}
                 </div>
-              )}
-          </div>
-        </div>
+                {parsedAmount !== null &&
+                  parsedAmount > 0n &&
+                  platformBps !== undefined &&
+                  platformBps > 0 &&
+                  selectedToken && (
+                    <div className="flex flex-col gap-2 pt-2">
+                      <div className="flex justify-between text-sm text-black-400">
+                        <span>Your donation</span>
+                        <span>
+                          {formatRawAmount(
+                            parsedAmount,
+                            selectedToken.decimals,
+                            4,
+                          )} {selectedToken.symbol}
+                        </span>
+                      </div>
+                      <div className="flex justify-between text-sm text-black-400">
+                        <span>Platform Fee ({platformBps / 100}%)</span>
+                        <span>
+                          {formatRawAmount(
+                            (parsedAmount * BigInt(platformBps)) / 10000n,
+                            selectedToken.decimals,
+                            4,
+                          )} {selectedToken.symbol}
+                        </span>
+                      </div>
+                      <Separator className="bg-black-50" />
+                      <div className="flex justify-between text-sm font-semibold bg-white-500 py-1 px-2 rounded-lg">
+                        <span className="text-black-400">Net Amount</span>
+                        <div className="flex items-center gap-1">
+                          <span className="text-black-400">
+                            {formatRawAmount(
+                              parsedAmount -
+                                (parsedAmount * BigInt(platformBps)) / 10000n,
+                              selectedToken.decimals,
+                              4,
+                            )} {selectedToken.symbol}
+                          </span>
+                          {isQuoteLoading ? (
+                            <Skeleton
+                              className="h-4 bg-white-600 w-16"
+                              aria-label="Fetching live USD quote"
+                            />
+                          ) : lastUsdQuote !== null ? (
+                            <span className="text-black-200 font-normal">
+                              ~$
+                              {formatUsdLocaleFromMicros(
+                                lastUsdQuote -
+                                  (lastUsdQuote * BigInt(platformBps)) /
+                                    10000n,
+                              )}
+                            </span>
+                          ) : null}
+                        </div>
+                      </div>
+                    </div>
+                  )}
+              </div>
+            </div>
 
-        {/* Action Buttons */}
-        <div className="flex flex-col gap-4 w-full">
-          <Button
-            className="w-full h-10 bg-primary text-primary-foreground  text-sm font-medium tracking-[0.07px] rounded-lg hover:bg-primary/90 disabled:opacity-50"
-            disabled={
-              isSelfContribution || (isWalletConnected ? !canDonate : false)
-            }
-            onClick={
-              isWalletConnected ? handleDonate : handleConnectWalletClick
-            }
-          >
-            {isProcessing ? (
-              <span className="flex items-center gap-2">
-                <Loader2 className="size-4 animate-spin" />
-                Processing...
-              </span>
-            ) : isWalletConnected ? (
-              "Contribute Now"
-            ) : (
-              "Connect Wallet"
-            )}
-          </Button>
-          {isSelfContribution && (
-            <p className="text-xs text-center text-black-400">
-              You can&apos;t contribute to your project.
-            </p>
-          )}
-          {!isActive && (
-            <p className="text-xs text-center text-black-400">
-              Campaign is not accepting donations right now.
-            </p>
-          )}
-          {!enabledTokens.length && !isTokensLoading && (
-            <p className="text-xs text-center text-black-400">
-              No donation tokens are enabled yet.
-            </p>
-          )}
-          <Button
-            variant="secondary"
-            className="w-full h-10 bg-blue-50 text-blue-500  text-sm font-medium tracking-[0.07px] rounded-lg hover:bg-[#e0d9ff] gap-2"
-            onClick={() => setIsShareModalOpen(true)}
-          >
-            Share
-            <Share2 className="size-3.5" />
-          </Button>
-        </div>
+            {/* Action Buttons */}
+            <div className="flex flex-col gap-4 w-full">
+              <Button
+                className="w-full h-10 bg-primary text-primary-foreground  text-sm font-medium tracking-[0.07px] rounded-lg hover:bg-primary/90 disabled:opacity-50"
+                disabled={
+                  isSelfContribution || (isWalletConnected ? !canDonate : false)
+                }
+                onClick={
+                  isWalletConnected ? handleDonate : handleConnectWalletClick
+                }
+              >
+                {isProcessing ? (
+                  <span className="flex items-center gap-2">
+                    <Loader2 className="size-4 animate-spin" />
+                    Processing...
+                  </span>
+                ) : isWalletConnected ? (
+                  "Contribute Now"
+                ) : (
+                  "Connect Wallet"
+                )}
+              </Button>
+              {isSelfContribution && (
+                <p className="text-xs text-center text-black-400">
+                  You can&apos;t contribute to your project.
+                </p>
+              )}
+              {!isActive && (
+                <p className="text-xs text-center text-black-400">
+                  Campaign is not accepting donations right now.
+                </p>
+              )}
+              {!enabledTokens.length && !isTokensLoading && (
+                <p className="text-xs text-center text-black-400">
+                  No donation tokens are enabled yet.
+                </p>
+              )}
+              <Button
+                variant="secondary"
+                className="w-full h-10 bg-blue-50 text-blue-500  text-sm font-medium tracking-[0.07px] rounded-lg hover:bg-[#e0d9ff] gap-2"
+                onClick={() => setIsShareModalOpen(true)}
+              >
+                Share
+                <Share2 className="size-3.5" />
+              </Button>
+            </div>
+          </>
+        )}
       </div>
 
       <DonationProcessingModal
