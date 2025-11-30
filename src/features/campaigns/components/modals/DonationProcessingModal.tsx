@@ -12,7 +12,6 @@ import { LoadingSpinner } from "@/shared/components/ui/loading-spinner";
 interface DonationProcessingModalProps {
   open: boolean;
   isBuilding: boolean;
-  hasAttemptedConfirmation: boolean;
   isWalletRequestPending: boolean;
   canConfirm: boolean;
   onCancel: () => void;
@@ -22,13 +21,12 @@ interface DonationProcessingModalProps {
 export function DonationProcessingModal({
   open,
   isBuilding,
-  hasAttemptedConfirmation,
   isWalletRequestPending,
   canConfirm,
   onCancel,
   onConfirm,
 }: DonationProcessingModalProps) {
-  const confirmLabel = hasAttemptedConfirmation ? "Try again" : "Confirm";
+  const confirmLabel = "Try again";
   const confirmDisabled = isBuilding || isWalletRequestPending || !canConfirm;
 
   return (
@@ -62,7 +60,7 @@ export function DonationProcessingModal({
           </Button>
           <Button
             className="flex-1 h-10 rounded-lg bg-blue-500 text-white hover:bg-blue-600 disabled:bg-blue-200"
-            onClick={onConfirm}
+            onClick={() => onConfirm()}
             disabled={confirmDisabled}
           >
             {isWalletRequestPending ? (
