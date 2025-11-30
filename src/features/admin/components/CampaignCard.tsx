@@ -74,6 +74,7 @@ export function CampaignCard({
         <CampaignTimelineBadge
           label={statusInfo.dateLabel}
           value={statusInfo.dateValue}
+          iconName={statusInfo.timelineIcon}
         />
       </div>
 
