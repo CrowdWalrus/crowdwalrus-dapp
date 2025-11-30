@@ -179,12 +179,6 @@ export function DonationCard({
   const donationFlowRef = useRef(0);
   const priceQuoteRequestRef = useRef(0);
 
-  const handleContributionChange = useCallback((rawValue: string) => {
-    const sanitized = sanitizeNumericInput(rawValue);
-    setContributionAmount(sanitized);
-    setValidationError(null);
-  }, []);
-
   const handleConnectWalletClick = useCallback(() => {
     connectButtonRef.current?.querySelector("button")?.click();
   }, []);
@@ -285,6 +279,25 @@ export function DonationCard({
     ? (tokenDisplayByCoinType[selectedToken.coinType] ??
       getTokenDisplayData(selectedToken))
     : null;
+
+  const handleContributionChange = useCallback(
+    (rawValue: string) => {
+      const decimalsLimit = selectedToken?.decimals ?? FALLBACK_DECIMAL_LIMIT;
+      const formatted = formatContributionInputValue(rawValue, decimalsLimit);
+      setContributionAmount(formatted);
+      setValidationError(null);
+    },
+    [selectedToken?.decimals],
+  );
+
+  useEffect(() => {
+    if (!selectedToken) {
+      return;
+    }
+    setContributionAmount((current) =>
+      formatContributionInputValue(current, selectedToken.decimals),
+    );
+  }, [selectedToken]);
 
   const {
     profile,
@@ -1099,10 +1112,8 @@ export function DonationCard({
                     )}
                   >
                     <input
-                      type="number"
+                      type="text"
                       inputMode="decimal"
-                      step="any"
-                      min="0"
                       value={contributionAmount}
                       onChange={(event) =>
                         handleContributionChange(event.target.value)
@@ -1112,7 +1123,7 @@ export function DonationCard({
                       aria-label="Contribution Amount"
                       onKeyDown={handleContributionKeyDown}
                       onWheel={(event) => event.currentTarget.blur()}
-                      placeholder="0.00"
+                      placeholder="0"
                       className={cn(
                         "flex-1 min-w-0 h-[56px] bg-transparent px-4 text-lg font-semibold focus:outline-none",
                         insufficientBalance
@@ -1121,6 +1132,8 @@ export function DonationCard({
                       )}
                       style={{ fontWeight: 600 }}
                       disabled={isAmountFieldDisabled}
+                      pattern="[0-9.,]*"
+                      autoComplete="off"
                     />
                     <div
                       className={cn(
@@ -1411,6 +1424,8 @@ export function DonationCard({
 }
 
 const BLOCKED_NUMBER_INPUT_KEYS = new Set(["e", "E", "+", "-", " "]);
+const MAX_CONTRIBUTION_WHOLE = 9_999_999;
+const FALLBACK_DECIMAL_LIMIT = 9;
 
 function safeNormalizeAddress(value?: string | null): string | null {
   if (!value) {
@@ -1424,16 +1439,64 @@ function safeNormalizeAddress(value?: string | null): string | null {
   }
 }
 
-function sanitizeNumericInput(value: string) {
-  const numericValue = value.replace(/[^0-9.]/g, "");
-  if (!numericValue) {
+function formatContributionInputValue(value: string, decimals: number) {
+  const cleaned = value.replace(/[^0-9.]/g, "");
+  if (!cleaned) {
     return "";
   }
-  const [wholePart, ...fractionParts] = numericValue.split(".");
-  if (fractionParts.length === 0) {
-    return numericValue;
+
+  const firstDotIndex = cleaned.indexOf(".");
+  const normalized =
+    firstDotIndex >= 0
+      ? `${cleaned.slice(0, firstDotIndex + 1)}${cleaned
+          .slice(firstDotIndex + 1)
+          .replace(/\./g, "")}`
+      : cleaned;
+
+  const match = normalized.match(/^(\d*)(?:\.(\d*))?$/);
+  if (!match) {
+    return "";
   }
-  return `${wholePart}.${fractionParts.join("")}`;
+
+  let wholePart = match[1] ?? "";
+  let fractionPart = match[2] ?? "";
+  const allowFraction = decimals > 0;
+  const maxWholeAsString = MAX_CONTRIBUTION_WHOLE.toString();
+  const hasTrailingDot = allowFraction && normalized.endsWith(".");
+
+  if (wholePart.length > 1) {
+    wholePart = wholePart.replace(/^0+/, "");
+  }
+
+  if (!wholePart) {
+    wholePart = "0";
+  }
+
+  if (
+    wholePart.length > maxWholeAsString.length ||
+    Number(wholePart) > MAX_CONTRIBUTION_WHOLE
+  ) {
+    wholePart = maxWholeAsString;
+    fractionPart = "";
+  }
+
+  if (!allowFraction) {
+    fractionPart = "";
+  } else {
+    fractionPart = fractionPart.slice(0, Math.max(0, decimals));
+  }
+
+  const formattedWhole = Number(wholePart).toLocaleString("en-US");
+
+  if (fractionPart.length > 0) {
+    return `${formattedWhole}.${fractionPart}`;
+  }
+
+  if (hasTrailingDot) {
+    return `${formattedWhole}.`;
+  }
+
+  return formattedWhole;
 }
 
 function TokenChoiceContent({
