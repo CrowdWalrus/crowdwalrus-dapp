@@ -27,10 +27,7 @@ import {
   SelectItem,
   SelectTrigger,
 } from "@/shared/components/ui/select";
-import {
-  CampaignTimelineBadge,
-  VerificationBadge,
-} from "./CampaignBadges";
+import { CampaignTimelineBadge, VerificationBadge } from "./CampaignBadges";
 import { formatUsdLocaleFromMicros } from "@/shared/utils/currency";
 import { useEnabledTokens } from "@/features/tokens/hooks";
 import { useProfile } from "@/features/profiles/hooks/useProfile";
@@ -546,6 +543,7 @@ export function DonationCard({
   const endDateLabel = hasValidEnd ? formatDate(endDateMs) : null;
   const campaignNotStarted = hasValidStart && startDateMs > nowMs;
   const campaignEnded = hasValidEnd && endDateMs < nowMs;
+  const donationsClosed = campaignEnded || campaignNotStarted;
   const statusInfo = getCampaignStatusInfo(
     startDateMs,
     endDateMs,
@@ -1063,7 +1061,7 @@ export function DonationCard({
 
         <Separator className="bg-white-600" />
 
-        {campaignEnded ? (
+        {donationsClosed ? (
           <div className="flex flex-col gap-4 w-full">
             <Button
               variant="secondary"
@@ -1124,9 +1122,7 @@ export function DonationCard({
                     <div
                       className={cn(
                         "flex items-center px-3 text-sm font min-w-[96px] max-w-[168px] justify-end whitespace-nowrap overflow-hidden text-ellipsis flex-shrink-0",
-                        insufficientBalance
-                          ? "text-red-600"
-                          : "text-[#737373]",
+                        insufficientBalance ? "text-red-600" : "text-[#737373]",
                       )}
                       title={
                         lastUsdQuote !== null
@@ -1140,9 +1136,7 @@ export function DonationCard({
                           aria-label="Fetching live USD quote"
                         />
                       ) : lastUsdQuote !== null ? (
-                        <span>
-                          ~${formatUsdLocaleFromMicros(lastUsdQuote)}
-                        </span>
+                        <span>~${formatUsdLocaleFromMicros(lastUsdQuote)}</span>
                       ) : null}
                     </div>
                     <Select
@@ -1217,11 +1211,6 @@ export function DonationCard({
                       Refresh or reconnect your wallet.
                     </p>
                   )}
-                  {campaignNotStarted && startDateLabel && (
-                    <p className="text-xs text-orange-600">
-                      Campaign accepts donations starting {startDateLabel}.
-                    </p>
-                  )}
                   {campaignEnded && endDateLabel && (
                     <p className="text-xs text-orange-600">
                       Campaign ended on {endDateLabel}. Donations are closed.
@@ -1244,7 +1233,8 @@ export function DonationCard({
                           : "text-black-400",
                       )}
                     >
-                      Leave a small amount of SUI in your wallet to cover gas fees.
+                      Leave a small amount of SUI in your wallet to cover gas
+                      fees.
                     </p>
                   )}
                   {balanceError && (
@@ -1281,7 +1271,8 @@ export function DonationCard({
                             parsedAmount,
                             selectedToken.decimals,
                             4,
-                          )} {selectedToken.symbol}
+                          )}{" "}
+                          {selectedToken.symbol}
                         </span>
                       </div>
                       <div className="flex justify-between text-sm text-black-400">
@@ -1291,7 +1282,8 @@ export function DonationCard({
                             (parsedAmount * BigInt(platformBps)) / 10000n,
                             selectedToken.decimals,
                             4,
-                          )} {selectedToken.symbol}
+                          )}{" "}
+                          {selectedToken.symbol}
                         </span>
                       </div>
                       <Separator className="bg-black-50" />
@@ -1304,7 +1296,8 @@ export function DonationCard({
                                 (parsedAmount * BigInt(platformBps)) / 10000n,
                               selectedToken.decimals,
                               4,
-                            )} {selectedToken.symbol}
+                            )}{" "}
+                            {selectedToken.symbol}
                           </span>
                           {isQuoteLoading ? (
                             <Skeleton
@@ -1316,8 +1309,7 @@ export function DonationCard({
                               ~$
                               {formatUsdLocaleFromMicros(
                                 lastUsdQuote -
-                                  (lastUsdQuote * BigInt(platformBps)) /
-                                    10000n,
+                                  (lastUsdQuote * BigInt(platformBps)) / 10000n,
                               )}
                             </span>
                           ) : null}
