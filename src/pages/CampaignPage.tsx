@@ -497,6 +497,7 @@ export function CampaignPage() {
                 campaignName={campaign.name}
                 shortDescription={campaign.shortDescription}
                 isActive={campaign.isActive}
+                isDeleted={campaign.isDeleted}
                 startDateMs={campaign.startDateMs}
                 endDateMs={campaign.endDateMs}
                 category={campaign.category}
