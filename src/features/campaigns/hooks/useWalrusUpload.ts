@@ -17,6 +17,7 @@ import {
   createWalrusClient,
   prepareCampaignFiles,
   prepareCampaignUpdateFiles,
+  prepareProfileAvatarFile,
   createWalrusUploadFlow,
   buildRegisterTransaction,
   uploadToWalrusNodes,
@@ -34,12 +35,18 @@ import type { SupportedNetwork } from "@/shared/types/network";
  * Contains the WriteFilesFlow object returned by walrusClient.writeFilesFlow()
  * which provides methods for encode/register/upload/certify operations.
  */
+interface WalrusFlowContext {
+  profileAvatarIdentifier?: string;
+  profileAvatarMimeType?: string;
+}
+
 export interface WalrusFlowState {
   flow: WriteFilesFlow;
   files: WalrusFile[];
   storageEpochs: number;
   network: SupportedNetwork;
-  purpose: "campaign" | "campaign-update";
+  purpose: "campaign" | "campaign-update" | "profile-avatar";
+  context?: WalrusFlowContext;
 }
 
 /**
@@ -75,6 +82,7 @@ export function useWalrusUpload() {
         purpose?: "campaign";
         formData: CampaignFormData;
         update?: undefined;
+        avatar?: undefined;
         network?: SupportedNetwork;
         storageEpochs?: number;
       }
@@ -82,6 +90,15 @@ export function useWalrusUpload() {
         purpose: "campaign-update";
         update: CampaignUpdateStorageData;
         formData?: undefined;
+        avatar?: undefined;
+        network?: SupportedNetwork;
+        storageEpochs?: number;
+      }
+    | {
+        purpose: "profile-avatar";
+        avatar: File;
+        formData?: undefined;
+        update?: undefined;
         network?: SupportedNetwork;
         storageEpochs?: number;
       };
@@ -91,6 +108,7 @@ export function useWalrusUpload() {
       purpose = "campaign",
       formData,
       update,
+      avatar,
       network = DEFAULT_NETWORK,
       storageEpochs,
     }) => {
@@ -100,6 +118,7 @@ export function useWalrusUpload() {
         storageEpochs ?? WALRUS_EPOCH_CONFIG[networkKey].defaultEpochs;
 
       let files: WalrusFile[];
+      let context: WalrusFlowContext | undefined;
 
       if (purpose === "campaign") {
         if (!formData) {
@@ -107,10 +126,22 @@ export function useWalrusUpload() {
         }
         files = await prepareCampaignFiles(formData);
       } else {
-        if (!update) {
-          throw new Error("Update payload is required for campaign update uploads");
+        if (purpose === "campaign-update") {
+          if (!update) {
+            throw new Error("Update payload is required for campaign update uploads");
+          }
+          files = await prepareCampaignUpdateFiles(update);
+        } else {
+          if (!avatar) {
+            throw new Error("Profile avatar file is required for uploads");
+          }
+          const preparation = await prepareProfileAvatarFile(avatar);
+          files = preparation.files;
+          context = {
+            profileAvatarIdentifier: preparation.identifier,
+            profileAvatarMimeType: preparation.mimeType,
+          };
         }
-        files = await prepareCampaignUpdateFiles(update);
       }
 
       const walrusClient = createWalrusClient(suiClient, resolvedNetwork);
@@ -122,6 +153,7 @@ export function useWalrusUpload() {
         storageEpochs: epochs,
         network: resolvedNetwork,
         purpose,
+        context,
       };
     },
   });

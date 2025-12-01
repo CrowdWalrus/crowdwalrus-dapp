@@ -14,6 +14,7 @@ export interface CampaignStatusInfo {
   showProgress: boolean;
   buttonText: string;
   buttonVariant: "primary" | "secondary";
+  timelineIcon?: "clock" | "check" | "circle-check";
 }
 
 /**
@@ -111,6 +112,7 @@ export function getCampaignStatusInfo(
         showProgress: false,
         buttonText: "Read more",
         buttonVariant: "secondary",
+        timelineIcon: "clock",
       };
 
     case "funding":
@@ -125,6 +127,7 @@ export function getCampaignStatusInfo(
         showProgress: true,
         buttonText: "Contribute Now",
         buttonVariant: "primary",
+        timelineIcon: "clock",
       };
 
     case "active":
@@ -136,6 +139,7 @@ export function getCampaignStatusInfo(
         showProgress: false,
         buttonText: "View Updates",
         buttonVariant: "secondary",
+        timelineIcon: "check",
       };
 
     case "ended":
@@ -147,6 +151,7 @@ export function getCampaignStatusInfo(
         showProgress: false,
         buttonText: "View Updates",
         buttonVariant: "secondary",
+        timelineIcon: "circle-check",
       };
 
     default:
@@ -158,6 +163,7 @@ export function getCampaignStatusInfo(
         showProgress: false,
         buttonText: "Read more",
         buttonVariant: "secondary",
+        timelineIcon: "clock",
       };
   }
 }

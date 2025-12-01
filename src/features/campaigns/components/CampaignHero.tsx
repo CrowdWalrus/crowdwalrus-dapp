@@ -8,12 +8,13 @@ import { SOCIAL_PLATFORM_CONFIG } from "@/features/campaigns/constants/socialPla
 import type { CampaignSocialLink } from "@/features/campaigns/types/campaign";
 import { Separator } from "@/shared/components/ui/separator";
 import {
+  CampaignStatusBadge,
   CategoryBadge,
   ContributorsBadge,
   EndsInBadge,
-  OpenSoonBadge,
   StartsInBadge,
 } from "./CampaignBadges";
+import { getCampaignStatusInfo } from "../utils/campaignStatus";
 
 const PLACEHOLDER_IMAGE = "/assets/images/placeholders/campaign.png";
 
@@ -31,6 +32,7 @@ interface CampaignHeroProps {
   campaignName: string;
   shortDescription: string;
   isActive: boolean;
+  isDeleted?: boolean;
   startDateMs: number;
   endDateMs: number;
   category: string;
@@ -44,6 +46,7 @@ export function CampaignHero({
   campaignName,
   shortDescription,
   isActive,
+  isDeleted = false,
   startDateMs,
   endDateMs,
   category,
@@ -84,10 +87,17 @@ export function CampaignHero({
     ? coverImageUrl
     : PLACEHOLDER_IMAGE;
 
+  const statusInfo = getCampaignStatusInfo(
+    startDateMs,
+    endDateMs,
+    isActive,
+    isDeleted,
+  );
+
   return (
-    <div className="flex flex-col gap-6 w-full">
+    <div className="flex flex-col gap-4 sm:gap-5 lg:gap-6 w-full">
       {/* Cover Image */}
-      <div className="w-full h-[432px] rounded-3xl overflow-hidden bg-muted">
+      <div className="w-full h-[240px] sm:h-[320px] md:h-[380px] lg:h-[432px] rounded-2xl sm:rounded-3xl overflow-hidden bg-muted">
         <img
           src={displayCoverImageUrl}
           alt={campaignName}
@@ -100,15 +110,18 @@ export function CampaignHero({
       </div>
 
       {/* Campaign Info Section */}
-      <div className="flex flex-col gap-4 w-full">
+      <div className="flex flex-col gap-3 sm:gap-4 w-full">
         {/* Short Description */}
-        <p className="text-black-400">{shortDescription}</p>
+        <p className="text-sm sm:text-base text-black-400">{shortDescription}</p>
 
         {/* Badges Row */}
-        <div className="flex items-center justify-between gap-4 w-full flex-wrap">
+        <div className="flex items-start sm:items-center justify-between gap-3 sm:gap-4 w-full flex-wrap">
           {/* Left badges */}
-          <div className="flex items-center gap-4 flex-wrap">
-            {isUpcoming && <OpenSoonBadge />}
+          <div className="flex items-center gap-2 sm:gap-3 lg:gap-4 flex-wrap">
+            <CampaignStatusBadge
+              status={statusInfo.status}
+              label={statusInfo.label}
+            />
             {isUpcoming &&
               Number.isFinite(daysUntilStart) &&
               daysUntilStart > 0 && (
@@ -116,7 +129,8 @@ export function CampaignHero({
               )}
             {!isUpcoming &&
               isActive &&
-              normalizedEndDays !== null && (
+              normalizedEndDays !== null &&
+              normalizedEndDays > 0 && (
                 <EndsInBadge daysUntilEnd={normalizedEndDays} />
               )}
             {categoryValues.map((cat) => (
@@ -125,7 +139,7 @@ export function CampaignHero({
           </div>
 
           {/* Right badges */}
-          <div className="flex items-center gap-4 flex-wrap">
+          <div className="flex items-center gap-2 sm:gap-3 lg:gap-4 flex-wrap">
             <ContributorsBadge contributorsCount={contributorsCount} />
           </div>
         </div>
@@ -134,17 +148,17 @@ export function CampaignHero({
         <Separator className="bg-white-600" />
 
         {/* Publisher and Social Links */}
-        <div className="flex items-center justify-between w-full">
+        <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 sm:gap-4 w-full">
           {/* Published by */}
           <div className="flex flex-col">
-            <p className="text-sm text-black-200">Published by</p>
-            <p>
+            <p className="text-xs sm:text-sm text-black-200">Published by</p>
+            <p className="text-sm sm:text-base">
               {formatAddress(publisherAddress)}
             </p>
           </div>
 
           {/* Social Icons */}
-          <div className="flex text-black-200 items-center gap-4">
+          <div className="flex text-black-200 items-center gap-3 sm:gap-4">
             {socialLinks.map((link, index) => {
               const config =
                 SOCIAL_PLATFORM_CONFIG[
@@ -164,7 +178,7 @@ export function CampaignHero({
                   title={label}
                   aria-label={label}
                 >
-                  <IconComponent className="size-5 shrink-0" />
+                  <IconComponent className="size-4 sm:size-5 shrink-0" />
                 </a>
               );
             })}

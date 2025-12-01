@@ -11,12 +11,14 @@ import {
   Palette,
   Sparkles,
   Tag,
-  Users,
   CheckCircle,
   XCircle,
   HandCoins,
   Timer,
   ClockFading,
+  User,
+  CheckIcon,
+  CircleCheck,
 } from "lucide-react";
 import type { LucideIcon } from "lucide-react";
 import { Badge } from "@/shared/components/ui/badge";
@@ -147,17 +149,26 @@ export function CampaignStatusBadge({
 interface CampaignTimelineBadgeProps {
   label: string;
   value: string;
+  iconName?: "clock" | "check" | "circle-check";
   className?: string;
 }
 
 export function CampaignTimelineBadge({
   label,
   value,
+  iconName = "clock",
   className,
 }: CampaignTimelineBadgeProps) {
   if (!label || !value) {
     return null;
   }
+
+  const IconComponent =
+    iconName === "check"
+      ? CheckIcon
+      : iconName === "circle-check"
+        ? CircleCheck
+        : Clock;
 
   return (
     <Badge
@@ -168,7 +179,7 @@ export function CampaignTimelineBadge({
         className,
       )}
     >
-      <Clock className="size-3" />
+      <IconComponent className="size-3" />
       <span className="whitespace-nowrap">
         {label} {value}
       </span>
@@ -202,16 +213,27 @@ export function CategoryBadge({ category }: CategoryBadgeProps) {
 }
 
 interface ContributorsBadgeProps {
-  contributorsCount: number;
+  contributorsCount: number | null | undefined;
 }
 
 export function ContributorsBadge({
   contributorsCount,
 }: ContributorsBadgeProps) {
+  const safeContributorsCount =
+    typeof contributorsCount === "number" && Number.isFinite(contributorsCount)
+      ? Math.max(0, contributorsCount)
+      : 0;
+
   return (
-    <Badge variant="outline" className={cn(BADGE_TEXT_CLASS, "bg-black-50")}>
-      <Users className="size-3" />
-      {contributorsCount}
+    <Badge
+      variant="outline"
+      className={cn(
+        BADGE_TEXT_CLASS,
+        "bg-black-50 border-black-50 text-black-500",
+      )}
+    >
+      <User className="size-3" />
+      {safeContributorsCount}
     </Badge>
   );
 }

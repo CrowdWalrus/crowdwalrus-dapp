@@ -10,12 +10,30 @@ export default defineConfig({
   resolve: {
     alias: {
       "@": path.resolve(path.dirname(fileURLToPath(import.meta.url)), "./src"),
+      "node:buffer": "buffer",
+      buffer: "buffer/",
     },
+  },
+  optimizeDeps: {
+    // Include dependencies that cause optimization issues (nested deps need > syntax)
+    include: [
+      "@mysten/dapp-kit",
+      "@tanstack/react-query",
+      "react",
+      "react-dom",
+      "react-router-dom",
+      "poseidon-lite",
+    ],
+    // Exclude WASM modules only
+    exclude: ["@mysten/walrus-wasm"],
   },
   server: {
     headers: {
       "Cross-Origin-Opener-Policy": "same-origin",
-      "Cross-Origin-Embedder-Policy": "require-corp",
+      "Cross-Origin-Embedder-Policy": "credentialless",
+      "Referrer-Policy": "strict-origin-when-cross-origin",
+      "Content-Security-Policy":
+        "img-src 'self' data: blob: https://aggregator.walrus-testnet.walrus.space https://aggregator.walrus.space https://aggregator.walrus.site https://aggregator.walrus-testnet.walrus.site;",
     },
   },
 });

@@ -44,6 +44,12 @@ export const WALRUS_EPOCH_CONFIG = {
   },
 } as const;
 
+export const PROFILE_AVATAR_STORAGE_DEFAULT_EPOCHS = {
+  testnet: 20, // 20 days on Walrus testnet
+  mainnet: 13, // 13 epochs × 14 days ≈ 6 months
+  devnet: 20,
+} as const;
+
 /**
  * Storage duration options for registration period dropdown
  */
@@ -71,6 +77,20 @@ export const STORAGE_DURATION_OPTIONS = {
   ] as StorageDurationOption[],
 } as const;
 
+export const SUI_EXPLORER_URLS: Record<SupportedNetwork, string> = {
+  mainnet: "https://suivision.xyz",
+  testnet: "https://testnet.suivision.xyz",
+  devnet: "https://testnet.suivision.xyz",
+};
+
+const devnetContracts = contractsConfig.devnet.contracts;
+const testnetContracts = contractsConfig.testnet.contracts;
+const mainnetContracts = contractsConfig.mainnet.contracts;
+
+const devnetCampaignDomain = contractsConfig.devnet.campaignDomain;
+const testnetCampaignDomain = contractsConfig.testnet.campaignDomain;
+const mainnetCampaignDomain = contractsConfig.mainnet.campaignDomain;
+
 const { networkConfig, useNetworkVariable, useNetworkVariables } =
   createNetworkConfig({
     devnet: {
@@ -79,8 +99,10 @@ const { networkConfig, useNetworkVariable, useNetworkVariables } =
         walCoinType: WAL_COIN_TYPE.devnet,
         epochConfig: WALRUS_EPOCH_CONFIG.devnet,
         storageDurationOptions: STORAGE_DURATION_OPTIONS.devnet,
-        contracts: contractsConfig.devnet.contracts,
-        campaignDomain: contractsConfig.devnet.campaignDomain,
+        contracts: devnetContracts,
+        campaignDomain: devnetCampaignDomain,
+        avatarStorageEpochs:
+          PROFILE_AVATAR_STORAGE_DEFAULT_EPOCHS.devnet,
       },
     },
     testnet: {
@@ -89,8 +111,10 @@ const { networkConfig, useNetworkVariable, useNetworkVariables } =
         walCoinType: WAL_COIN_TYPE.testnet,
         epochConfig: WALRUS_EPOCH_CONFIG.testnet,
         storageDurationOptions: STORAGE_DURATION_OPTIONS.testnet,
-        contracts: contractsConfig.testnet.contracts,
-        campaignDomain: contractsConfig.testnet.campaignDomain,
+        contracts: testnetContracts,
+        campaignDomain: testnetCampaignDomain,
+        avatarStorageEpochs:
+          PROFILE_AVATAR_STORAGE_DEFAULT_EPOCHS.testnet,
       },
     },
     mainnet: {
@@ -99,8 +123,10 @@ const { networkConfig, useNetworkVariable, useNetworkVariables } =
         walCoinType: WAL_COIN_TYPE.mainnet,
         epochConfig: WALRUS_EPOCH_CONFIG.mainnet,
         storageDurationOptions: STORAGE_DURATION_OPTIONS.mainnet,
-        contracts: contractsConfig.mainnet.contracts,
-        campaignDomain: contractsConfig.mainnet.campaignDomain,
+        contracts: mainnetContracts,
+        campaignDomain: mainnetCampaignDomain,
+        avatarStorageEpochs:
+          PROFILE_AVATAR_STORAGE_DEFAULT_EPOCHS.mainnet,
       },
     },
   });

@@ -1,3 +1,4 @@
+import { PROFILE_METADATA_REMOVED_VALUE } from "@/features/profiles/constants/metadata";
 import type { CampaignSocialLink } from "../types/campaign";
 
 const SOCIALS_JSON_KEY = "socials_json";
@@ -35,7 +36,7 @@ export function parseSocialLinksFromMetadata(
   const links: CampaignSocialLink[] = [];
 
   const socialsJson = metadataMap[SOCIALS_JSON_KEY];
-  if (socialsJson) {
+  if (socialsJson && socialsJson !== PROFILE_METADATA_REMOVED_VALUE) {
     try {
       const parsed = JSON.parse(socialsJson);
       if (Array.isArray(parsed)) {

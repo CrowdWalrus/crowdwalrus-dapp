@@ -12,12 +12,19 @@ import {
   parseOptionalTimestampFromMove,
   parseTimestampFromMove,
   parseU64FromMove,
+  parseU64BigIntFromMove,
 } from "@/shared/utils/onchainParsing";
+import { formatUsdFromMicros } from "@/shared/utils/currency";
+import {
+  inferPolicyPresetFromBps,
+  type PolicyPresetName,
+} from "@/features/campaigns/constants/policies";
 
 export interface CampaignData {
   id: string;
   adminId: string;
   creatorAddress: string;
+  statsId: string;
   name: string;
   shortDescription: string;
   subdomainName: string;
@@ -31,11 +38,14 @@ export interface CampaignData {
   deletedAtMs: number | null;
   nextUpdateSeq: number;
   fundingGoal: string;
+  fundingGoalUsdMicro: bigint;
   category: string;
   walrusQuiltId: string;
   walrusStorageEpochs: string;
   coverImageId: string;
-  campaignType?: string;
+  policyPresetName: PolicyPresetName;
+  payoutPlatformBps?: number;
+  payoutPlatformAddress?: string;
   socialLinks: CampaignSocialLink[];
   coverImageUrl: string;
   descriptionUrl: string;
@@ -51,6 +61,7 @@ interface MetadataField {
 interface CampaignMoveContentFields {
   id?: { id?: string };
   admin_id?: string;
+  stats_id?: string;
   name?: string;
   short_description?: string;
   subdomain_name?: string;
@@ -68,7 +79,14 @@ interface CampaignMoveContentFields {
   deleted_at_ms?: unknown;
   next_update_seq?: unknown;
   nextUpdateSeq?: unknown;
-  campaign_type?: unknown;
+  funding_goal_usd_micro?: unknown;
+  payout_policy?: {
+    fields?: {
+      platform_bps?: unknown;
+      platform_address?: string;
+      recipient_address?: string;
+    };
+  };
   metadata?: {
     fields?: {
       contents?: MetadataField[];
@@ -100,24 +118,41 @@ const extractMoveString = (value: unknown): string | undefined => {
   return undefined;
 };
 
-const normalizeCampaignType = (value: string | undefined): string => {
-  if (!value) {
-    return "";
-  }
-  const canonical = value.toLowerCase().replace(/[\s_-]/g, "");
-  if (canonical === "nonprofit") {
-    return "nonprofit";
-  }
-  if (canonical === "commercial") {
-    return "commercial";
-  }
-  if (canonical === "flexible") {
-    return "flexible";
-  }
-  return value;
+const extractPayoutPolicyFields = (
+  payoutPolicy: CampaignMoveContentFields["payout_policy"],
+) => {
+  const policyFields = payoutPolicy?.fields;
+  const hasPlatformBps = policyFields?.platform_bps !== undefined;
+  const platformBps = hasPlatformBps
+    ? parseU64FromMove(policyFields?.platform_bps ?? 0, 0)
+    : undefined;
+  const platformAddress =
+    typeof policyFields?.platform_address === "string"
+      ? policyFields.platform_address
+      : undefined;
+  const recipientAddress =
+    typeof policyFields?.recipient_address === "string"
+      ? policyFields.recipient_address
+      : undefined;
+
+  return { platformBps, platformAddress, recipientAddress };
 };
 
-export function useAllCampaigns(network: SupportedNetwork = DEFAULT_NETWORK) {
+const parseFundingGoalUsdMicro = (
+  fields: CampaignMoveContentFields,
+): bigint => {
+  return parseU64BigIntFromMove(fields.funding_goal_usd_micro, 0n);
+};
+
+interface UseAllCampaignsOptions {
+  enabled?: boolean;
+}
+
+export function useAllCampaigns(
+  network: SupportedNetwork = DEFAULT_NETWORK,
+  options: UseAllCampaignsOptions = {},
+) {
+  const { enabled = true } = options;
   const config = getContractConfig(network);
 
   const {
@@ -125,13 +160,19 @@ export function useAllCampaigns(network: SupportedNetwork = DEFAULT_NETWORK) {
     isPending: isEventsPending,
     error: eventsError,
     refetch: refetchEvents,
-  } = useSuiClientQuery("queryEvents", {
-    query: {
-      MoveEventType: `${config.contracts.packageId}::crowd_walrus::CampaignCreated`,
+  } = useSuiClientQuery(
+    "queryEvents",
+    {
+      query: {
+        MoveEventType: `${config.contracts.packageId}::crowd_walrus::CampaignCreated`,
+      },
+      limit: 100,
+      order: "descending",
     },
-    limit: 100,
-    order: "descending",
-  });
+    {
+      enabled,
+    },
+  );
 
   const { campaignIds, creatorMap } = useMemo(() => {
     if (!eventsData?.data) {
@@ -170,7 +211,7 @@ export function useAllCampaigns(network: SupportedNetwork = DEFAULT_NETWORK) {
       },
     },
     {
-      enabled: campaignIds.length > 0,
+      enabled: enabled && campaignIds.length > 0,
     },
   );
 
@@ -201,10 +242,11 @@ export function useAllCampaigns(network: SupportedNetwork = DEFAULT_NETWORK) {
 
           const walrusQuiltId = metadataMap["walrus_quilt_id"] || "";
           const socialLinks = parseSocialLinksFromMetadata(metadataMap);
-          const rawCampaignType = normalizeCampaignType(
-            metadataMap["campaign_type"] ??
-              extractMoveString(fields.campaign_type) ??
-              "",
+          const payoutPolicy = extractPayoutPolicyFields(fields.payout_policy);
+          const fundingGoalUsdMicro = parseFundingGoalUsdMicro(fields);
+          const fundingGoalDisplay = formatUsdFromMicros(fundingGoalUsdMicro);
+          const policyPresetName = inferPolicyPresetFromBps(
+            payoutPolicy.platformBps,
           );
 
           const campaignId = fields.id?.id || obj.data?.objectId || "";
@@ -215,13 +257,11 @@ export function useAllCampaigns(network: SupportedNetwork = DEFAULT_NETWORK) {
             id: campaignId,
             adminId: fields.admin_id ?? "",
             creatorAddress,
+            statsId: typeof fields.stats_id === "string" ? fields.stats_id : "",
             name: fields.name ?? "",
             shortDescription: fields.short_description ?? "",
             subdomainName: fields.subdomain_name ?? "",
-            recipientAddress:
-              fields.recipient_address ??
-              metadataMap["recipient_address"] ??
-              "",
+            recipientAddress: payoutPolicy.recipientAddress ?? "",
             startDateMs: parseTimestampFromMove(fields.start_date),
             endDateMs: parseTimestampFromMove(fields.end_date),
             createdAtMs: parseTimestampFromMove(
@@ -237,12 +277,15 @@ export function useAllCampaigns(network: SupportedNetwork = DEFAULT_NETWORK) {
             nextUpdateSeq: parseU64FromMove(
               fields.next_update_seq ?? fields.nextUpdateSeq ?? 0,
             ),
-            fundingGoal: metadataMap["funding_goal"] || "0",
+            fundingGoal: fundingGoalDisplay,
+            fundingGoalUsdMicro,
             category: metadataMap["category"] || "Other",
             walrusQuiltId,
             walrusStorageEpochs: metadataMap["walrus_storage_epochs"] || "0",
             coverImageId: metadataMap["cover_image_id"] || "cover.jpg",
-            campaignType: rawCampaignType,
+            policyPresetName,
+            payoutPlatformBps: payoutPolicy.platformBps,
+            payoutPlatformAddress: payoutPolicy.platformAddress,
             socialLinks,
             coverImageUrl: walrusQuiltId
               ? getWalrusUrl(
@@ -268,15 +311,18 @@ export function useAllCampaigns(network: SupportedNetwork = DEFAULT_NETWORK) {
     return processedCampaigns;
   }, [campaignObjects, network, creatorMap]);
 
-  const isPending = isEventsPending || isCampaignsPending;
+  const isPending = enabled && (isEventsPending || isCampaignsPending);
   const error = eventsError || campaignsError;
 
   const refetch = useCallback(() => {
+    if (!enabled) {
+      return;
+    }
     refetchEvents();
     if (campaignIds.length > 0) {
       refetchCampaigns();
     }
-  }, [campaignIds.length, refetchCampaigns, refetchEvents]);
+  }, [campaignIds.length, enabled, refetchCampaigns, refetchEvents]);
 
   return {
     campaigns,

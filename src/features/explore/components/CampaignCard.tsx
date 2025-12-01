@@ -19,11 +19,12 @@ import {
 import { getCampaignStatusInfo } from "@/features/campaigns/utils/campaignStatus";
 import { useNetworkVariable } from "@/shared/config/networkConfig";
 import { buildCampaignDetailPath } from "@/shared/utils/routes";
+import { formatUsdLocaleFromMicros } from "@/shared/utils/currency";
 
 interface CampaignCardProps {
   campaign: CampaignData;
-  raised?: number; // Amount raised in SUI (mock data for now)
-  supporters?: number; // Number of supporters (mock data for now)
+  raisedUsdMicro?: bigint;
+  supportersCount?: number;
 }
 
 const CAMPAIGN_PLACEHOLDER_IMAGE = "/assets/images/placeholders/campaign.png";
@@ -37,18 +38,10 @@ function formatAddress(address: string | null | undefined): string {
   return `${address.slice(0, 4)}...${address.slice(-4)}`;
 }
 
-/**
- * Calculate funding percentage
- */
-function calculateFundingPercentage(raised: number, goal: number): number {
-  if (goal === 0) return 0;
-  return Math.min(Math.round((raised / goal) * 100), 100);
-}
-
 export function CampaignCard({
   campaign,
-  raised = 0,
-  supporters = 0,
+  raisedUsdMicro = 0n,
+  supportersCount = 0,
 }: CampaignCardProps) {
   const campaignDomain = useNetworkVariable("campaignDomain") as
     | string
@@ -63,8 +56,11 @@ export function CampaignCard({
     campaign.isDeleted,
   );
 
-  const fundingGoal = parseFloat(campaign.fundingGoal) || 0;
-  const fundingPercentage = calculateFundingPercentage(raised, fundingGoal);
+  const fundingPercentage =
+    campaign.fundingGoalUsdMicro > 0n
+      ? Number((raisedUsdMicro * 100n) / campaign.fundingGoalUsdMicro)
+      : 0;
+  const formattedRaised = formatUsdLocaleFromMicros(raisedUsdMicro);
   const hasCoverImage =
     typeof coverImageObjectUrl === "string" &&
     coverImageObjectUrl.trim().length > 0;
@@ -113,6 +109,7 @@ export function CampaignCard({
           <CampaignTimelineBadge
             label={statusInfo.dateLabel}
             value={statusInfo.dateValue}
+            iconName={statusInfo.timelineIcon}
           />
         </div>
       </div>
@@ -147,8 +144,8 @@ export function CampaignCard({
 
             <div className="flex items-center gap-2 flex-wrap">
               <CategoriesBadgeGroup categories={campaign.category} />
-              {supporters > 0 && (
-                <ContributorsBadge contributorsCount={supporters} />
+              {supportersCount > 0 && (
+                <ContributorsBadge contributorsCount={supportersCount} />
               )}
             </div>
           </div>
@@ -159,7 +156,7 @@ export function CampaignCard({
               {/* Progress Bar */}
               <div className="w-full h-2 bg-black-50 rounded-[10px] overflow-hidden">
                 <div
-                  className="h-full bg-gradient-to-r from-sgreen-500 to-sgreen-400 rounded-[10px] transition-all"
+                  className="h-full bg-sgreen-700 rounded-[10px] transition-all"
                   style={{ width: `${fundingPercentage}%` }}
                 />
               </div>
@@ -168,9 +165,11 @@ export function CampaignCard({
               <div className="flex items-center justify-between text-base leading-relaxed">
                 <div className="flex items-center gap-1">
                   <span className="font-semibold">
-                    ${raised.toLocaleString()} raised
+                    {`$${formattedRaised} raised`}
                   </span>
-                  <span>of ${fundingGoal.toLocaleString()}</span>
+                  <span>
+                    of {formatUsdLocaleFromMicros(campaign.fundingGoalUsdMicro)}
+                  </span>
                 </div>
                 <span>{fundingPercentage}% funded</span>
               </div>
@@ -178,13 +177,15 @@ export function CampaignCard({
           )}
 
           {/* No progress - just show raised amount */}
-          {!statusInfo.showProgress && raised > 0 && (
+          {!statusInfo.showProgress && raisedUsdMicro > 0n && (
             <div className="flex items-center justify-between text-base leading-relaxed">
               <div className="flex items-center gap-1">
                 <span className="font-semibold">
-                  ${raised.toLocaleString()} raised
+                  {`$${formattedRaised} raised`}
                 </span>
-                <span>of ${fundingGoal.toLocaleString()}</span>
+                <span>
+                  of {formatUsdLocaleFromMicros(campaign.fundingGoalUsdMicro)}
+                </span>
               </div>
               <span>{fundingPercentage}% funded</span>
             </div>

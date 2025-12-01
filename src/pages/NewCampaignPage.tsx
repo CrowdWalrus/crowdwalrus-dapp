@@ -28,9 +28,6 @@ import { transformNewCampaignFormData } from "@/features/campaigns/utils/transfo
 import { extractCampaignIdFromEffects } from "@/services/campaign-transaction";
 import { getContractConfig } from "@/shared/config/contracts";
 import { getWalrusUrl } from "@/services/walrus";
-import { useSubnameAvailability } from "@/features/campaigns/hooks/useSubnameAvailability";
-import { formatSubdomain, SUBDOMAIN_PATTERN } from "@/shared/utils/subdomain";
-import { cn } from "@/shared/lib/utils";
 import {
   WizardStep,
   type CreateCampaignResult,
@@ -73,6 +70,7 @@ import {
   CampaignTermsAndConditionsSection,
   type StorageCost,
 } from "@/features/campaigns/components/new-campaign";
+import { SubnameField } from "@/features/suins/components/SubnameField";
 import {
   newCampaignSchema,
   type NewCampaignFormData,
@@ -81,9 +79,6 @@ import { isUserRejectedError } from "@/shared/utils/errors";
 import {
   AlertCircleIcon,
   WalletMinimal,
-  Check,
-  Loader2,
-  Info,
 } from "lucide-react";
 
 const AUTO_CALCULATING_LABEL = "Calculating...";
@@ -203,156 +198,6 @@ export default function NewCampaignPage() {
       form.resetField("walletAddress", { defaultValue: connectedAddress });
     }
   }, [currentAccount?.address, form]);
-
-  const subdomainValue = useWatch({ control: form.control, name: "subdomain" });
-  const rawSubdomain = (subdomainValue ?? "").trim();
-  const debouncedSubdomain = useDebounce(rawSubdomain, 400);
-  const hasRawSubdomain = rawSubdomain.length > 0;
-  const hasDebouncedSubdomain = debouncedSubdomain.length > 0;
-  const isSubdomainPatternValid =
-    hasDebouncedSubdomain && SUBDOMAIN_PATTERN.test(debouncedSubdomain);
-
-  const {
-    status: subnameStatus,
-    fullName: resolvedSubdomainFull,
-    campaignDomain,
-    isChecking: isCheckingSubname,
-    error: subnameError,
-  } = useSubnameAvailability(
-    isSubdomainPatternValid ? debouncedSubdomain : null,
-  );
-  const availabilityErrorMessage = subnameError?.message ?? "";
-
-  const debouncedFullSubdomain =
-    campaignDomain && hasDebouncedSubdomain
-      ? formatSubdomain(debouncedSubdomain, campaignDomain)
-      : "";
-
-  const availabilityFullSubdomain =
-    resolvedSubdomainFull || debouncedFullSubdomain;
-
-  const rawFullSubdomain =
-    campaignDomain && hasRawSubdomain && SUBDOMAIN_PATTERN.test(rawSubdomain)
-      ? formatSubdomain(rawSubdomain, campaignDomain)
-      : "";
-
-  const availabilityDisplayName =
-    availabilityFullSubdomain ||
-    debouncedFullSubdomain ||
-    rawFullSubdomain ||
-    rawSubdomain ||
-    "this sub-name";
-
-  const includesCampaignSuffix =
-    !!campaignDomain && rawSubdomain.endsWith(`.${campaignDomain}`);
-  const containsDot = rawSubdomain.includes(".");
-
-  const subdomainFieldState = form.getFieldState("subdomain");
-  const fieldErrorMessage =
-    (subdomainFieldState.error?.message as string | undefined) ?? "";
-  const isManualFieldError = subdomainFieldState.error?.type === "manual";
-
-  useEffect(() => {
-    const isManualError = isManualFieldError;
-
-    if (!isSubdomainPatternValid) {
-      if (isManualError) {
-        form.clearErrors("subdomain");
-      }
-      return;
-    }
-
-    if (subnameStatus === "checking") {
-      if (isManualError) {
-        form.clearErrors("subdomain");
-      }
-      return;
-    }
-
-    if (subnameStatus === "taken") {
-      const message = "This sub-name has already been taken";
-      if (fieldErrorMessage !== message) {
-        form.setError("subdomain", { type: "manual", message });
-      }
-      return;
-    }
-
-    if (subnameStatus === "error") {
-      const message = `We couldn't verify this sub-name right now. Please try again${availabilityErrorMessage ? ` (${availabilityErrorMessage})` : ""}.`;
-      if (fieldErrorMessage !== message) {
-        form.setError("subdomain", { type: "manual", message });
-      }
-      return;
-    }
-
-    if (isManualError) {
-      form.clearErrors("subdomain");
-    }
-  }, [
-    form,
-    isSubdomainPatternValid,
-    subnameStatus,
-    availabilityDisplayName,
-    availabilityErrorMessage,
-    fieldErrorMessage,
-    isManualFieldError,
-  ]);
-
-  const helperVariant =
-    !campaignDomain || !hasRawSubdomain
-      ? "default"
-      : includesCampaignSuffix ||
-          (containsDot && !includesCampaignSuffix) ||
-          subnameStatus === "taken" ||
-          subnameStatus === "error"
-        ? "error"
-        : subnameStatus === "available"
-          ? "success"
-          : "default";
-
-  const subdomainHelperClass = cn(
-    "text-xs",
-    helperVariant === "error"
-      ? "text-red-500"
-      : helperVariant === "success"
-        ? "text-sgreen-700"
-        : "text-black-200",
-  );
-
-  const subdomainHelperText = (() => {
-    if (fieldErrorMessage) {
-      return "";
-    }
-
-    if (!campaignDomain) {
-      return "Loading network configuration…";
-    }
-
-    if (includesCampaignSuffix) {
-      return `You only need the part before .${campaignDomain}. We'll add it automatically.`;
-    }
-
-    if (containsDot && !includesCampaignSuffix) {
-      return "Skip the domain suffix; just choose a unique label.";
-    }
-
-    if (subnameStatus === "available") {
-      return "This sub-name is available to register";
-    }
-
-    if (subnameStatus === "taken") {
-      return "This sub-name has already been taken";
-    }
-
-    if (subnameStatus === "error") {
-      return `We couldn't verify availability for ${availabilityDisplayName}. Please try again${availabilityErrorMessage ? ` (${availabilityErrorMessage})` : ""}.`;
-    }
-
-    // Default state: empty, loading, or checking
-    return "Enter your preferred sub-name to check its availability";
-  })();
-
-  const shouldShowHelperText = subdomainHelperText.length > 0;
 
   // Watch form values for auto-estimation
   const coverImage = useWatch({ control: form.control, name: "coverImage" });
@@ -944,59 +789,11 @@ export default function NewCampaignPage() {
                         />
 
                         {/* Subdomain */}
-                        <FormField
-                          control={form.control}
-                          name="subdomain"
-                          render={({ field }) => (
-                            <FormItem className="flex flex-col gap-4">
-                              <FormLabel className="font-medium text-base">
-                                Setup your campaign sub-name{" "}
-                                <span className="text-red-300">*</span>
-                              </FormLabel>
-                              <div className="flex flex-col gap-2">
-                                <div
-                                  className={cn(
-                                    "flex h-10 w-full rounded-lg border bg-white-50 px-4 py-[9.5px] gap-3 items-center",
-                                    subdomainFieldState.error
-                                      ? "border-red-500"
-                                      : "border-input",
-                                  )}
-                                >
-                                  {isCheckingSubname && (
-                                    <Loader2 className="size-[18px] animate-spin text-black-300" />
-                                  )}
-                                  <FormControl>
-                                    <input
-                                      {...field}
-                                      placeholder="campaign-name"
-                                      className="flex-1 bg-transparent text-sm outline-none placeholder:text-black-300"
-                                    />
-                                  </FormControl>
-                                  {campaignDomain && (
-                                    <span className="text-sm text-black-300 whitespace-nowrap">
-                                      .{campaignDomain}
-                                    </span>
-                                  )}
-                                </div>
-                                {shouldShowHelperText && (
-                                  <div className="flex gap-1 items-center">
-                                    {subnameStatus === "available" ? (
-                                      <Check className="size-[18px] text-sgreen-700" />
-                                    ) : subnameStatus === "taken" ||
-                                      subnameStatus === "error" ? (
-                                      <AlertCircleIcon className="size-[18px] text-red-500" />
-                                    ) : (
-                                      <Info className="size-[18px] text-black-200" />
-                                    )}
-                                    <p className={subdomainHelperClass}>
-                                      {subdomainHelperText}
-                                    </p>
-                                  </div>
-                                )}
-                                <FormMessage />
-                              </div>
-                            </FormItem>
-                          )}
+                        <SubnameField
+                          label="Setup your campaign sub-name"
+                          placeholder="campaign-name"
+                          required
+                          disabled={isFormLocked}
                         />
 
                         {/* Cover Image */}

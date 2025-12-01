@@ -45,12 +45,14 @@ import { getContractConfig, CLOCK_OBJECT_ID } from "@/shared/config/contracts";
 import { DEFAULT_NETWORK } from "@/shared/config/networkConfig";
 import { ROUTES } from "@/shared/config/routes";
 import { buildCampaignDetailPath } from "@/shared/utils/routes";
+import { formatUsdLocaleFromMicros } from "@/shared/utils/currency";
 import {
   CampaignResolutionError,
   CampaignResolutionLoading,
   CampaignResolutionMissing,
   CampaignResolutionNotFound,
 } from "@/features/campaigns/components/CampaignResolutionStates";
+import { DEFAULT_POLICY_PRESET } from "@/features/campaigns/constants/policies";
 import {
   CampaignCoverImageUpload,
   CampaignDetailsEditor,
@@ -103,7 +105,7 @@ import { normalizeSerializedEditorStateString } from "@/shared/components/editor
 const DEFAULT_FORM_VALUES: EditCampaignFormData = {
   campaignName: "",
   description: "",
-  campaignType: "",
+  campaignType: DEFAULT_POLICY_PRESET,
   categories: [],
   socials: [],
   campaignDetails: "",
@@ -392,7 +394,7 @@ export default function EditCampaignPage() {
     const resetValues: EditCampaignFormData = {
       campaignName: campaign?.name ?? "",
       description: campaign?.shortDescription ?? "",
-      campaignType: campaign?.campaignType ?? "",
+      campaignType: campaign?.policyPresetName ?? DEFAULT_POLICY_PRESET,
       categories: parseCategories(campaign?.category),
       socials: buildSocialsFromMetadata(campaign),
       campaignDetails: normalizedDescription,
@@ -605,18 +607,15 @@ export default function EditCampaignPage() {
       }
 
       const sanitizedSocials = sanitizeSocialLinks(values.socials);
-      const campaignTypeValue =
-        metadataPatch.campaign_type ??
-        (values.campaignType
-          ? values.campaignType.trim().toLowerCase()
-          : (campaign.campaignType ?? ""));
+      const policyPresetName =
+        values.campaignType || campaign.policyPresetName || DEFAULT_POLICY_PRESET;
 
       const walrusFormData = {
         name: campaign.name,
         short_description: values.description,
         subdomain_name: campaign.subdomainName,
         category: metadataPatch.category ?? campaign.category ?? "",
-        campaign_type: campaignTypeValue,
+        policyPresetName,
         funding_goal: campaign.fundingGoal ?? "0",
         start_date: new Date(campaign.startDateMs),
         end_date: new Date(campaign.endDateMs),
@@ -831,7 +830,9 @@ export default function EditCampaignPage() {
     campaignData.endDateMs != null
       ? new Date(campaignData.endDateMs).toLocaleDateString()
       : "";
-  const formattedFundingGoal = campaignData.fundingGoal ?? "";
+  const formattedFundingGoal = formatUsdLocaleFromMicros(
+    campaignData.fundingGoalUsdMicro,
+  );
   const formattedRecipientAddress = campaignData.recipientAddress ?? "";
 
   const campaignNameDirty = isEditFieldDirty(dirtyFields, "campaignName");
@@ -948,18 +949,17 @@ export default function EditCampaignPage() {
       }
 
       const sanitizedSocials = sanitizeSocialLinks(values.socials);
-      const campaignTypeValue =
-        metadataPatch.campaign_type ??
-        (values.campaignType
-          ? values.campaignType.trim().toLowerCase()
-          : (campaignData.campaignType ?? ""));
+      const policyPresetName =
+        values.campaignType ||
+        campaignData.policyPresetName ||
+        DEFAULT_POLICY_PRESET;
 
       const walrusFormData = {
         name: campaignData.name,
         short_description: values.description,
         subdomain_name: campaignData.subdomainName,
         category: metadataPatch.category ?? campaignData.category ?? "",
-        campaign_type: campaignTypeValue,
+        policyPresetName,
         funding_goal: campaignData.fundingGoal ?? "0",
         start_date: new Date(campaignData.startDateMs),
         end_date: new Date(campaignData.endDateMs),
@@ -1334,7 +1334,7 @@ export default function EditCampaignPage() {
     description: getSectionStatus("description", descriptionDirty),
     coverImage: getSectionStatus("coverImage", coverImageDirty),
     details: getSectionStatus("details", detailsDirty || storageEpochsDirty),
-    campaignType: getSectionStatus("campaignType", campaignTypeDirty),
+    campaignType: "Can't Edit",
     categories: getSectionStatus("categories", categoriesDirty),
     socials: getSectionStatus("socials", socialsDirty),
   };
@@ -1620,13 +1620,18 @@ export default function EditCampaignPage() {
 
                 <Separator />
 
-                <CampaignTypeSelector
-                  disabled={!editingSections.campaignType}
-                  headerStatus={
-                    <FieldStatusBadge status={sectionStatuses.campaignType} />
-                  }
-                  headerAction={renderEditButton("campaignType")}
-                />
+                <div className="flex flex-col gap-2">
+                  <CampaignTypeSelector
+                    disabled
+                    headerStatus={<FieldStatusBadge status="Can't Edit" />}
+                    headerAction={null}
+                  />
+                  <p className="text-sm text-muted-foreground">
+                    Platform payout policies are set when the campaign is
+                    created. Launch a new campaign if you need a different
+                    preset.
+                  </p>
+                </div>
 
                 <CampaignCategorySelector
                   disabled={!editingSections.categories}

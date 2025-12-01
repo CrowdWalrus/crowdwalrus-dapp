@@ -101,8 +101,8 @@ export interface CampaignCreationModalProps {
   /** Current processing message (optional override) */
   processingMessage?: string;
 
-  /** Controls copy for campaign creation vs campaign update flows */
-  mode?: "campaign" | "campaign-update";
+  /** Controls copy for campaign creation vs campaign update vs profile flows */
+  mode?: "campaign" | "campaign-update" | "profile";
 
   /** Optional subdomain used to build redirect URL in success state */
   subdomainName?: string | null;
@@ -173,6 +173,13 @@ export const CampaignCreationModal = ({
    * Each state component is responsible for its own UI
    */
   const renderContent = () => {
+    const uploadMessage =
+      mode === "campaign-update"
+        ? "Uploading update content to Walrus..."
+        : mode === "profile"
+          ? "Uploading profile image to Walrus..."
+          : "Uploading campaign data to Walrus...";
+
     switch (currentStep) {
       // === Storage Registration Flow ===
       case WizardStep.CONFIRM_REGISTER:
@@ -181,6 +188,7 @@ export const CampaignCreationModal = ({
             estimatedCost={estimatedCost}
             onConfirm={onConfirmRegister}
             onCancel={onCancelRegister}
+            mode={mode}
           />
         );
 
@@ -199,7 +207,7 @@ export const CampaignCreationModal = ({
         return (
           <UploadingState
             progress={derivedUploadProgress}
-            message="Off-chain Upload"
+            message={uploadMessage}
           />
         );
 
@@ -229,7 +237,9 @@ export const CampaignCreationModal = ({
               processingMessage ||
               (mode === "campaign-update"
                 ? "Posting your update..."
-                : "Creating your campaign...")
+                : mode === "profile"
+                  ? "Saving your profile..."
+                  : "Creating your campaign...")
             }
             description="Please confirm the transaction in your wallet"
           />

@@ -1,0 +1,331 @@
+import { useMemo } from "react";
+import { Link, Navigate, useParams, useSearchParams } from "react-router-dom";
+import {
+  AlertCircle,
+  BanknoteArrowDown,
+  FileSpreadsheet,
+  HandCoins,
+  HandHeart,
+  PenLine,
+  Sparkles,
+} from "lucide-react";
+
+import {
+  ProfileBadgeShowcase,
+  ProfilePageSkeleton,
+  ProfileStatsCard,
+  ProfileSummaryCard,
+  ProfileTabs,
+  type ProfileTabConfig,
+  type ProfileTabValue,
+} from "@/features/profiles/components/profile-page";
+import { MyCampaignsSection } from "@/features/profiles/components/my-campaigns";
+import { useMyCampaigns } from "@/features/campaigns/hooks/useMyCampaigns";
+import { useOwnerCampaigns } from "@/features/campaigns/hooks/useOwnerCampaigns";
+import { parseSocialLinksFromMetadata } from "@/features/campaigns/utils/socials";
+import { useDonorBadges } from "@/features/badges/hooks/useDonorBadges";
+import { useProfile } from "@/features/profiles/hooks/useProfile";
+import { useProfileOwnership } from "@/features/profiles/hooks/useProfileOwnership";
+import { PROFILE_METADATA_KEYS } from "@/features/profiles/constants/metadata";
+import { useDocumentTitle } from "@/shared/hooks/useDocumentTitle";
+import { Button } from "@/shared/components/ui/button";
+import { Card, CardContent } from "@/shared/components/ui/card";
+import { ROUTES } from "@/shared/config/routes";
+
+const DESCRIPTION_EMPTY_STATE =
+  "It appears that your profile is currently incomplete. Please take a moment to create your profile and share information about yourself.";
+
+const DESCRIPTION_EMPTY_STATE_PUBLIC =
+  "This supporter hasn't shared their profile details yet.";
+
+const PROFILE_TAB_VALUES: ProfileTabValue[] = [
+  "overview",
+  "campaigns",
+  "contributions",
+];
+
+const formatAddressForDisplay = (address?: string | null) => {
+  if (!address || address.length < 10) {
+    return address ?? "Profile";
+  }
+  return `${address.slice(0, 4)}...${address.slice(-4)}`;
+};
+
+export function ProfilePage() {
+  const { address: addressParam } = useParams<{ address: string }>();
+  const { isOwner } = useProfileOwnership({ profileAddress: addressParam });
+  const {
+    metadata: metadataMap,
+    hasProfile,
+    isPending: isProfilePending,
+    isError: isProfileError,
+    error: profileError,
+    refetch: refetchProfile,
+  } = useProfile({
+    ownerAddress: addressParam,
+  });
+  const { badges: donorBadges } = useDonorBadges({
+    ownerAddress: addressParam,
+  });
+  const [searchParams, setSearchParams] = useSearchParams();
+  const myCampaigns = useMyCampaigns();
+  const ownerCampaigns = useOwnerCampaigns({
+    ownerAddress: addressParam,
+    enabled: !isOwner,
+  });
+  const activeCampaignData = isOwner
+    ? myCampaigns
+    : { ...ownerCampaigns, isConnected: true };
+  const campaignCount = activeCampaignData.campaigns.length;
+
+  useDocumentTitle("Profile");
+
+  const addressLabel = formatAddressForDisplay(addressParam);
+
+  const socialLinks = useMemo(
+    () => parseSocialLinksFromMetadata(metadataMap),
+    [metadataMap],
+  );
+
+  const fullName = (metadataMap[PROFILE_METADATA_KEYS.FULL_NAME] ?? "").trim();
+  const email = (metadataMap[PROFILE_METADATA_KEYS.EMAIL] ?? "").trim();
+  const bio = (metadataMap[PROFILE_METADATA_KEYS.BIO] ?? "").trim();
+  const subdomain = (metadataMap[PROFILE_METADATA_KEYS.SUBDOMAIN] ?? "").trim();
+  const avatarWalrusUrl = (
+    metadataMap[PROFILE_METADATA_KEYS.AVATAR_WALRUS_ID] ?? ""
+  ).trim();
+  const profileDisplayName = fullName || addressLabel;
+  const profilePossessiveLabel = buildPossessiveLabel(profileDisplayName);
+
+  const hasDisplayableMetadata = Boolean(
+    fullName ||
+      email ||
+      bio ||
+      subdomain ||
+      avatarWalrusUrl ||
+      socialLinks.length > 0,
+  );
+  const shouldShowProfileDetails = hasProfile && hasDisplayableMetadata;
+  const summaryMetadata = shouldShowProfileDetails
+    ? {
+        fullName,
+        subdomain,
+        email,
+        bio,
+        socialLinks,
+        avatarWalrusUrl,
+      }
+    : null;
+
+  // TODO: Replace placeholder conditions once profile data fetching is available.
+  const badges = useMemo(
+    () =>
+      donorBadges.map((badge) => ({
+        id: badge.objectId,
+        src: badge.imageUrl,
+        alt: `CrowdWalrus donor badge level ${badge.level}`,
+      })),
+    [donorBadges],
+  );
+
+  const placeholderStats = useMemo(() => {
+    // TODO: Replace placeholder stats with real profile aggregates.
+    return [
+      {
+        id: "contributions",
+        label: "Contributions",
+        value: "10",
+        icon: HandHeart,
+      },
+      {
+        id: "total-contributed",
+        label: "Total Amount Contributed",
+        value: "$200.40",
+        icon: HandCoins,
+      },
+      {
+        id: "campaigns",
+        label: "Campaigns",
+        value: campaignCount.toString(),
+        icon: FileSpreadsheet,
+      },
+      {
+        id: "total-raised",
+        label: "Total Amount Raised",
+        value: "$20,000.00",
+        icon: BanknoteArrowDown,
+      },
+    ];
+  }, [campaignCount]);
+
+  if (!addressParam) {
+    return <Navigate to={ROUTES.NOT_FOUND} replace />;
+  }
+
+  if (isProfilePending) {
+    return <ProfilePageSkeleton />;
+  }
+
+  if (isProfileError) {
+    const message =
+      profileError?.message ?? "Unable to load this profile. Please try again.";
+    return (
+      <div className="py-10">
+        <div className="container px-4 flex justify-center">
+          <Card className="w-full max-w-2xl border border-red-200 bg-red-50">
+            <CardContent className="flex flex-col items-center gap-4 py-10 text-center">
+              <div className="flex size-16 items-center justify-center rounded-full bg-white text-red-500">
+                <AlertCircle className="size-8" />
+              </div>
+              <div className="space-y-2">
+                <h3 className="text-lg font-semibold text-red-600">
+                  Unable to load profile
+                </h3>
+                <p className="text-sm text-red-500">{message}</p>
+              </div>
+              <Button variant="outline" onClick={() => void refetchProfile()}>
+                Try again
+              </Button>
+            </CardContent>
+          </Card>
+        </div>
+      </div>
+    );
+  }
+
+  const overviewContent = (
+    <div className="flex flex-col gap-12">
+      <ProfileBadgeShowcase badges={badges} />
+      <ProfileStatsCard stats={placeholderStats} />
+    </div>
+  );
+
+  const campaignsContent = (
+    <MyCampaignsSection
+      data={activeCampaignData}
+      isOwnerView={isOwner}
+      profileDisplayName={profileDisplayName}
+    />
+  );
+
+  const campaignsTabLabel = isOwner ? "My Campaigns" : "Campaigns";
+  const contributionsTabLabel = isOwner ? "My Contributions" : "Contributions";
+
+  const contributionsContent = (
+    // TODO: Swap placeholder with real contributions list once profile contributions endpoint is ready.
+    <div className="relative overflow-hidden rounded-3xl border border-blue-100 bg-gradient-to-br from-blue-50 via-white-50 to-purple-50 px-6 py-8 sm:px-10 sm:py-12 shadow-[0_18px_50px_-32px_rgba(15,23,42,0.35)]">
+      <div className="pointer-events-none absolute inset-0 bg-[radial-gradient(circle_at_20%_24%,rgba(97,61,255,0.09),transparent_36%),radial-gradient(circle_at_78%_16%,rgba(187,135,239,0.12),transparent_34%)]" />
+
+      <div className="relative flex flex-col gap-6">
+        <div className="inline-flex items-center gap-2 self-start rounded-full bg-white/90 px-3 py-1.5 text-xs font-semibold uppercase tracking-[0.18em] text-blue-700 ring-1 ring-blue-200">
+          <Sparkles className="h-4 w-4" />
+          {contributionsTabLabel}
+        </div>
+
+        <div className="space-y-3 max-w-2xl">
+          <h3 className="text-2xl sm:text-3xl font-bold text-black-500">
+            {isOwner
+              ? "Your contribution trail is nearly here"
+              : `${profilePossessiveLabel} contribution trail is nearly here`}
+          </h3>
+          <p className="text-base text-black-300">
+            {isOwner
+              ? "You will soon see every contribution you've made and keep your support visible."
+              : `Soon you will see every contribution from ${profilePossessiveLabel} and keep their support visible.`}
+          </p>
+        </div>
+
+        <div className="inline-flex items-center gap-2 self-start rounded-lg bg-blue-600 hover:bg-blue-500 transition-colors px-4 py-2 text-sm font-medium text-white-50 shadow-md shadow-blue-700/20">
+          <Sparkles className="h-4 w-4" />
+          <span>Stay tuned for the next release</span>
+        </div>
+      </div>
+    </div>
+  );
+
+  const tabs: ProfileTabConfig[] = [
+    {
+      value: "overview",
+      label: "Overview",
+      content: overviewContent,
+    },
+    {
+      value: "campaigns",
+      label: campaignsTabLabel,
+      badgeCount: campaignCount,
+      content: campaignsContent,
+    },
+    {
+      value: "contributions",
+      label: contributionsTabLabel,
+      content: contributionsContent,
+    },
+  ];
+
+  const tabParam = searchParams.get("tab");
+  const activeTab = PROFILE_TAB_VALUES.includes(tabParam as ProfileTabValue)
+    ? (tabParam as ProfileTabValue)
+    : "overview";
+
+  const handleTabChange = (nextValue: ProfileTabValue) => {
+    const params = new URLSearchParams(searchParams);
+    if (nextValue === "overview") {
+      params.delete("tab");
+    } else {
+      params.set("tab", nextValue);
+    }
+    setSearchParams(params, { replace: true });
+  };
+
+  const profileAction = isOwner ? (
+    <Button asChild className="gap-2">
+      <Link to={ROUTES.PROFILE_CREATE}>
+        <PenLine className="h-4 w-4" />
+        {shouldShowProfileDetails ? "Edit profile" : "Create your profile"}
+      </Link>
+    </Button>
+  ) : null;
+
+  const summaryDescription = shouldShowProfileDetails
+    ? ""
+    : isOwner
+      ? DESCRIPTION_EMPTY_STATE
+      : DESCRIPTION_EMPTY_STATE_PUBLIC;
+
+  if (!isProfilePending && !isProfileError && !hasProfile && !isOwner) {
+    return <Navigate to={ROUTES.NOT_FOUND} replace />;
+  }
+
+  return (
+    <div className="py-10">
+      <div className="container px-4 flex justify-center">
+        <div className="w-full max-w-4xl flex flex-col gap-10">
+          <ProfileSummaryCard
+            addressLabel={addressLabel}
+            description={summaryDescription}
+            action={profileAction}
+            metadata={summaryMetadata}
+          />
+
+          <ProfileTabs
+            tabs={tabs}
+            value={activeTab}
+            onValueChange={handleTabChange}
+          />
+        </div>
+      </div>
+    </div>
+  );
+}
+
+function buildPossessiveLabel(label?: string | null) {
+  if (!label) {
+    return "their";
+  }
+  const trimmed = label.trim();
+  if (!trimmed) {
+    return "their";
+  }
+  const endsWithS = /s$/i.test(trimmed);
+  return endsWithS ? `${trimmed}'` : `${trimmed}'s`;
+}

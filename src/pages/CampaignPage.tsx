@@ -5,7 +5,7 @@
  * Fetches campaign data from Sui blockchain and Walrus storage
  */
 
-import { useEffect, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 import { Link, useParams, useSearchParams } from "react-router-dom";
 import { useCampaign } from "@/features/campaigns/hooks/useCampaign";
 import { useResolvedCampaignId } from "@/features/campaigns/hooks/useResolvedCampaignId";
@@ -33,6 +33,7 @@ import { CampaignHero } from "@/features/campaigns/components/CampaignHero";
 import { CampaignAbout } from "@/features/campaigns/components/CampaignAbout";
 import { CampaignUpdatesList } from "@/features/campaigns/components/campaign-updates";
 import { DonationCard } from "@/features/campaigns/components/DonationCard";
+import { useCampaignStats } from "@/features/campaigns/hooks/useCampaignStats";
 import { useCampaignOwnership } from "@/features/campaigns/hooks/useCampaignOwnership";
 import { useDeactivateCampaign } from "@/features/campaigns/hooks/useDeactivateCampaign";
 import { useActivateCampaign } from "@/features/campaigns/hooks/useActivateCampaign";
@@ -48,6 +49,7 @@ import {
   Trash2,
   Pencil,
   SendIcon,
+  Sparkles,
 } from "lucide-react";
 import { ROUTES } from "@/shared/config/routes";
 import {
@@ -72,8 +74,14 @@ export function CampaignPage() {
   const rawIdentifier = id ?? "";
   const [searchParams, setSearchParams] = useSearchParams();
   const tabParam = searchParams.get("tab");
-  const [activeTab, setActiveTab] = useState<"about" | "updates">(
-    tabParam === "updates" ? "updates" : "about",
+  const [activeTab, setActiveTab] = useState<
+    "about" | "contributions" | "updates"
+  >(
+    tabParam === "updates"
+      ? "updates"
+      : tabParam === "contributions"
+        ? "contributions"
+        : "about",
   );
 
   const {
@@ -92,10 +100,24 @@ export function CampaignPage() {
     identifierSource === "subdomain" ? "Campaign subdomain" : "Campaign ID";
 
   // Fetch campaign data
-  const { campaign, isPending, error, refetch } = useCampaign(
-    campaignId ?? "",
-    network,
-  );
+  const {
+    campaign,
+    isPending,
+    error,
+    refetch: refetchCampaign,
+  } = useCampaign(campaignId ?? "", network);
+
+  const {
+    totalUsdMicro: totalRaisedUsdMicro,
+    totalDonationsCount,
+    isPending: isStatsPending,
+    error: statsError,
+    refetch: refetchCampaignStats,
+  } = useCampaignStats({
+    campaignId: campaign?.id ?? campaignId ?? "",
+    statsId: campaign?.statsId,
+    enabled: Boolean(campaign?.statsId),
+  });
 
   // Fetch cover image
   const { data: imageObjectUrl } = useWalrusImage(campaign?.coverImageUrl);
@@ -127,7 +149,7 @@ export function CampaignPage() {
       accountAddress,
       network,
       onSuccess: async () => {
-        await refetch();
+        await refetchCampaign();
       },
     });
   const { activateCampaign, isProcessing: isActivationProcessing } =
@@ -138,7 +160,7 @@ export function CampaignPage() {
       accountAddress,
       network,
       onSuccess: async () => {
-        await refetch();
+        await refetchCampaign();
       },
     });
   const { deleteCampaign, isProcessing: isDeleteProcessing } =
@@ -149,10 +171,14 @@ export function CampaignPage() {
       accountAddress,
       network,
       onSuccess: async () => {
-        await refetch();
+        await refetchCampaign();
         refetchOwnership();
       },
     });
+
+  const handleDonationComplete = useCallback(async () => {
+    await Promise.allSettled([refetchCampaign(), refetchCampaignStats()]);
+  }, [refetchCampaign, refetchCampaignStats]);
 
   // State to toggle between owner view and public view
   const [isOwnerView, setIsOwnerView] = useState(true);
@@ -239,16 +265,25 @@ export function CampaignPage() {
   };
 
   useEffect(() => {
-    const nextTab = tabParam === "updates" ? "updates" : "about";
+    const nextTab =
+      tabParam === "updates"
+        ? "updates"
+        : tabParam === "contributions"
+          ? "contributions"
+          : "about";
     setActiveTab(nextTab);
   }, [tabParam]);
 
   const handleTabChange = (value: string) => {
-    if (value !== "about" && value !== "updates") {
+    if (
+      value !== "about" &&
+      value !== "contributions" &&
+      value !== "updates"
+    ) {
       return;
     }
 
-    setActiveTab(value);
+    setActiveTab(value as typeof activeTab);
 
     const nextParams = new URLSearchParams(searchParams);
     if (value === "about") {
@@ -283,8 +318,8 @@ export function CampaignPage() {
   // Loading state
   if (isPending) {
     return (
-      <div className="py-8">
-        <div className="container px-4 max-w-4xl">
+      <div className="py-4 sm:py-6 lg:py-8">
+        <div className="container px-4 sm:px-6 lg:px-4 max-w-4xl">
           <Card>
             <CardContent className="pt-6">
               <p className="text-muted-foreground">Loading campaign...</p>
@@ -298,8 +333,8 @@ export function CampaignPage() {
   // Error state
   if (error) {
     return (
-      <div className="py-8">
-        <div className="container px-4 max-w-4xl">
+      <div className="py-4 sm:py-6 lg:py-8">
+        <div className="container px-4 sm:px-6 lg:px-4 max-w-4xl">
           <Card className="border-red-500">
             <CardContent className="pt-6">
               <p className="text-red-600 font-semibold mb-2">
@@ -308,7 +343,7 @@ export function CampaignPage() {
               <p className="text-sm text-muted-foreground mb-4">
                 {error.message}
               </p>
-              <Button variant="outline" onClick={() => refetch()}>
+              <Button variant="outline" onClick={() => refetchCampaign()}>
                 Retry
               </Button>
             </CardContent>
@@ -330,8 +365,8 @@ export function CampaignPage() {
 
   if (campaign.isDeleted) {
     return (
-      <div className="py-8">
-        <div className="container px-4 max-w-4xl">
+      <div className="py-4 sm:py-6 lg:py-8">
+        <div className="container px-4 sm:px-6 lg:px-4 max-w-4xl">
           <Card className="border-red-500">
             <CardContent className="pt-6 flex flex-col gap-2">
               <p className="text-red-600 font-semibold">Campaign deleted</p>
@@ -349,9 +384,9 @@ export function CampaignPage() {
     );
   }
 
-  // Mock contributors count and amount raised (replace with real data)
-  const contributorsCount = 0;
-  const amountRaised = 0;
+  const contributorsCount = statsError ? 0 : totalDonationsCount;
+  const amountRaisedUsdMicro =
+    isStatsPending || statsError ? 0n : totalRaisedUsdMicro;
   const showProcessingDialog =
     (processingType === "deactivate" && isDeactivationProcessing) ||
     (processingType === "activate" && isActivationProcessing) ||
@@ -399,33 +434,33 @@ export function CampaignPage() {
         />
       )}
 
-      <div className="py-8">
-        <div className="container px-4">
+      <div className="py-4 sm:py-6 lg:py-8">
+        <div className="container px-4 sm:px-6 lg:px-4">
           {/* Breadcrumb */}
-          <div className="pb-10">
+          <div className="pb-6 sm:pb-8 lg:pb-10">
             <CampaignBreadcrumb campaignName={campaign.name} />
           </div>
         </div>
 
         {/* Main content container */}
-        <div className="container px-4 mx-auto max-w-[1728px]">
+        <div className="container px-4 sm:px-6 lg:px-4 mx-auto max-w-[1728px]">
           {/* Page Title */}
-          <h1 className="text-5xl font-bold mb-[60px] pb-10">
+          <h1 className="text-2xl sm:text-3xl md:text-4xl lg:text-5xl font-bold mb-6 sm:mb-8 lg:mb-[60px] pb-6 sm:pb-8 lg:pb-10">
             {campaign.name}
           </h1>
 
           {/* Two-column layout */}
-          <div className="flex gap-[62px] items-start">
+          <div className="flex flex-col lg:flex-row gap-6 sm:gap-8 lg:gap-[62px] items-start">
             {/* Left Column - Main Content */}
-            <div className="flex-1 max-w-[946px]">
+            <div className="flex-1 w-full lg:max-w-[946px]">
               {/* Owner Action Buttons - Top section */}
               {isOwnerView && isOwner && (
-                <div className="flex justify-end items-center gap-6 pb-10">
+                <div className="flex flex-col sm:flex-row justify-end items-stretch sm:items-center gap-3 sm:gap-4 lg:gap-6 pb-6 sm:pb-8 lg:pb-10">
                   {editPath && (
                     <Button
                       asChild={campaign.isActive}
                       variant="outline"
-                      className="py-[9.5px]"
+                      className="py-[9.5px] w-full sm:w-auto"
                       disabled={!campaign.isActive}
                     >
                       {campaign.isActive ? (
@@ -444,7 +479,7 @@ export function CampaignPage() {
                   {addUpdatePath && (
                     <Button
                       asChild={campaign.isActive}
-                      className="py-[9.5px]"
+                      className="py-[9.5px] w-full sm:w-auto"
                       disabled={!campaign.isActive}
                     >
                       {campaign.isActive ? (
@@ -463,7 +498,7 @@ export function CampaignPage() {
                   {!campaign.isActive && (
                     <Button
                       onClick={() => setIsActivateModalOpen(true)}
-                      className="bg-sgreen-700 text-white-50 hover:bg-sgreen-600 py-[9.5px]"
+                      className="bg-sgreen-700 text-white-50 hover:bg-sgreen-600 py-[9.5px] w-full sm:w-auto"
                     >
                       <CircleCheck />
                       Activate Campaign
@@ -478,6 +513,7 @@ export function CampaignPage() {
                 campaignName={campaign.name}
                 shortDescription={campaign.shortDescription}
                 isActive={campaign.isActive}
+                isDeleted={campaign.isDeleted}
                 startDateMs={campaign.startDateMs}
                 endDateMs={campaign.endDateMs}
                 category={campaign.category}
@@ -489,16 +525,24 @@ export function CampaignPage() {
               <Tabs
                 value={activeTab}
                 onValueChange={handleTabChange}
-                className="pt-10"
+                className="pt-6 sm:pt-8 lg:pt-10"
               >
-                <TabsList className="bg-white-500 rounded-xl p-1">
-                  <TabsTrigger value="about">About</TabsTrigger>
-                  <TabsTrigger value="updates">
+                <TabsList className="bg-white-500 rounded-xl p-1 w-full sm:w-auto">
+                  <TabsTrigger value="about" className="flex-1 sm:flex-none">
+                    About
+                  </TabsTrigger>
+                  <TabsTrigger
+                    value="contributions"
+                    className="flex-1 sm:flex-none"
+                  >
+                    Contributions
+                  </TabsTrigger>
+                  <TabsTrigger value="updates" className="flex-1 sm:flex-none">
                     Updates ({updates.length})
                   </TabsTrigger>
                 </TabsList>
 
-                <TabsContent value="about" className="pt-8">
+                <TabsContent value="about" className="pt-4 sm:pt-6 lg:pt-8">
                   {loadingDescription ? (
                     <p className="text-muted-foreground">
                       Loading description...
@@ -512,7 +556,39 @@ export function CampaignPage() {
                   )}
                 </TabsContent>
 
-                <TabsContent value="updates" className="pt-8">
+                <TabsContent
+                  value="contributions"
+                  className="pt-4 sm:pt-6 lg:pt-8"
+                >
+                  {/* TODO: Replace placeholder with live contributions table once API is available. */}
+                  <div className="relative overflow-hidden rounded-3xl border border-blue-100 bg-gradient-to-br from-blue-50 via-white-50 to-purple-50 px-6 py-8 sm:px-10 sm:py-12 shadow-[0_18px_50px_-32px_rgba(15,23,42,0.35)]">
+                    <div className="pointer-events-none absolute inset-0 bg-[radial-gradient(circle_at_20%_24%,rgba(97,61,255,0.09),transparent_36%),radial-gradient(circle_at_78%_16%,rgba(187,135,239,0.12),transparent_34%)]" />
+
+                    <div className="relative flex flex-col gap-6">
+                      <div className="inline-flex items-center gap-2 self-start rounded-full bg-white/90 px-3 py-1.5 text-xs font-semibold uppercase tracking-[0.18em] text-blue-700 ring-1 ring-blue-200">
+                        <Sparkles className="h-4 w-4" />
+                        Contributions Coming Soon
+                      </div>
+
+                      <div className="space-y-3 max-w-2xl">
+                        <h3 className="text-2xl sm:text-3xl font-bold text-black-500">
+                          A clean, transparent ledger is on the way
+                        </h3>
+                        <p className="text-base text-black-300">
+                          You will be able to browse every contribution and keep
+                          supporters visible for your team.
+                        </p>
+                      </div>
+
+                      <div className="inline-flex items-center gap-2 self-start rounded-lg bg-blue-600 hover:bg-blue-500 transition-colors px-4 py-2 text-sm font-medium text-white-50 shadow-md shadow-blue-700/20">
+                        <Sparkles className="h-4 w-4" />
+                        <span>Stay tuned for the next release</span>
+                      </div>
+                    </div>
+                  </div>
+                </TabsContent>
+
+                <TabsContent value="updates" className="pt-4 sm:pt-6 lg:pt-8">
                   {isUpdatesLoading ? (
                     <p className="text-muted-foreground">Loading updates...</p>
                   ) : updatesError ? (
@@ -530,17 +606,17 @@ export function CampaignPage() {
                 </TabsContent>
               </Tabs>
 
-              <div className="pb-10">
+              <div className="pb-6 sm:pb-8 lg:pb-10">
                 <Separator />
               </div>
               {/* Deactivate and Delete Buttons - Only visible to campaign owners in owner view */}
               {isOwnerView && isOwner && (
                 <>
-                  <div className="flex gap-2 justify-end">
+                  <div className="flex flex-col sm:flex-row gap-2 sm:gap-2 justify-end">
                     {campaign.isActive && (
                       <Button
                         onClick={() => setIsDeactivateModalOpen(true)}
-                        className="bg-orange-50 border border-orange-200 text-orange-700 hover:bg-orange-100 py-[9.5px]"
+                        className="bg-orange-50 border border-orange-200 text-orange-700 hover:bg-orange-100 py-[9.5px] w-full sm:w-auto"
                       >
                         <OctagonMinus />
                         Deactivate Campaign
@@ -548,7 +624,7 @@ export function CampaignPage() {
                     )}
                     <Button
                       onClick={() => setIsDeleteModalOpen(true)}
-                      className="bg-red-50 border border-red-200 text-red-500 hover:bg-red-100"
+                      className="bg-red-50 border border-red-200 text-red-500 hover:bg-red-100 w-full sm:w-auto"
                     >
                       <Trash2 />
                       Delete Campaign
@@ -559,17 +635,36 @@ export function CampaignPage() {
             </div>
 
             {/* Right Column - Donation Card */}
-            <div className="w-[480px] shrink-0 sticky top-[38px]">
+            <div className="w-full lg:w-[480px] lg:shrink-0 lg:sticky lg:top-[38px]">
+              {statsError && (
+                <div className="mb-4 rounded-2xl border border-orange-200 bg-orange-50 px-4 py-3 text-sm text-orange-900">
+                  <p className="font-semibold">
+                    Live stats temporarily unavailable
+                  </p>
+                  <p className="text-orange-800">
+                    {statsError.message ||
+                      "We couldn't load the latest totals. Please refresh or try again later."}
+                  </p>
+                </div>
+              )}
               <DonationCard
                 campaignId={campaign.id}
+                statsId={campaign.statsId}
                 isVerified={campaign.isVerified}
                 startDateMs={campaign.startDateMs}
                 endDateMs={campaign.endDateMs}
-                amountRaised={amountRaised}
+                campaignName={campaign.name}
+                raisedUsdMicro={amountRaisedUsdMicro}
                 contributorsCount={contributorsCount}
-                fundingGoal={Number(campaign.fundingGoal)}
+                fundingGoalUsdMicro={campaign.fundingGoalUsdMicro}
                 recipientAddress={campaign.recipientAddress}
+                ownerAddress={campaign.creatorAddress}
                 isActive={campaign.isActive}
+                isDeleted={campaign.isDeleted}
+                subdomainName={campaign.subdomainName}
+                platformBps={campaign.payoutPlatformBps}
+                onDonationComplete={handleDonationComplete}
+                onViewUpdates={() => handleTabChange("updates")}
               />
             </div>
           </div>
