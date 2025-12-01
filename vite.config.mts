@@ -14,6 +14,19 @@ export default defineConfig({
       buffer: "buffer/",
     },
   },
+  optimizeDeps: {
+    // Include dependencies that cause optimization issues (nested deps need > syntax)
+    include: [
+      "@mysten/dapp-kit",
+      "@tanstack/react-query",
+      "react",
+      "react-dom",
+      "react-router-dom",
+      "poseidon-lite",
+    ],
+    // Exclude WASM modules only
+    exclude: ["@mysten/walrus-wasm"],
+  },
   server: {
     headers: {
       "Cross-Origin-Opener-Policy": "same-origin",

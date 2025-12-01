@@ -1,11 +1,11 @@
 import type { TokenIconProps } from "./types";
 
-const SUI_ICON_SRC = "/assets/tokens/sui.png";
+const TETHER_ICON_SRC = "/assets/tokens/tether.png";
 
-export function SuiTokenIcon({ title, alt, ...props }: TokenIconProps) {
+export function TetherTokenIcon({ title, alt, ...props }: TokenIconProps) {
   return (
     <img
-      src={SUI_ICON_SRC}
+      src={TETHER_ICON_SRC}
       alt={alt ?? title ?? ""}
       title={title}
       aria-hidden={title ? undefined : true}

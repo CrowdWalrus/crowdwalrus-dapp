@@ -17,6 +17,8 @@ import {
   Timer,
   ClockFading,
   User,
+  CheckIcon,
+  CircleCheck,
 } from "lucide-react";
 import type { LucideIcon } from "lucide-react";
 import { Badge } from "@/shared/components/ui/badge";
@@ -147,17 +149,26 @@ export function CampaignStatusBadge({
 interface CampaignTimelineBadgeProps {
   label: string;
   value: string;
+  iconName?: "clock" | "check" | "circle-check";
   className?: string;
 }
 
 export function CampaignTimelineBadge({
   label,
   value,
+  iconName = "clock",
   className,
 }: CampaignTimelineBadgeProps) {
   if (!label || !value) {
     return null;
   }
+
+  const IconComponent =
+    iconName === "check"
+      ? CheckIcon
+      : iconName === "circle-check"
+        ? CircleCheck
+        : Clock;
 
   return (
     <Badge
@@ -168,7 +179,7 @@ export function CampaignTimelineBadge({
         className,
       )}
     >
-      <Clock className="size-3" />
+      <IconComponent className="size-3" />
       <span className="whitespace-nowrap">
         {label} {value}
       </span>

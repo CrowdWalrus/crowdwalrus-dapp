@@ -1,11 +1,11 @@
 import type { TokenIconProps } from "./types";
 
-const SUI_ICON_SRC = "/assets/tokens/sui.png";
+const SUINS_ICON_SRC = "/assets/tokens/suins.png";
 
-export function SuiTokenIcon({ title, alt, ...props }: TokenIconProps) {
+export function SuinsTokenIcon({ title, alt, ...props }: TokenIconProps) {
   return (
     <img
-      src={SUI_ICON_SRC}
+      src={SUINS_ICON_SRC}
       alt={alt ?? title ?? ""}
       title={title}
       aria-hidden={title ? undefined : true}

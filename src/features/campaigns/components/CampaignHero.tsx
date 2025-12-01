@@ -8,12 +8,13 @@ import { SOCIAL_PLATFORM_CONFIG } from "@/features/campaigns/constants/socialPla
 import type { CampaignSocialLink } from "@/features/campaigns/types/campaign";
 import { Separator } from "@/shared/components/ui/separator";
 import {
+  CampaignStatusBadge,
   CategoryBadge,
   ContributorsBadge,
   EndsInBadge,
-  OpenSoonBadge,
   StartsInBadge,
 } from "./CampaignBadges";
+import { getCampaignStatusInfo } from "../utils/campaignStatus";
 
 const PLACEHOLDER_IMAGE = "/assets/images/placeholders/campaign.png";
 
@@ -31,6 +32,7 @@ interface CampaignHeroProps {
   campaignName: string;
   shortDescription: string;
   isActive: boolean;
+  isDeleted?: boolean;
   startDateMs: number;
   endDateMs: number;
   category: string;
@@ -44,6 +46,7 @@ export function CampaignHero({
   campaignName,
   shortDescription,
   isActive,
+  isDeleted = false,
   startDateMs,
   endDateMs,
   category,
@@ -84,6 +87,13 @@ export function CampaignHero({
     ? coverImageUrl
     : PLACEHOLDER_IMAGE;
 
+  const statusInfo = getCampaignStatusInfo(
+    startDateMs,
+    endDateMs,
+    isActive,
+    isDeleted,
+  );
+
   return (
     <div className="flex flex-col gap-4 sm:gap-5 lg:gap-6 w-full">
       {/* Cover Image */}
@@ -108,7 +118,10 @@ export function CampaignHero({
         <div className="flex items-start sm:items-center justify-between gap-3 sm:gap-4 w-full flex-wrap">
           {/* Left badges */}
           <div className="flex items-center gap-2 sm:gap-3 lg:gap-4 flex-wrap">
-            {isUpcoming && <OpenSoonBadge />}
+            <CampaignStatusBadge
+              status={statusInfo.status}
+              label={statusInfo.label}
+            />
             {isUpcoming &&
               Number.isFinite(daysUntilStart) &&
               daysUntilStart > 0 && (
@@ -116,7 +129,8 @@ export function CampaignHero({
               )}
             {!isUpcoming &&
               isActive &&
-              normalizedEndDays !== null && (
+              normalizedEndDays !== null &&
+              normalizedEndDays > 0 && (
                 <EndsInBadge daysUntilEnd={normalizedEndDays} />
               )}
             {categoryValues.map((cat) => (

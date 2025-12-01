@@ -1,5 +1,5 @@
-import type { SVGProps } from "react";
+import type { ImgHTMLAttributes } from "react";
 
-export type TokenIconProps = SVGProps<SVGSVGElement> & {
+export type TokenIconProps = Omit<ImgHTMLAttributes<HTMLImageElement>, "src"> & {
   title?: string;
 };

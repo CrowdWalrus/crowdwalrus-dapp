@@ -8,14 +8,15 @@ import type { KeyboardEvent } from "react";
 import { useNavigate } from "react-router-dom";
 import {
   useCurrentAccount,
+  ConnectButton,
   useCurrentWallet,
   useSuiClient,
   useSuiClientQuery,
 } from "@mysten/dapp-kit";
 import type { Transaction } from "@mysten/sui/transactions";
-import { SUI_TYPE_ARG } from "@mysten/sui/utils";
+import { normalizeSuiAddress, SUI_TYPE_ARG } from "@mysten/sui/utils";
 import { toast } from "sonner";
-import { Share2, Clock, Loader2 } from "lucide-react";
+import { Share2, Clock, Loader2, AlertTriangleIcon } from "lucide-react";
 
 import { Button } from "@/shared/components/ui/button";
 import { Badge } from "@/shared/components/ui/badge";
@@ -26,11 +27,13 @@ import {
   SelectItem,
   SelectTrigger,
 } from "@/shared/components/ui/select";
-import { VerificationBadge } from "./CampaignBadges";
+import { CampaignTimelineBadge, VerificationBadge } from "./CampaignBadges";
 import { formatUsdLocaleFromMicros } from "@/shared/utils/currency";
 import { useEnabledTokens } from "@/features/tokens/hooks";
 import { useProfile } from "@/features/profiles/hooks/useProfile";
 import { useDonorBadges } from "@/features/badges/hooks/useDonorBadges";
+import { useDebounce } from "@/shared/hooks/useDebounce";
+import { Skeleton } from "@/shared/components/ui/skeleton";
 import {
   buildFirstTimeDonationTx,
   buildRepeatDonationTx,
@@ -39,6 +42,7 @@ import {
   DEFAULT_SLIPPAGE_BPS,
   type DonationBuildResult,
 } from "@/services/donations";
+import { previewPriceOracleQuote } from "@/services/priceOracle";
 import {
   DEFAULT_NETWORK,
   SUI_EXPLORER_URLS,
@@ -53,6 +57,7 @@ import {
 } from "@/shared/config/tokenDisplay";
 import { buildProfileDetailPath } from "@/shared/utils/routes";
 import { cn } from "@/shared/lib/utils";
+import { getCampaignStatusInfo } from "../utils/campaignStatus";
 import { DonationProcessingModal } from "./modals/DonationProcessingModal";
 import {
   DonationSuccessModal,
@@ -63,6 +68,15 @@ import {
   type BadgeRewardItem,
 } from "./modals/BadgeRewardModal";
 import { ShareModal } from "./modals/ShareModal";
+
+const COMING_SOON_TOKENS: Pick<
+  TokenRegistryEntry,
+  "coinType" | "symbol" | "name"
+>[] = [
+  { coinType: "soon:usdt", symbol: "USDT", name: "Tether" },
+  { coinType: "soon:suins", symbol: "SUINS", name: "SuiNS" },
+  { coinType: "soon:bluefin", symbol: "BLUEFIN", name: "Bluefin" },
+];
 
 interface DonationCardProps {
   campaignId: string;
@@ -75,9 +89,13 @@ interface DonationCardProps {
   contributorsCount: number;
   fundingGoalUsdMicro: bigint;
   recipientAddress: string;
+  ownerAddress: string;
   isActive: boolean;
+  isDeleted?: boolean;
   subdomainName?: string | null;
+  platformBps?: number;
   onDonationComplete?: () => Promise<void> | void;
+  onViewUpdates?: () => void;
 }
 
 export function DonationCard({
@@ -91,9 +109,13 @@ export function DonationCard({
   contributorsCount,
   fundingGoalUsdMicro,
   recipientAddress,
+  ownerAddress,
   isActive,
+  isDeleted = false,
   subdomainName,
+  platformBps,
   onDonationComplete,
+  onViewUpdates,
 }: DonationCardProps) {
   const navigate = useNavigate();
   const network = DEFAULT_NETWORK;
@@ -101,6 +123,7 @@ export function DonationCard({
   const currentAccount = useCurrentAccount();
   const suiClient = useSuiClient();
   const { currentWallet } = useCurrentWallet();
+  const connectButtonRef = useRef<HTMLDivElement>(null);
 
   const signAndExecuteWithWallet = useCallback(
     async (
@@ -142,7 +165,8 @@ export function DonationCard({
   const [validationError, setValidationError] = useState<string | null>(null);
   const [isProcessing, setIsProcessing] = useState(false);
   const [lastUsdQuote, setLastUsdQuote] = useState<bigint | null>(null);
-  const [quoteTimestamp, setQuoteTimestamp] = useState<number | null>(null);
+  const [quoteError, setQuoteError] = useState<string | null>(null);
+  const [isQuoteLoading, setIsQuoteLoading] = useState(false);
   const [isProcessingModalOpen, setIsProcessingModalOpen] = useState(false);
   const [isSuccessModalOpen, setIsSuccessModalOpen] = useState(false);
   const [successReceipt, setSuccessReceipt] =
@@ -158,15 +182,12 @@ export function DonationCard({
     useState<PendingDonationContext | null>(null);
   const [isBuildingDonation, setIsBuildingDonation] = useState(false);
   const [isWalletRequestPending, setIsWalletRequestPending] = useState(false);
-  const [hasAttemptedWalletConfirmation, setHasAttemptedWalletConfirmation] =
-    useState(false);
   const [isShareModalOpen, setIsShareModalOpen] = useState(false);
   const donationFlowRef = useRef(0);
+  const priceQuoteRequestRef = useRef(0);
 
-  const handleContributionChange = useCallback((rawValue: string) => {
-    const sanitized = sanitizeNumericInput(rawValue);
-    setContributionAmount(sanitized);
-    setValidationError(null);
+  const handleConnectWalletClick = useCallback(() => {
+    connectButtonRef.current?.querySelector("button")?.click();
   }, []);
 
   const resetDonationFlow = useCallback(() => {
@@ -176,7 +197,6 @@ export function DonationCard({
     setPendingDonation(null);
     setIsBuildingDonation(false);
     setIsWalletRequestPending(false);
-    setHasAttemptedWalletConfirmation(false);
     setIsSuccessModalOpen(false);
     setSuccessReceipt(null);
     setIsBadgeModalOpen(false);
@@ -227,6 +247,10 @@ export function DonationCard({
     setShouldOpenBadgeModal(false);
   }, []);
 
+  const handleViewUpdates = useCallback(() => {
+    onViewUpdates?.();
+  }, [onViewUpdates]);
+
   useEffect(() => {
     if (!selectedCoinType && enabledTokens.length > 0) {
       setSelectedCoinType(enabledTokens[0].coinType);
@@ -261,6 +285,25 @@ export function DonationCard({
     ? (tokenDisplayByCoinType[selectedToken.coinType] ??
       getTokenDisplayData(selectedToken))
     : null;
+
+  const handleContributionChange = useCallback(
+    (rawValue: string) => {
+      const decimalsLimit = selectedToken?.decimals ?? FALLBACK_DECIMAL_LIMIT;
+      const formatted = formatContributionInputValue(rawValue, decimalsLimit);
+      setContributionAmount(formatted);
+      setValidationError(null);
+    },
+    [selectedToken?.decimals],
+  );
+
+  useEffect(() => {
+    if (!selectedToken) {
+      return;
+    }
+    setContributionAmount((current) =>
+      formatContributionInputValue(current, selectedToken.decimals),
+    );
+  }, [selectedToken]);
 
   const {
     profile,
@@ -358,13 +401,23 @@ export function DonationCard({
   }, [shouldOpenBadgeModal, isSuccessModalOpen, badgeAwards.length]);
 
   const normalizedAccountAddress = useMemo(
-    () => currentAccount?.address?.toLowerCase() ?? null,
+    () => safeNormalizeAddress(currentAccount?.address ?? null),
     [currentAccount?.address],
   );
 
   const normalizedProfileOwner = useMemo(
-    () => profile?.ownerAddress?.toLowerCase() ?? null,
+    () => safeNormalizeAddress(profile?.ownerAddress ?? null),
     [profile?.ownerAddress],
+  );
+
+  const normalizedRecipientAddress = useMemo(
+    () => safeNormalizeAddress(recipientAddress),
+    [recipientAddress],
+  );
+
+  const normalizedOwnerAddress = useMemo(
+    () => safeNormalizeAddress(ownerAddress),
+    [ownerAddress],
   );
 
   const profileOwnershipMismatch = Boolean(
@@ -373,6 +426,22 @@ export function DonationCard({
         !normalizedAccountAddress ||
         normalizedProfileOwner !== normalizedAccountAddress),
   );
+
+  const isRecipientWallet = Boolean(
+    normalizedRecipientAddress &&
+      normalizedAccountAddress &&
+      normalizedRecipientAddress === normalizedAccountAddress,
+  );
+
+  const isOwnerWallet = Boolean(
+    normalizedOwnerAddress &&
+      normalizedAccountAddress &&
+      normalizedOwnerAddress === normalizedAccountAddress,
+  );
+
+  const isSelfContribution = isOwnerWallet || isRecipientWallet;
+
+  const hasContributionValue = contributionAmount.trim().length > 0;
 
   const parsedAmount = useMemo(() => {
     if (!selectedToken || !contributionAmount.trim()) {
@@ -388,14 +457,76 @@ export function DonationCard({
     }
   }, [contributionAmount, selectedToken]);
 
+  const debouncedParsedAmount = useDebounce(parsedAmount, 400);
+
+  useEffect(() => {
+    if (
+      !selectedToken ||
+      debouncedParsedAmount === null ||
+      debouncedParsedAmount <= 0n
+    ) {
+      setIsQuoteLoading(false);
+      setQuoteError(null);
+      setLastUsdQuote(null);
+      return;
+    }
+
+    const requestId = priceQuoteRequestRef.current + 1;
+    priceQuoteRequestRef.current = requestId;
+    setIsQuoteLoading(true);
+    setQuoteError(null);
+
+    let isCancelled = false;
+
+    previewPriceOracleQuote({
+      network,
+      token: selectedToken,
+      rawAmount: debouncedParsedAmount,
+    })
+      .then((quote) => {
+        if (isCancelled || priceQuoteRequestRef.current !== requestId) {
+          return;
+        }
+        setLastUsdQuote(quote.quotedUsdMicro);
+        setQuoteError(null);
+      })
+      .catch((error) => {
+        if (isCancelled || priceQuoteRequestRef.current !== requestId) {
+          return;
+        }
+        const message =
+          error instanceof Error
+            ? error.message
+            : "Unable to fetch a live price quote.";
+        setQuoteError(message);
+        setLastUsdQuote(null);
+      })
+      .finally(() => {
+        if (isCancelled || priceQuoteRequestRef.current !== requestId) {
+          return;
+        }
+        setIsQuoteLoading(false);
+      });
+
+    return () => {
+      isCancelled = true;
+    };
+  }, [network, debouncedParsedAmount, selectedToken]);
+
   const insufficientBalance = Boolean(
     balanceRaw !== null && parsedAmount !== null && parsedAmount > balanceRaw,
   );
 
   const formattedRaised = formatUsdLocaleFromMicros(raisedUsdMicro);
 
+  const isWalletConnected = Boolean(currentAccount?.address);
+
   const isAmountFieldDisabled =
-    !isActive || !currentAccount?.address || !selectedToken || isProcessing;
+    !isActive ||
+    !isWalletConnected ||
+    !selectedToken ||
+    isProcessing ||
+    isSelfContribution;
 
   const formatDate = (timestampMs: number) => {
     if (!Number.isFinite(timestampMs) || timestampMs <= 0) {
@@ -431,6 +562,14 @@ export function DonationCard({
   const endDateLabel = hasValidEnd ? formatDate(endDateMs) : null;
   const campaignNotStarted = hasValidStart && startDateMs > nowMs;
   const campaignEnded = hasValidEnd && endDateMs < nowMs;
+  const donationsClosed = campaignEnded || campaignNotStarted;
+  const showViewUpdatesButton = campaignEnded;
+  const statusInfo = getCampaignStatusInfo(
+    startDateMs,
+    endDateMs,
+    isActive,
+    isDeleted,
+  );
 
   const isSuiDonation = selectedToken?.coinType === SUI_TYPE_ARG;
   const donatingEntireSuiBalance = Boolean(
@@ -439,13 +578,14 @@ export function DonationCard({
       parsedAmount !== null &&
       parsedAmount >= balanceRaw,
   );
+  const showSuiGasReminder = hasContributionValue;
 
   const formattedBalance = useMemo(() => {
     if (!selectedToken) {
       return "--";
     }
-    if (!currentAccount) {
-      return "Connect wallet";
+    if (!isWalletConnected) {
+      return null;
     }
     if (isBalanceLoading) {
       return "Fetching…";
@@ -454,12 +594,12 @@ export function DonationCard({
       return "0";
     }
     return `${formatRawAmount(balanceRaw, selectedToken.decimals, 4)} ${selectedToken.symbol}`;
-  }, [balanceRaw, currentAccount, isBalanceLoading, selectedToken]);
+  }, [balanceRaw, isBalanceLoading, isWalletConnected, selectedToken]);
 
   const canDonate = Boolean(
     isActive &&
       statsId &&
-      currentAccount?.address &&
+      isWalletConnected &&
       selectedToken &&
       parsedAmount &&
       !insufficientBalance &&
@@ -470,7 +610,8 @@ export function DonationCard({
       !campaignNotStarted &&
       !campaignEnded &&
       (!hasProfile || profileId) &&
-      !isProcessing,
+      !isProcessing &&
+      !isSelfContribution,
   );
 
   const donationEventType = `${contractConfig.contracts.packageId}::donations::DonationReceived`;
@@ -556,7 +697,7 @@ export function DonationCard({
     }
 
     if (balanceRaw !== null && rawAmount > balanceRaw) {
-      const message = `Insufficient ${selectedToken.symbol} balance for this donation.`;
+      const message = "Entered amount exceeds current balance!";
       setValidationError(message);
       return;
     }
@@ -591,7 +732,6 @@ export function DonationCard({
     setPendingDonation(null);
     setIsBuildingDonation(true);
     setIsWalletRequestPending(false);
-    setHasAttemptedWalletConfirmation(false);
 
     const donationFlow: DonationFlow =
       hasProfile && profileId ? "repeat" : "firstTime";
@@ -631,7 +771,6 @@ export function DonationCard({
       setIsBuildingDonation(false);
       setPendingDonation(null);
       setIsWalletRequestPending(false);
-      setHasAttemptedWalletConfirmation(false);
       console.error("[donation] failed to build transaction", {
         error,
         donationFlow,
@@ -648,225 +787,252 @@ export function DonationCard({
     });
 
     setLastUsdQuote(buildResult.quotedUsdMicro);
-    setQuoteTimestamp(buildResult.pricePublishTimeMs ?? Date.now());
     setIsBuildingDonation(false);
     if (donationFlowRef.current !== flowToken) {
       return;
     }
 
-    setPendingDonation({
+    const pendingContext: PendingDonationContext = {
       buildResult,
       rawAmount,
       selectedToken,
       selectedTokenDisplay,
       donationFlow,
       shouldRefreshProfile,
-    });
+    };
+
+    setPendingDonation(pendingContext);
+    void executePendingDonation(pendingContext);
   }
 
-  const executePendingDonation = useCallback(async () => {
-    if (!pendingDonation || isWalletRequestPending) {
-      return;
-    }
+  const executePendingDonation = useCallback(
+    async (overrideContext?: unknown) => {
+      const context = isPendingDonationContext(overrideContext)
+        ? overrideContext
+        : pendingDonation;
 
-    setHasAttemptedWalletConfirmation(true);
-    setIsWalletRequestPending(true);
-
-    const {
-      buildResult,
-      rawAmount,
-      selectedToken,
-      selectedTokenDisplay,
-      donationFlow,
-      shouldRefreshProfile,
-    } = pendingDonation;
-
-    try {
-      const response = await signAndExecuteWithWallet(buildResult.transaction, {
-        showEffects: true,
-        showEvents: true,
-      });
-
-      const transactionDigest = response.digest;
-
-      console.log("[donation] transaction executed", {
-        digest: transactionDigest,
-        eventsCount: response.events?.length ?? 0,
-      });
-
-      const events = response.events ?? [];
-      const donationEvent = events.find(
-        (event) => event.type === donationEventType,
-      );
-
-      const mintedLevels = events
-        .filter((event) => event.type === badgeEventType)
-        .map((event) => {
-          const levelRaw = (event.parsedJson as { level?: number | string })
-            ?.level;
-          if (typeof levelRaw === "number" && Number.isFinite(levelRaw)) {
-            return levelRaw;
-          }
-          if (typeof levelRaw === "string") {
-            const parsedLevel = Number(levelRaw);
-            return Number.isFinite(parsedLevel) ? parsedLevel : null;
-          }
-          return null;
-        })
-        .filter((level): level is number => level !== null);
-
-      const uniqueMintedLevels = Array.from(new Set(mintedLevels)).sort(
-        (a, b) => a - b,
-      );
-
-      const amountUsdMicro = donationEvent
-        ? parseBigIntField(
-            (donationEvent.parsedJson as { amount_usd_micro?: string })
-              ?.amount_usd_micro,
-          )
-        : null;
-
-      const amountRawFromEvent = donationEvent
-        ? parseBigIntField(
-            (donationEvent.parsedJson as { amount_raw?: string })?.amount_raw,
-          )
-        : rawAmount;
-
-      const amountHuman = formatRawAmount(
-        amountRawFromEvent ?? rawAmount,
-        selectedToken.decimals,
-        6,
-      );
-
-      const usdDisplay = amountUsdMicro
-        ? `$${formatUsdLocaleFromMicros(amountUsdMicro)}`
-        : null;
-
-      const parts = [
-        `Sent ${amountHuman} ${selectedToken.symbol}`,
-        usdDisplay ? `≈ ${usdDisplay}` : null,
-        uniqueMintedLevels.length
-          ? `Earned badge level${uniqueMintedLevels.length > 1 ? "s" : ""} ${uniqueMintedLevels.join(", ")}`
-          : null,
-      ].filter(Boolean);
-
-      toast.success("Donation submitted", {
-        description: parts.join(" · "),
-      });
-
-      const explorerUrl = buildExplorerTxUrl(transactionDigest, network);
-      setSuccessReceipt({
-        amountDisplay: amountHuman,
-        tokenSymbol: selectedToken.symbol,
-        tokenLabel: selectedTokenDisplay?.label ?? selectedToken.symbol,
-        approxUsdDisplay: usdDisplay,
-        explorerUrl,
-        transactionDigest,
-        TokenIcon: selectedTokenDisplay?.Icon ?? null,
-      });
-      setIsProcessingModalOpen(false);
-      setIsSuccessModalOpen(true);
-
-      if (uniqueMintedLevels.length) {
-        const placeholders: BadgeRewardItem[] = uniqueMintedLevels.map(
-          (level, index) => ({
-            id: `pending-${transactionDigest}-${level}-${index}`,
-            level,
-            imageUrl: null,
-          }),
-        );
-        setBadgeAwards(placeholders);
-        setPendingBadgeLevels(uniqueMintedLevels);
-        setBadgeBaselineIds(ownedBadges.map((badge) => badge.objectId));
-        setShouldOpenBadgeModal(true);
-      } else {
-        setBadgeAwards([]);
-        setPendingBadgeLevels([]);
-        setBadgeBaselineIds(null);
-        setShouldOpenBadgeModal(false);
+      if (!context || isWalletRequestPending) {
+        return;
       }
 
-      setContributionAmount("");
-      setValidationError(null);
+      setIsWalletRequestPending(true);
 
-      if (shouldRefreshProfile) {
-        try {
-          await refetchProfile();
-        } catch (profileRefreshError) {
-          console.warn(
-            "[donation] failed to refresh profile after first-time donation",
-            profileRefreshError,
-          );
-        }
-      }
+      const {
+        buildResult,
+        rawAmount,
+        selectedToken,
+        selectedTokenDisplay,
+        donationFlow,
+        shouldRefreshProfile,
+      } = context;
 
       try {
-        await suiClient.waitForTransaction({
-          digest: transactionDigest,
-          options: {
-            showEffects: false,
-            showEvents: false,
+        const response = await signAndExecuteWithWallet(
+          buildResult.transaction,
+          {
+            showEffects: true,
+            showEvents: true,
           },
-        });
-      } catch (finalityError) {
-        console.warn(
-          "[donation] failed to confirm transaction finality",
-          finalityError,
         );
-      }
 
-      if (uniqueMintedLevels.length) {
+        const transactionDigest = response.digest;
+
+        console.log("[donation] transaction executed", {
+          digest: transactionDigest,
+          eventsCount: response.events?.length ?? 0,
+        });
+
+        const events = response.events ?? [];
+        const donationEvent = events.find(
+          (event) => event.type === donationEventType,
+        );
+
+        const mintedLevels = events
+          .filter((event) => event.type === badgeEventType)
+          .map((event) => {
+            const levelRaw = (event.parsedJson as { level?: number | string })
+              ?.level;
+            if (typeof levelRaw === "number" && Number.isFinite(levelRaw)) {
+              return levelRaw;
+            }
+            if (typeof levelRaw === "string") {
+              const parsedLevel = Number(levelRaw);
+              return Number.isFinite(parsedLevel) ? parsedLevel : null;
+            }
+            return null;
+          })
+          .filter((level): level is number => level !== null);
+
+        const uniqueMintedLevels = Array.from(new Set(mintedLevels)).sort(
+          (a, b) => a - b,
+        );
+
+        const amountUsdMicro = donationEvent
+          ? parseBigIntField(
+              (donationEvent.parsedJson as { amount_usd_micro?: string })
+                ?.amount_usd_micro,
+            )
+          : null;
+
+        const amountRawFromEvent = donationEvent
+          ? parseBigIntField(
+              (donationEvent.parsedJson as { amount_raw?: string })?.amount_raw,
+            )
+          : rawAmount;
+
+        const grossRawAmount = amountRawFromEvent ?? rawAmount;
+
+        const platformFeeBps = platformBps ?? 0;
+        const feeRawAmount =
+          platformFeeBps > 0
+            ? (grossRawAmount * BigInt(platformFeeBps)) / 10000n
+            : 0n;
+        const netRawAmount = grossRawAmount - feeRawAmount;
+
+        const amountHuman = formatRawAmount(
+          netRawAmount,
+          selectedToken.decimals,
+          6,
+        );
+
+        const usdDisplay = amountUsdMicro
+          ? (() => {
+              const feeUsdMicro =
+                platformFeeBps > 0
+                  ? (amountUsdMicro * BigInt(platformFeeBps)) / 10000n
+                  : 0n;
+              const netUsdMicro = amountUsdMicro - feeUsdMicro;
+              return `$${formatUsdLocaleFromMicros(netUsdMicro)}`;
+            })()
+          : null;
+
+        const parts = [
+          `Sent ${amountHuman} ${selectedToken.symbol}`,
+          usdDisplay ? `≈ ${usdDisplay}` : null,
+          uniqueMintedLevels.length
+            ? `Earned badge level${uniqueMintedLevels.length > 1 ? "s" : ""} ${uniqueMintedLevels.join(", ")}`
+            : null,
+        ].filter(Boolean);
+
+        toast.success("Donation submitted", {
+          description: parts.join(" · "),
+        });
+
+        const explorerUrl = buildExplorerTxUrl(transactionDigest, network);
+        setSuccessReceipt({
+          amountDisplay: amountHuman,
+          tokenSymbol: selectedToken.symbol,
+          tokenLabel: selectedTokenDisplay?.label ?? selectedToken.symbol,
+          approxUsdDisplay: usdDisplay,
+          explorerUrl,
+          transactionDigest,
+          TokenIcon: selectedTokenDisplay?.Icon ?? null,
+        });
+        setIsProcessingModalOpen(false);
+        setIsSuccessModalOpen(true);
+
+        if (uniqueMintedLevels.length) {
+          const placeholders: BadgeRewardItem[] = uniqueMintedLevels.map(
+            (level, index) => ({
+              id: `pending-${transactionDigest}-${level}-${index}`,
+              level,
+              imageUrl: null,
+            }),
+          );
+          setBadgeAwards(placeholders);
+          setPendingBadgeLevels(uniqueMintedLevels);
+          setBadgeBaselineIds(ownedBadges.map((badge) => badge.objectId));
+          setShouldOpenBadgeModal(true);
+        } else {
+          setBadgeAwards([]);
+          setPendingBadgeLevels([]);
+          setBadgeBaselineIds(null);
+          setShouldOpenBadgeModal(false);
+        }
+
+        setContributionAmount("");
+        setValidationError(null);
+
+        if (shouldRefreshProfile) {
+          try {
+            await refetchProfile();
+          } catch (profileRefreshError) {
+            console.warn(
+              "[donation] failed to refresh profile after first-time donation",
+              profileRefreshError,
+            );
+          }
+        }
+
         try {
-          await refetchDonorBadges();
-        } catch (badgeRefreshError) {
+          await suiClient.waitForTransaction({
+            digest: transactionDigest,
+            options: {
+              showEffects: false,
+              showEvents: false,
+            },
+          });
+        } catch (finalityError) {
           console.warn(
-            "[donation] failed to refresh badges after mint",
-            badgeRefreshError,
+            "[donation] failed to confirm transaction finality",
+            finalityError,
           );
         }
-      }
 
-      try {
-        await onDonationComplete?.();
-      } catch (callbackError) {
-        console.warn(
-          "[donation] onDonationComplete callback failed",
-          callbackError,
-        );
-      }
+        if (uniqueMintedLevels.length) {
+          try {
+            await refetchDonorBadges();
+          } catch (badgeRefreshError) {
+            console.warn(
+              "[donation] failed to refresh badges after mint",
+              badgeRefreshError,
+            );
+          }
+        }
 
-      setPendingDonation(null);
-      setIsProcessing(false);
-      setHasAttemptedWalletConfirmation(false);
-    } catch (error) {
-      if (isUserRejectedError(error)) {
-        toast.info("Transaction cancelled. No funds were sent.");
-      } else {
-        const message = formatDonationError(error, {
-          flow: donationFlow,
-        });
-        toast.error(message);
-        console.error("[donation] transaction execution failed", {
-          error,
-          donationFlow,
-        });
+        try {
+          await onDonationComplete?.();
+        } catch (callbackError) {
+          console.warn(
+            "[donation] onDonationComplete callback failed",
+            callbackError,
+          );
+        }
+
+        setPendingDonation(null);
+        setIsProcessing(false);
+      } catch (error) {
+        if (isUserRejectedError(error)) {
+          toast.info("Transaction cancelled. No funds were sent.");
+        } else {
+          const message = formatDonationError(error, {
+            flow: donationFlow,
+          });
+          toast.error(message);
+          console.error("[donation] transaction execution failed", {
+            error,
+            donationFlow,
+          });
+        }
+      } finally {
+        setIsWalletRequestPending(false);
       }
-    } finally {
-      setIsWalletRequestPending(false);
-    }
-  }, [
-    pendingDonation,
-    isWalletRequestPending,
-    signAndExecuteWithWallet,
-    badgeEventType,
-    donationEventType,
-    network,
-    ownedBadges,
-    refetchDonorBadges,
-    refetchProfile,
-    suiClient,
-    onDonationComplete,
-  ]);
+    },
+    [
+      pendingDonation,
+      isWalletRequestPending,
+      signAndExecuteWithWallet,
+      badgeEventType,
+      donationEventType,
+      network,
+      ownedBadges,
+      refetchDonorBadges,
+      refetchProfile,
+      suiClient,
+      onDonationComplete,
+      platformBps,
+    ],
+  );
 
   return (
     <>
@@ -895,13 +1061,12 @@ export function DonationCard({
               </Badge>
             )}
             {hasStarted && endDateLabel && (
-              <Badge
-                variant="outline"
-                className="flex items-center bg-black-50 border-transparent text-black-500 text-xs font-medium leading-[1.5] tracking-[0.18px] px-2 py-0.5 h-6 rounded-lg gap-1.5"
-              >
-                <Clock className="size-3" />
-                {`Ends on ${endDateLabel}`}
-              </Badge>
+              <CampaignTimelineBadge
+                label={statusInfo.dateLabel}
+                value={statusInfo.dateValue}
+                iconName={statusInfo.timelineIcon}
+                className="bg-black-50 border-transparent text-black-500"
+              />
             )}
           </div>
         )}
@@ -928,7 +1093,7 @@ export function DonationCard({
           </div>
           <div className="flex items-center justify-between text-xl ">
             <p className="font-semibold">
-              Goal {formatUsdLocaleFromMicros(fundingGoalUsdMicro)}
+              Goal ${formatUsdLocaleFromMicros(fundingGoalUsdMicro)}
             </p>
             <p>{fundingPercentage.toFixed(0)}% funded</p>
           </div>
@@ -942,185 +1107,345 @@ export function DonationCard({
 
         <Separator className="bg-white-600" />
 
-        {/* Contribution Form */}
-        <div className="flex flex-col gap-4 w-full">
-          <p className="text-base font-semibold ">Make your contribution</p>
-
-          <div className="flex flex-col gap-2 w-full">
-            <div className="flex flex-col gap-3">
-              <div
-                className={cn(
-                  "flex w-full items-stretch overflow-hidden rounded-xl border border-black-50 bg-white transition focus-within:border-blue-500 focus-within:ring-2 focus-within:ring-blue-200",
-                  isAmountFieldDisabled && "opacity-60",
-                )}
+        {donationsClosed ? (
+          <div className="flex flex-col gap-4 w-full">
+            {showViewUpdatesButton && (
+              <Button
+                variant="secondary"
+                className="w-full h-10 border border-black-50 bg-white text-black-500 text-sm font-semibold tracking-[0.07px] rounded-lg hover:bg-black-50"
+                onClick={handleViewUpdates}
               >
-                <input
-                  type="number"
-                  inputMode="decimal"
-                  step="any"
-                  min="0"
-                  value={contributionAmount}
-                  onChange={(event) =>
-                    handleContributionChange(event.target.value)
-                  }
-                  onKeyDown={handleContributionKeyDown}
-                  onWheel={(event) => event.currentTarget.blur()}
-                  placeholder="0.00"
-                  className="flex-1 h-[56px] bg-transparent px-4 text-lg font-semibold text-foreground placeholder:text-black-100 focus:outline-none"
-                  disabled={isAmountFieldDisabled}
-                />
-                <Select
-                  value={selectedToken?.coinType ?? ""}
-                  onValueChange={(value) => {
-                    setSelectedCoinType(value);
-                    setValidationError(null);
-                  }}
-                  disabled={
-                    isTokensLoading || !enabledTokens.length || isProcessing
-                  }
-                >
-                  <SelectTrigger
-                    aria-label={selectedTokenDisplay?.label ?? "Select token"}
-                    className="flex h-[56px] min-w-[120px] max-w-[150px] shrink-0 items-center gap-2 rounded-none border-0 border-l border-black-50 bg-transparent px-3 text-sm font-semibold text-foreground shadow-none focus:ring-0 focus:ring-offset-0"
-                    disabled={isAmountFieldDisabled}
-                  >
-                    {selectedTokenDisplay ? (
-                      <TokenChoiceContent display={selectedTokenDisplay} />
-                    ) : (
-                      <span className="text-sm font-semibold text-black-200">
-                        Token
-                      </span>
-                    )}
-                  </SelectTrigger>
-                  <SelectContent className="min-w-[200px] border border-black-50 p-0">
-                    {enabledTokens.map((token) => {
-                      const display =
-                        tokenDisplayByCoinType[token.coinType] ??
-                        getTokenDisplayData(token);
-                      return (
-                        <SelectItem
-                          key={token.coinType}
-                          value={token.coinType}
-                          className="py-2 pl-2 pr-8"
-                        >
-                          <TokenChoiceContent display={display} />
-                        </SelectItem>
-                      );
-                    })}
-                  </SelectContent>
-                </Select>
-              </div>
-              <div className="flex items-center gap-2 text-xs text-black-400">
-                <span>Balance:</span>
-                <span className="font-semibold">{formattedBalance}</span>
-              </div>
-              {validationError && (
-                <p className="text-xs text-red-600">{validationError}</p>
-              )}
-              {profileOwnershipMismatch && (
-                <p className="text-xs text-red-600">
-                  Connected wallet does not own the loaded donor profile.
-                  Refresh or reconnect your wallet.
-                </p>
-              )}
-              {campaignNotStarted && startDateLabel && (
-                <p className="text-xs text-orange-600">
-                  Campaign accepts donations starting {startDateLabel}.
-                </p>
-              )}
-              {campaignEnded && endDateLabel && (
-                <p className="text-xs text-orange-600">
-                  Campaign ended on {endDateLabel}. Donations are closed.
-                </p>
-              )}
-              {insufficientBalance && selectedToken && (
-                <p className="text-xs text-orange-600">
-                  Insufficient {selectedToken.symbol} balance.
-                </p>
-              )}
-              {donatingEntireSuiBalance && (
-                <p className="text-xs text-orange-600">
-                  Leave a small amount of SUI in your wallet to cover gas fees.
-                </p>
-              )}
-              {balanceError && (
-                <p className="text-xs text-orange-600">
-                  Failed to load balance. {balanceError.message}
-                </p>
-              )}
-              {tokensError && (
-                <p className="text-xs text-orange-600">
-                  Unable to load donation tokens. {tokensError.message}
-                </p>
-              )}
-              {profileError && (
-                <p className="text-xs text-orange-600">
-                  {profileError.message}
-                </p>
-              )}
-              {lastUsdQuote !== null && (
-                <p className="text-xs text-black-400">
-                  Last quoted value: ≈ $
-                  {formatUsdLocaleFromMicros(lastUsdQuote)}
-                  {quoteTimestamp
-                    ? ` (as of ${new Date(quoteTimestamp).toLocaleTimeString()})`
-                    : ""}
-                </p>
-              )}
-            </div>
-          </div>
-        </div>
-
-        {/* Action Buttons */}
-        <div className="flex flex-col gap-4 w-full">
-          <Button
-            className="w-full h-10 bg-primary text-primary-foreground  text-sm font-medium tracking-[0.07px] rounded-lg hover:bg-primary/90 disabled:opacity-50"
-            disabled={!canDonate}
-            onClick={handleDonate}
-          >
-            {isProcessing ? (
-              <span className="flex items-center gap-2">
-                <Loader2 className="size-4 animate-spin" />
-                Processing...
-              </span>
-            ) : (
-              "Contribute Now"
+                View Updates
+              </Button>
             )}
-          </Button>
-          {!currentAccount?.address && (
-            <p className="text-xs text-center text-black-400">
-              Connect your wallet to donate.
-            </p>
-          )}
-          {!isActive && (
-            <p className="text-xs text-center text-black-400">
-              Campaign is not accepting donations right now.
-            </p>
-          )}
-          {!enabledTokens.length && !isTokensLoading && (
-            <p className="text-xs text-center text-black-400">
-              No donation tokens are enabled yet.
-            </p>
-          )}
-          <Button
-            variant="secondary"
-            className="w-full h-10 bg-blue-50 text-blue-500  text-sm font-medium tracking-[0.07px] rounded-lg hover:bg-[#e0d9ff] gap-2"
-            onClick={() => setIsShareModalOpen(true)}
-          >
-            Share
-            <Share2 className="size-3.5" />
-          </Button>
-        </div>
+            <Button
+              variant="secondary"
+              className="w-full h-10 bg-blue-50 text-blue-500  text-sm font-medium tracking-[0.07px] rounded-lg hover:bg-[#e0d9ff] gap-2"
+              onClick={() => setIsShareModalOpen(true)}
+            >
+              Share
+              <Share2 className="size-3.5" />
+            </Button>
+          </div>
+        ) : (
+          <>
+            {/* Contribution Form */}
+            <div className="flex flex-col gap-4 w-full">
+              <p className="text-base font-semibold ">Make your contribution</p>
+
+              <div className="flex flex-col gap-2 w-full">
+                <div className="flex flex-col gap-3">
+                  <div
+                    className={cn(
+                      "flex w-full items-stretch overflow-hidden rounded-xl border border-black-50 bg-white transition focus-within:border-blue-500 focus-within:ring-2 focus-within:ring-blue-200",
+                      isAmountFieldDisabled && "opacity-60",
+                      insufficientBalance &&
+                        "border-red-200 bg-red-50 focus-within:border-red-300 focus-within:ring-red-100",
+                    )}
+                  >
+                    <input
+                      type="text"
+                      inputMode="decimal"
+                      value={contributionAmount}
+                      onChange={(event) =>
+                        handleContributionChange(event.target.value)
+                      }
+                      name="contributionAmount"
+                      id="contributionAmount"
+                      aria-label="Contribution Amount"
+                      onKeyDown={handleContributionKeyDown}
+                      onWheel={(event) => event.currentTarget.blur()}
+                      placeholder="0"
+                      className={cn(
+                        "flex-1 min-w-0 h-[56px] bg-transparent px-4 text-lg font-semibold focus:outline-none",
+                        insufficientBalance
+                          ? "text-red-600 placeholder:text-red-300"
+                          : "text-foreground placeholder:text-black-100",
+                      )}
+                      style={{ fontWeight: 600 }}
+                      disabled={isAmountFieldDisabled}
+                      pattern="[0-9.,]*"
+                      autoComplete="off"
+                    />
+                    <div
+                      className={cn(
+                        "flex items-center px-3 text-sm font min-w-[96px] max-w-[168px] justify-end whitespace-nowrap overflow-hidden text-ellipsis flex-shrink-0",
+                        insufficientBalance ? "text-red-600" : "text-[#737373]",
+                      )}
+                      title={
+                        lastUsdQuote !== null
+                          ? `~$${formatUsdLocaleFromMicros(lastUsdQuote)}`
+                          : undefined
+                      }
+                    >
+                      {isQuoteLoading ? (
+                        <Skeleton
+                          className="h-4 w-16"
+                          aria-label="Fetching live USD quote"
+                        />
+                      ) : lastUsdQuote !== null ? (
+                        <span>~${formatUsdLocaleFromMicros(lastUsdQuote)}</span>
+                      ) : null}
+                    </div>
+                    <Select
+                      value={selectedToken?.coinType ?? ""}
+                      onValueChange={(value) => {
+                        setSelectedCoinType(value);
+                        setValidationError(null);
+                        setLastUsdQuote(null);
+                        setQuoteError(null);
+                        setIsQuoteLoading(false);
+                      }}
+                      disabled={
+                        !isWalletConnected ||
+                        isTokensLoading ||
+                        !enabledTokens.length ||
+                        isProcessing ||
+                        isSelfContribution
+                      }
+                    >
+                      <SelectTrigger
+                        aria-label={
+                          selectedTokenDisplay?.label ?? "Select token"
+                        }
+                        className={cn(
+                          "flex h-[56px] min-w-[120px] max-w-[150px] shrink-0 items-center gap-2 rounded-none border-0 border-l px-3 text-sm font-semibold shadow-none focus:ring-0 focus:ring-offset-0",
+                          insufficientBalance
+                            ? "border-red-200 bg-white text-red-600"
+                            : "border-black-50 bg-transparent text-foreground",
+                        )}
+                        disabled={isAmountFieldDisabled}
+                      >
+                        {selectedTokenDisplay ? (
+                          <TokenChoiceContent display={selectedTokenDisplay} />
+                        ) : (
+                          <span className="text-sm font-semibold text-black-200">
+                            Token
+                          </span>
+                        )}
+                      </SelectTrigger>
+                      <SelectContent className="min-w-[200px] border border-black-50 p-0">
+                        {enabledTokens.map((token) => {
+                          const display =
+                            tokenDisplayByCoinType[token.coinType] ??
+                            getTokenDisplayData(token);
+                          return (
+                            <SelectItem
+                              key={token.coinType}
+                              value={token.coinType}
+                              className="py-2 pl-2 pr-8"
+                            >
+                              <TokenChoiceContent display={display} />
+                            </SelectItem>
+                          );
+                        })}
+                        {COMING_SOON_TOKENS.map((token) => {
+                          const display = getTokenDisplayData(token);
+                          return (
+                            <SelectItem
+                              key={token.coinType}
+                              value={token.coinType}
+                              disabled
+                              className="py-2 pl-2 pr-8"
+                            >
+                              <div className="flex w-full items-center justify-between gap-2">
+                                <TokenChoiceContent
+                                  display={display}
+                                  className="opacity-60"
+                                />
+                                <span className="text-xs font-semibold text-black-300">
+                                  Soon
+                                </span>
+                              </div>
+                            </SelectItem>
+                          );
+                        })}
+                      </SelectContent>
+                    </Select>
+                  </div>
+                  {isWalletConnected && (
+                    <div className="flex items-center gap-2 text-xs text-black-400">
+                      <span>Balance:</span>
+                      <span className="font-semibold">
+                        {formattedBalance ?? "--"}
+                      </span>
+                    </div>
+                  )}
+                  {validationError && (
+                    <p className="text-xs text-red-600">{validationError}</p>
+                  )}
+                  {profileOwnershipMismatch && (
+                    <p className="text-xs text-red-600">
+                      Connected wallet does not own the loaded donor profile.
+                      Refresh or reconnect your wallet.
+                    </p>
+                  )}
+                  {campaignEnded && endDateLabel && (
+                    <p className="text-xs text-orange-600">
+                      Campaign ended on {endDateLabel}. Donations are closed.
+                    </p>
+                  )}
+                  {insufficientBalance && selectedToken && (
+                    <div className="flex text-red-600 items-center align-middle gap-1 font-medium">
+                      <AlertTriangleIcon className="size-3" />
+                      <p className="text-xs">
+                        Entered amount exceeds current balance!
+                      </p>
+                    </div>
+                  )}
+                  {showSuiGasReminder && (
+                    <p
+                      className={cn(
+                        "text-xs",
+                        donatingEntireSuiBalance
+                          ? "text-orange-600"
+                          : "text-black-400",
+                      )}
+                    >
+                      Leave a small amount of SUI in your wallet to cover gas
+                      fees.
+                    </p>
+                  )}
+                  {balanceError && (
+                    <p className="text-xs text-orange-600">
+                      Failed to load balance. {balanceError.message}
+                    </p>
+                  )}
+                  {tokensError && (
+                    <p className="text-xs text-orange-600">
+                      Unable to load donation tokens. {tokensError.message}
+                    </p>
+                  )}
+                  {profileError && (
+                    <p className="text-xs text-orange-600">
+                      {profileError.message}
+                    </p>
+                  )}
+                  {quoteError && (
+                    <p className="text-xs text-orange-600">
+                      Live price unavailable. {quoteError}
+                    </p>
+                  )}
+                </div>
+                {parsedAmount !== null &&
+                  parsedAmount > 0n &&
+                  platformBps !== undefined &&
+                  platformBps > 0 &&
+                  selectedToken && (
+                    <div className="flex flex-col gap-2 pt-2">
+                      <div className="flex justify-between text-sm text-black-400">
+                        <span>Your donation</span>
+                        <span>
+                          {formatRawAmount(
+                            parsedAmount,
+                            selectedToken.decimals,
+                            4,
+                          )}{" "}
+                          {selectedToken.symbol}
+                        </span>
+                      </div>
+                      <div className="flex justify-between text-sm text-black-400">
+                        <span>Platform Fee ({platformBps / 100}%)</span>
+                        <span>
+                          {formatRawAmount(
+                            (parsedAmount * BigInt(platformBps)) / 10000n,
+                            selectedToken.decimals,
+                            4,
+                          )}{" "}
+                          {selectedToken.symbol}
+                        </span>
+                      </div>
+                      <Separator className="bg-black-50" />
+                      <div className="flex justify-between text-sm font-semibold bg-white-500 py-1 px-2 rounded-lg">
+                        <span className="text-black-400">Net Amount</span>
+                        <div className="flex items-center gap-1">
+                          <span className="text-black-400">
+                            {formatRawAmount(
+                              parsedAmount -
+                                (parsedAmount * BigInt(platformBps)) / 10000n,
+                              selectedToken.decimals,
+                              4,
+                            )}{" "}
+                            {selectedToken.symbol}
+                          </span>
+                          {isQuoteLoading ? (
+                            <Skeleton
+                              className="h-4 bg-white-600 w-16"
+                              aria-label="Fetching live USD quote"
+                            />
+                          ) : lastUsdQuote !== null ? (
+                            <span className="text-black-200 font-normal">
+                              ~$
+                              {formatUsdLocaleFromMicros(
+                                lastUsdQuote -
+                                  (lastUsdQuote * BigInt(platformBps)) / 10000n,
+                              )}
+                            </span>
+                          ) : null}
+                        </div>
+                      </div>
+                    </div>
+                  )}
+              </div>
+            </div>
+
+            {/* Action Buttons */}
+            <div className="flex flex-col gap-4 w-full">
+              <Button
+                className="w-full h-10 bg-primary text-primary-foreground  text-sm font-medium tracking-[0.07px] rounded-lg hover:bg-primary/90 disabled:opacity-50"
+                disabled={
+                  isSelfContribution || (isWalletConnected ? !canDonate : false)
+                }
+                onClick={
+                  isWalletConnected ? handleDonate : handleConnectWalletClick
+                }
+              >
+                {isProcessing ? (
+                  <span className="flex items-center gap-2">
+                    <Loader2 className="size-4 animate-spin" />
+                    Processing...
+                  </span>
+                ) : isWalletConnected ? (
+                  "Contribute Now"
+                ) : (
+                  "Connect Wallet"
+                )}
+              </Button>
+              {isSelfContribution && (
+                <p className="text-xs text-center text-black-400">
+                  You can&apos;t contribute to your project.
+                </p>
+              )}
+              {!isActive && (
+                <p className="text-xs text-center text-black-400">
+                  Campaign is not accepting donations right now.
+                </p>
+              )}
+              {!enabledTokens.length && !isTokensLoading && (
+                <p className="text-xs text-center text-black-400">
+                  No donation tokens are enabled yet.
+                </p>
+              )}
+              <Button
+                variant="secondary"
+                className="w-full h-10 bg-blue-50 text-blue-500  text-sm font-medium tracking-[0.07px] rounded-lg hover:bg-[#e0d9ff] gap-2"
+                onClick={() => setIsShareModalOpen(true)}
+              >
+                Share
+                <Share2 className="size-3.5" />
+              </Button>
+            </div>
+          </>
+        )}
       </div>
 
       <DonationProcessingModal
         open={isProcessingModalOpen}
         isBuilding={isBuildingDonation}
-        hasAttemptedConfirmation={hasAttemptedWalletConfirmation}
         isWalletRequestPending={isWalletRequestPending}
         canConfirm={Boolean(pendingDonation && !isBuildingDonation)}
         onCancel={handleProcessingModalCancel}
-        onConfirm={executePendingDonation}
+        onConfirm={() => executePendingDonation()}
       />
       <DonationSuccessModal
         open={isSuccessModalOpen}
@@ -1142,22 +1467,88 @@ export function DonationCard({
         subdomainName={subdomainName}
         onClose={() => setIsShareModalOpen(false)}
       />
+
+      <div ref={connectButtonRef} className="hidden">
+        <ConnectButton />
+      </div>
     </>
   );
 }
 
 const BLOCKED_NUMBER_INPUT_KEYS = new Set(["e", "E", "+", "-", " "]);
+const MAX_CONTRIBUTION_WHOLE = 9_999_999;
+const FALLBACK_DECIMAL_LIMIT = 9;
 
-function sanitizeNumericInput(value: string) {
-  const numericValue = value.replace(/[^0-9.]/g, "");
-  if (!numericValue) {
+function safeNormalizeAddress(value?: string | null): string | null {
+  if (!value) {
+    return null;
+  }
+
+  try {
+    return normalizeSuiAddress(value);
+  } catch {
+    return value.toLowerCase();
+  }
+}
+
+function formatContributionInputValue(value: string, decimals: number) {
+  const cleaned = value.replace(/[^0-9.]/g, "");
+  if (!cleaned) {
     return "";
   }
-  const [wholePart, ...fractionParts] = numericValue.split(".");
-  if (fractionParts.length === 0) {
-    return numericValue;
+
+  const firstDotIndex = cleaned.indexOf(".");
+  const normalized =
+    firstDotIndex >= 0
+      ? `${cleaned.slice(0, firstDotIndex + 1)}${cleaned
+          .slice(firstDotIndex + 1)
+          .replace(/\./g, "")}`
+      : cleaned;
+
+  const match = normalized.match(/^(\d*)(?:\.(\d*))?$/);
+  if (!match) {
+    return "";
   }
-  return `${wholePart}.${fractionParts.join("")}`;
+
+  let wholePart = match[1] ?? "";
+  let fractionPart = match[2] ?? "";
+  const allowFraction = decimals > 0;
+  const maxWholeAsString = MAX_CONTRIBUTION_WHOLE.toString();
+  const hasTrailingDot = allowFraction && normalized.endsWith(".");
+
+  if (wholePart.length > 1) {
+    wholePart = wholePart.replace(/^0+/, "");
+  }
+
+  if (!wholePart) {
+    wholePart = "0";
+  }
+
+  if (
+    wholePart.length > maxWholeAsString.length ||
+    Number(wholePart) > MAX_CONTRIBUTION_WHOLE
+  ) {
+    wholePart = maxWholeAsString;
+    fractionPart = "";
+  }
+
+  if (!allowFraction) {
+    fractionPart = "";
+  } else {
+    fractionPart = fractionPart.slice(0, Math.max(0, decimals));
+  }
+
+  const formattedWhole = Number(wholePart).toLocaleString("en-US");
+
+  if (fractionPart.length > 0) {
+    return `${formattedWhole}.${fractionPart}`;
+  }
+
+  if (hasTrailingDot) {
+    return `${formattedWhole}.`;
+  }
+
+  return formattedWhole;
 }
 
 function TokenChoiceContent({
@@ -1284,4 +1675,14 @@ function extractAbortCode(message: string): number | null {
 
   const parsed = Number(raw);
   return Number.isNaN(parsed) ? null : parsed;
+}
+
+function isPendingDonationContext(value: unknown): value is PendingDonationContext {
+  return (
+    typeof value === "object" &&
+    value !== null &&
+    "buildResult" in value &&
+    "rawAmount" in value &&
+    "selectedToken" in value
+  );
 }

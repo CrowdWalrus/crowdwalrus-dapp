@@ -1,11 +1,11 @@
 import type { TokenIconProps } from "./types";
 
-const SUI_ICON_SRC = "/assets/tokens/sui.png";
+const BLUEFIN_ICON_SRC = "/assets/tokens/bluefin.png";
 
-export function SuiTokenIcon({ title, alt, ...props }: TokenIconProps) {
+export function BluefinTokenIcon({ title, alt, ...props }: TokenIconProps) {
   return (
     <img
-      src={SUI_ICON_SRC}
+      src={BLUEFIN_ICON_SRC}
       alt={alt ?? title ?? ""}
       title={title}
       aria-hidden={title ? undefined : true}
