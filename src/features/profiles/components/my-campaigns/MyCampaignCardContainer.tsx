@@ -63,8 +63,7 @@ export function MyCampaignCardContainer({
     error: statsError,
   } = useCampaignStats({
     campaignId: campaign.id,
-    statsId: campaign.statsId,
-    enabled: Boolean(campaign.statsId || campaign.id),
+    enabled: Boolean(campaign.id),
   });
 
   useEffect(() => {
