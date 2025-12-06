@@ -13,6 +13,7 @@ import {
   attachPriceOracleQuote,
 } from "@/services/priceOracle";
 import type { TokenRegistryEntry } from "@/services/tokenRegistry";
+import { canonicalizeCoinType, isSuiCoinType } from "@/shared/utils/sui";
 
 const MAX_U64 = (1n << 64n) - 1n;
 const DEFAULT_SLIPPAGE_BPS = 100; // 1%
@@ -73,11 +74,13 @@ export async function buildFirstTimeDonationTx(
   const tx = new Transaction();
   tx.setSenderIfNotSet(accountAddress);
 
+  const coinType = canonicalizeCoinType(token.coinType);
+
   const donationCoin = await prepareDonationCoin({
     tx,
     suiClient,
     ownerAddress: accountAddress,
-    coinType: token.coinType,
+    coinType,
     rawAmount,
   });
 
@@ -98,7 +101,7 @@ export async function buildFirstTimeDonationTx(
 
   tx.moveCall({
     target: `${config.contracts.packageId}::donations::donate_and_award_first_time`,
-    typeArguments: [token.coinType],
+    typeArguments: [coinType],
     arguments: [
       tx.object(campaignId),
       tx.object(statsId),
@@ -154,11 +157,13 @@ export async function buildRepeatDonationTx(
   const tx = new Transaction();
   tx.setSenderIfNotSet(accountAddress);
 
+  const coinType = canonicalizeCoinType(token.coinType);
+
   const donationCoin = await prepareDonationCoin({
     tx,
     suiClient,
     ownerAddress: accountAddress,
-    coinType: token.coinType,
+    coinType,
     rawAmount,
   });
 
@@ -179,7 +184,7 @@ export async function buildRepeatDonationTx(
 
   tx.moveCall({
     target: `${config.contracts.packageId}::donations::donate_and_award`,
-    typeArguments: [token.coinType],
+    typeArguments: [coinType],
     arguments: [
       tx.object(campaignId),
       tx.object(statsId),
@@ -290,7 +295,9 @@ async function prepareDonationCoin({
   coinType: string;
   rawAmount: bigint;
 }): Promise<TransactionObjectArgument> {
-  if (coinType === SUI_TYPE_ARG) {
+  const normalizedCoinType = canonicalizeCoinType(coinType);
+
+  if (isSuiCoinType(normalizedCoinType)) {
     return await prepareSuiDonationCoin({
       tx,
       suiClient,
@@ -303,7 +310,7 @@ async function prepareDonationCoin({
   const coins = await selectCoinsForAmount({
     suiClient,
     owner: normalizedOwner,
-    coinType,
+    coinType: normalizedCoinType,
     rawAmount,
   });
 
