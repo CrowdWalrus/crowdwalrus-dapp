@@ -20,101 +20,26 @@ import {
 } from "@/shared/components/ui/table";
 import { cn } from "@/shared/lib/utils";
 import { formatUsdLocaleFromMicros } from "@/shared/utils/currency";
-import { canonicalizeCoinType, isSuiCoinType } from "@/shared/utils/sui";
-import { getTokenDisplayData } from "@/shared/config/tokenDisplay";
+import { canonicalizeCoinType } from "@/shared/utils/sui";
+import {
+  formatContributionDate,
+  formatTokenAmount,
+  resolveTokenInfo,
+} from "@/features/donations/utils";
 import { useCampaignDonations } from "@/hooks/indexer/useCampaignDonations";
 import { useEnabledTokens } from "@/features/tokens/hooks";
-import type { TokenRegistryEntry } from "@/services/tokenRegistry";
-import type { DonationResponse } from "@/services/indexer-services";
 
 interface CampaignContributionsTableProps {
   campaignId: string;
 }
 
 const PAGE_SIZE = 10;
-const DATE_FORMATTER = new Intl.DateTimeFormat("en-US", {
-  month: "short",
-  day: "numeric",
-  year: "numeric",
-});
-
-type TokenInfo = {
-  label: string;
-  decimals: number;
-  Icon?: ReturnType<typeof getTokenDisplayData>["Icon"];
-};
-
-function formatDate(timestampMs?: number | null): string {
-  if (!timestampMs) return "—";
-  return DATE_FORMATTER.format(new Date(timestampMs));
-}
 
 function formatContributor(address: string): string {
   if (!address) return "—";
   const value = address.trim();
   if (value.length <= 10) return value;
   return `${value.slice(0, 5)}...${value.slice(-4)}`;
-}
-
-function groupWithCommas(value: bigint): string {
-  const sign = value < 0n ? "-" : "";
-  const digits = (value < 0n ? -value : value).toString();
-  return sign + digits.replace(/\B(?=(\d{3})+(?!\d))/g, ",");
-}
-
-function formatTokenAmount(rawAmount: bigint, decimals: number): string {
-  if (rawAmount === 0n) return "0";
-  const safeDecimals = Math.max(decimals, 0);
-  const scale = 10n ** BigInt(safeDecimals);
-  const whole = rawAmount / scale;
-  const remainder = rawAmount % scale;
-
-  // Round to two decimal places.
-  let roundedFraction = (remainder * 100n + scale / 2n) / scale;
-  let adjustedWhole = whole;
-  if (roundedFraction === 100n) {
-    adjustedWhole += 1n;
-    roundedFraction = 0n;
-  }
-
-  const fractionStr = roundedFraction
-    .toString()
-    .padStart(2, "0")
-    .replace(/0+$/, "");
-
-  return fractionStr
-    ? `${groupWithCommas(adjustedWhole)}.${fractionStr}`
-    : groupWithCommas(adjustedWhole);
-}
-
-function resolveTokenInfo(
-  donation: DonationResponse,
-  registry: Map<string, TokenRegistryEntry>,
-): TokenInfo {
-  const coinType = canonicalizeCoinType(donation.coinTypeCanonical);
-  const token = registry.get(coinType);
-
-  if (token) {
-    const display = getTokenDisplayData(token);
-    return {
-      label: display.label,
-      Icon: display.Icon,
-      decimals: token.decimals,
-    };
-  }
-
-  const fallbackSymbol = donation.coinSymbol || "Token";
-  const display = getTokenDisplayData({
-    coinType,
-    symbol: fallbackSymbol,
-    name: fallbackSymbol,
-  });
-
-  return {
-    label: display.label,
-    Icon: display.Icon,
-    decimals: isSuiCoinType(coinType) ? 9 : 6,
-  };
 }
 
 export function CampaignContributionsTable({
@@ -230,7 +155,7 @@ export function CampaignContributionsTable({
       return (
         <TableRow className="hover:bg-transparent">
           <TableCell colSpan={6} className="px-4 py-6">
-            <div className="flex items-center gap-3 text-sm text-red-600">
+            <div className="flex w-full items-center justify-center gap-3 text-sm text-red-600">
               <AlertCircle className="h-5 w-5 shrink-0" />
               <div className="flex flex-col gap-1">
                 <span>Unable to load contributions.</span>
@@ -280,7 +205,7 @@ export function CampaignContributionsTable({
           className="border-b border-white-600 last:border-b-0 hover:bg-transparent"
         >
           <TableCell className="px-4 py-4 text-black-500">
-            {formatDate(donation.timestampMs)}
+            {formatContributionDate(donation.timestampMs)}
           </TableCell>
           <TableCell className="px-4 py-4 text-black-500">
             {formatContributor(donation.donor)}
