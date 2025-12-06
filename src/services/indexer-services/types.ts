@@ -105,6 +105,11 @@ export interface DonationResponse {
   txDigest: string;
 }
 
+export type ProfileDonationResponse = DonationResponse & {
+  campaignName: string;
+  campaignSubdomainName: string;
+};
+
 export interface SubdomainResponse {
   subdomainName: string;
   campaignId: string;
