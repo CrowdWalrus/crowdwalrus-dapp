@@ -1,24 +1,21 @@
 /**
- * Default development indexer endpoint. Override with `VITE_INDEXER_BASE_URL`
- * when running in other environments.
+ * Indexer base URL for the CrowdWalrus API.
+ * This is hardcoded because Walrus Sites (decentralized static hosting)
+ * does not support runtime environment variables.
  */
-const DEFAULT_INDEXER_BASE_URL = "http://98.80.250.83:9285";
+const INDEXER_BASE_URL_RAW = "https://indexer.crowdwalrus.xyz";
 
-const envBaseUrl =
-  typeof import.meta !== "undefined" && "env" in import.meta
-    ? (import.meta as { env?: Record<string, string> }).env?.VITE_INDEXER_BASE_URL
-    : undefined;
-
-const normalizedBaseUrl = (envBaseUrl || DEFAULT_INDEXER_BASE_URL).trim();
-
-/** Canonical Indexer base URL (no trailing slash). Configure via `VITE_INDEXER_BASE_URL`. */
-export const INDEXER_BASE_URL = normalizedBaseUrl.replace(/\/$/, "");
+/** Canonical Indexer base URL (no trailing slash). */
+export const INDEXER_BASE_URL = INDEXER_BASE_URL_RAW.replace(/\/$/, "");
 
 /**
  * Helper to build an indexer URL with optional query params.
  * Ensures leading/trailing slashes are handled consistently.
  */
-export function resolveIndexerUrl(path: string, query?: Record<string, string | number | boolean | null | undefined>) {
+export function resolveIndexerUrl(
+  path: string,
+  query?: Record<string, string | number | boolean | null | undefined>,
+) {
   const base = INDEXER_BASE_URL.endsWith("/")
     ? INDEXER_BASE_URL
     : `${INDEXER_BASE_URL}/`;
