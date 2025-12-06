@@ -17,6 +17,7 @@ export interface CampaignStatsSummary {
   campaignId: string | null;
   totalUsdMicro: bigint;
   totalDonationsCount: number;
+  uniqueDonorsCount: number;
   lastDonationAtMs: number | null;
 }
 
@@ -30,6 +31,7 @@ export interface UseCampaignStatsResult {
   statsId: string | null;
   totalUsdMicro: bigint;
   totalDonationsCount: number;
+  uniqueDonorsCount: number;
   perCoinTotals: CampaignPerCoinTotals | null;
   isPending: boolean;
   isPerCoinLoading: boolean;
@@ -60,6 +62,7 @@ export function useCampaignStats(
         campaignId: campaignId ?? null,
         totalUsdMicro: 0n,
         totalDonationsCount: 0,
+        uniqueDonorsCount: 0,
         lastDonationAtMs: null,
       };
     }
@@ -67,12 +70,14 @@ export function useCampaignStats(
     const detail = query.data;
     const totalUsdMicro = BigInt(detail.stats?.totalUsdMicro ?? 0);
     const totalDonationsCount = detail.stats?.totalDonationsCount ?? 0;
+    const uniqueDonorsCount = detail.stats?.uniqueDonorsCount ?? 0;
 
     return {
       statsId: detail.statsId ?? null,
       campaignId: detail.campaignId ?? null,
       totalUsdMicro,
       totalDonationsCount,
+      uniqueDonorsCount,
       lastDonationAtMs: detail.stats?.lastDonationAtMs ?? null,
     } satisfies CampaignStatsSummary;
   }, [campaignId, query.data]);
@@ -119,6 +124,7 @@ export function useCampaignStats(
     statsId: stats.statsId,
     totalUsdMicro: stats.totalUsdMicro,
     totalDonationsCount: stats.totalDonationsCount,
+    uniqueDonorsCount: stats.uniqueDonorsCount,
     perCoinTotals,
     isPending: query.isPending,
     isPerCoinLoading: false,
