@@ -79,6 +79,11 @@ export function mapIndexerCampaignToData(
     summary?.totalDonationsCount ??
     0;
 
+  const uniqueDonorsCount =
+    detail?.stats?.uniqueDonorsCount ??
+    summary?.uniqueDonorsCount ??
+    0;
+
   const lastDonationAtMs =
     detail?.stats?.lastDonationAtMs ?? summary?.lastDonationAtMs ?? null;
 
@@ -129,6 +134,7 @@ export function mapIndexerCampaignToData(
     updateCount: detail?.updateCount ?? summary?.updateCount ?? 0,
     totalUsdMicro,
     totalDonationsCount,
+    uniqueDonorsCount,
     lastDonationAtMs,
     coinStats,
     metadata: metadataMap,
