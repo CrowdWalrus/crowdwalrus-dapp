@@ -216,6 +216,7 @@ export function ProfilePage() {
 
   const campaignsTabLabel = isOwner ? "My Campaigns" : "Campaigns";
   const contributionsTabLabel = isOwner ? "My Contributions" : "Contributions";
+  const contributionsCount = profile?.totalDonationsCount ?? 0;
 
   const contributionsContent = (
     <ProfileDonationsTable
@@ -240,6 +241,7 @@ export function ProfilePage() {
     {
       value: "contributions",
       label: contributionsTabLabel,
+      badgeCount: contributionsCount,
       content: contributionsContent,
     },
   ];
