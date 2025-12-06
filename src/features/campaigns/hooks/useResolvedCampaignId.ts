@@ -1,6 +1,11 @@
 import { useMemo } from "react";
 import { useQuery } from "@tanstack/react-query";
-import { useSuiClient } from "@mysten/dapp-kit";
+import {
+  resolveCampaignIdentifier,
+  getSubdomainByName,
+  IndexerHttpError,
+  type CampaignResolutionResponse,
+} from "@/services/indexer-services";
 import { isValidSuiObjectId, normalizeSuiAddress } from "@mysten/sui/utils";
 
 import { useNetworkVariable } from "@/shared/config/networkConfig";
@@ -25,7 +30,6 @@ interface UseResolvedCampaignIdResult {
 export function useResolvedCampaignId(
   identifier: string | null | undefined,
 ): UseResolvedCampaignIdResult {
-  const suiClient = useSuiClient();
   const campaignDomain = useNetworkVariable("campaignDomain") as
     | string
     | undefined;
@@ -51,7 +55,6 @@ export function useResolvedCampaignId(
     const lowerInput = normalizedInput.toLowerCase();
 
     if (lowerInput.includes(".")) {
-      // User provided a full domain; still derive a slug if it matches our domain.
       const derivedSlug =
         campaignDomain &&
         lowerInput.endsWith(`.${campaignDomain.toLowerCase()}`)
@@ -79,57 +82,71 @@ export function useResolvedCampaignId(
   }, [shouldResolve, normalizedInput, campaignDomain]);
 
   const {
-    data: resolvedAddress,
+    data: resolution,
     error: resolutionError,
     isPending,
   } = useQuery({
-    queryKey: [
-      "resolve-campaign-id",
-      campaignDomain ?? null,
-      fullName,
-    ],
+    queryKey: ["indexer", "campaign-resolution", slug],
     queryFn: async () => {
-      if (!fullName) {
-        return null;
+      if (!slug) return null;
+
+      // Primary: dedicated resolver (works on new indexer)
+      try {
+        return await resolveCampaignIdentifier(slug);
+      } catch (error) {
+        const asHttpError = error instanceof IndexerHttpError ? error : null;
+
+        // Fallback: older indexer versions only expose /subdomains/{name}
+        if (asHttpError?.status === 404) {
+          try {
+            const sub = await getSubdomainByName(slug);
+            return sub
+              ? ({
+                  campaignId: sub.campaignId,
+                  subdomainName: sub.subdomainName,
+                  resolvedVia: "subdomain_registry",
+                } as CampaignResolutionResponse)
+              : null;
+          } catch (subErr) {
+            const subHttpErr = subErr instanceof IndexerHttpError ? subErr : null;
+            if (subHttpErr?.status === 404) {
+              return null;
+            }
+            throw subErr as Error;
+          }
+        }
+
+        throw error as Error;
       }
-      return await suiClient.resolveNameServiceAddress({ name: fullName });
     },
-    enabled: shouldResolve && Boolean(fullName),
-    retry: 1,
-    staleTime: 60_000,
+    enabled: Boolean(shouldResolve && slug),
+    staleTime: 30_000,
     gcTime: 5 * 60_000,
   });
 
   const campaignId = useMemo(() => {
-    if (directId) {
-      return directId;
-    }
-    if (resolvedAddress) {
+    if (directId) return directId;
+    if (resolution?.campaignId) {
       try {
-        return normalizeSuiAddress(resolvedAddress);
+        return normalizeSuiAddress(resolution.campaignId);
       } catch (err) {
-        console.warn("Failed to normalize resolved campaign address", err);
-        return null;
+        console.warn("Failed to normalize campaign id from resolution", err);
+        return resolution.campaignId;
       }
     }
     return null;
-  }, [directId, resolvedAddress]);
+  }, [directId, resolution?.campaignId]);
 
   const source: ResolutionSource | null = directId
     ? "id"
-    : resolvedAddress
+    : resolution?.campaignId
       ? "subdomain"
       : null;
 
   const notFound =
-    shouldResolve && !isPending && !resolutionError && resolvedAddress === null;
+    shouldResolve && !isPending && !resolutionError && !resolution;
 
-  const derivedError = (resolutionError as Error) ?? null;
-  const finalError =
-    derivedError ||
-    (shouldResolve && resolvedAddress && !campaignId
-      ? new Error("Resolved campaign address is invalid.")
-      : null);
+  const finalError = (resolutionError as Error) ?? null;
 
   return {
     campaignId,
