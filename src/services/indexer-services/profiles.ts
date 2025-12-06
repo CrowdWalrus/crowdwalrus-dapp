@@ -1,5 +1,9 @@
 import { indexerRequest } from "./client";
-import type { ProfileResponse } from "./types";
+import type {
+  PaginatedResponse,
+  ProfileDonationResponse,
+  ProfileResponse,
+} from "./types";
 
 export interface ProfileRequestParams {
   address: string;
@@ -25,4 +29,19 @@ export async function getProfileByAddress(
       page_size: clampPageSize(pageSize),
     },
   });
+}
+
+export async function getProfileDonations(
+  params: ProfileRequestParams,
+): Promise<PaginatedResponse<ProfileDonationResponse>> {
+  const { address, page, pageSize } = params;
+  return indexerRequest<PaginatedResponse<ProfileDonationResponse>>(
+    `/v1/profiles/${address}/donations`,
+    {
+      query: {
+        page,
+        page_size: clampPageSize(pageSize),
+      },
+    },
+  );
 }
