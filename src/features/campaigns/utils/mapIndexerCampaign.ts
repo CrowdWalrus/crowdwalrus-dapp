@@ -74,6 +74,14 @@ export function mapIndexerCampaignToData(
     detail?.stats?.totalUsdMicro ?? summary?.totalUsdMicro ?? 0,
   );
 
+  const recipientTotalUsdMicro = BigInt(
+    detail?.stats?.recipientTotalUsdMicro ??
+      summary?.recipientTotalUsdMicro ??
+      detail?.stats?.totalUsdMicro ??
+      summary?.totalUsdMicro ??
+      0,
+  );
+
   const totalDonationsCount =
     detail?.stats?.totalDonationsCount ??
     summary?.totalDonationsCount ??
@@ -133,6 +141,7 @@ export function mapIndexerCampaignToData(
     parametersLocked: detail?.parametersLocked ?? summary?.parametersLocked ?? false,
     updateCount: detail?.updateCount ?? summary?.updateCount ?? 0,
     totalUsdMicro,
+    recipientTotalUsdMicro,
     totalDonationsCount,
     uniqueDonorsCount,
     lastDonationAtMs,
