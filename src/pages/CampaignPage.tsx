@@ -108,7 +108,7 @@ export function CampaignPage() {
 
   const {
     totalUsdMicro: totalRaisedUsdMicro,
-    totalDonationsCount,
+    uniqueDonorsCount,
     isPending: isStatsPending,
     error: statsError,
     refetch: refetchCampaignStats,
@@ -378,7 +378,7 @@ export function CampaignPage() {
     );
   }
 
-  const contributorsCount = statsError ? 0 : totalDonationsCount;
+  const contributorsCount = statsError ? 0 : uniqueDonorsCount;
   const amountRaisedUsdMicro =
     isStatsPending || statsError ? 0n : totalRaisedUsdMicro;
   const showProcessingDialog =
