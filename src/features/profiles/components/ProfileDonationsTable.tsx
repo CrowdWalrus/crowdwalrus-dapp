@@ -204,7 +204,8 @@ export function ProfileDonationsTable({
           <TableCell className="px-4 py-4 text-black-500">
             <Link
               to={campaignPath}
-              className="text-black-500 underline-offset-4 hover:underline"
+              className="text-black-500 underline-offset-4 hover:underline max-w-[260px] truncate align-middle inline-block"
+              title={contribution.campaignName}
             >
               {contribution.campaignName}
             </Link>
