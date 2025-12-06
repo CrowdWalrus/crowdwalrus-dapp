@@ -12,7 +12,7 @@ export function CampaignCardWithStats({
     <CampaignCard
       campaign={campaign}
       raisedUsdMicro={campaign.totalUsdMicro}
-      supportersCount={campaign.totalDonationsCount}
+      supportersCount={campaign.uniqueDonorsCount}
     />
   );
 }
