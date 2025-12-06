@@ -1,16 +1,15 @@
 import { useMemo } from "react";
-import { useSuiClient } from "@mysten/dapp-kit";
 import { useQuery } from "@tanstack/react-query";
+
 import { DEFAULT_NETWORK } from "@/shared/config/networkConfig";
 import type { SupportedNetwork } from "@/shared/types/network";
-import { getContractConfig } from "@/shared/config/contracts";
 import {
   POLICY_PRESET_ORDER,
   type PolicyPresetName,
   getPolicyDisplayCopy,
   buildFallbackPolicyPresets,
 } from "@/features/campaigns/constants/policies";
-import { fetchPolicyPresetsFromRegistry } from "@/services/policyRegistry";
+import { getPolicies } from "@/services/indexer-services";
 
 export interface PolicyPresetOption {
   name: PolicyPresetName;
@@ -25,24 +24,17 @@ const FALLBACK_PRESETS = buildFallbackPolicyPresets();
 export function usePolicyPresets(
   network: SupportedNetwork = DEFAULT_NETWORK,
 ) {
-  const suiClient = useSuiClient();
-  const config = getContractConfig(network);
-  const policyRegistryId = config.contracts.policyRegistryObjectId;
-
   const query = useQuery({
-    queryKey: ["policy-presets", policyRegistryId],
+    queryKey: ["policy-presets", network],
     queryFn: async () => {
-      const presets = await fetchPolicyPresetsFromRegistry(
-        suiClient,
-        policyRegistryId,
-      );
+      const presets = await getPolicies();
       return presets.map((preset) => {
         const copy = getPolicyDisplayCopy(
-          preset.name,
+          preset.policyName,
           preset.platformBps,
         );
         return {
-          name: preset.name,
+          name: preset.policyName,
           label: copy.label,
           description: copy.description,
           platformBps: preset.platformBps,
