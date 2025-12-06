@@ -107,7 +107,7 @@ export function CampaignPage() {
   } = useCampaign(campaignId ?? "", network);
 
   const {
-    totalUsdMicro: totalRaisedUsdMicro,
+    recipientTotalUsdMicro: netRaisedUsdMicro,
     uniqueDonorsCount,
     isPending: isStatsPending,
     error: statsError,
@@ -380,7 +380,7 @@ export function CampaignPage() {
 
   const contributorsCount = statsError ? 0 : uniqueDonorsCount;
   const amountRaisedUsdMicro =
-    isStatsPending || statsError ? 0n : totalRaisedUsdMicro;
+    isStatsPending || statsError ? 0n : netRaisedUsdMicro;
   const showProcessingDialog =
     (processingType === "deactivate" && isDeactivationProcessing) ||
     (processingType === "activate" && isActivationProcessing) ||
