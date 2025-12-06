@@ -22,6 +22,7 @@ export interface CampaignSummary {
   isDeleted: boolean;
   totalUsdMicro: number | null;
   totalDonationsCount: number | null;
+  uniqueDonorsCount: number | null;
   lastDonationAtMs: number | null;
 }
 
@@ -35,6 +36,7 @@ export interface CampaignStatsResponse {
   statsId: string;
   totalUsdMicro: number;
   totalDonationsCount: number;
+  uniqueDonorsCount: number;
   lastDonationAtMs: number | null;
 }
 
