@@ -44,22 +44,19 @@ export function useDonorBadges({
       return [];
     }
 
-    return profileQuery.data.badges.flatMap((badge) => {
-      const highestLevel = Math.max(0, badge.level ?? 0);
-      if (highestLevel === 0) return [];
-      console.log("badge", badge);
-      console.log("highestLevel", highestLevel);
-      return Array.from({ length: highestLevel }, (_, idx) => {
-        const level = idx + 1;
-        return {
-          objectId: `${badge.txDigest ?? badge.profileId}-${level}`,
-          level,
-          ownerAddress: badge.owner,
-          imageUrl: buildBadgeImagePath(level),
-          issuedAtMs: BigInt(badge.timestampMs ?? 0),
-        };
-      });
-    });
+    // Each badge mint row represents a single level; render exactly what exists on-chain.
+    const mapped = profileQuery.data.badges
+      .filter((badge) => (badge.level ?? 0) > 0)
+      .map((badge) => ({
+        objectId: `${badge.txDigest ?? badge.profileId}-${badge.level}`,
+        level: badge.level,
+        ownerAddress: badge.owner,
+        imageUrl: buildBadgeImagePath(badge.level),
+        issuedAtMs: BigInt(badge.timestampMs ?? 0),
+      }));
+
+    // Display left-to-right by ascending level.
+    return mapped.sort((a, b) => a.level - b.level || Number(a.issuedAtMs - b.issuedAtMs));
   }, [profileQuery.data?.badges]);
 
   return {
