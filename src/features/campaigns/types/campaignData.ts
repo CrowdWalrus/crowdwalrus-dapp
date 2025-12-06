@@ -41,6 +41,7 @@ export interface CampaignData {
   updateCount: number;
   totalUsdMicro: bigint;
   totalDonationsCount: number;
+  uniqueDonorsCount: number;
   lastDonationAtMs: number | null;
   coinStats: CampaignCoinStat[];
   metadata: Record<string, string>;
