@@ -16,6 +16,7 @@ export interface CampaignStatsSummary {
   statsId: string | null;
   campaignId: string | null;
   totalUsdMicro: bigint;
+  recipientTotalUsdMicro: bigint;
   totalDonationsCount: number;
   uniqueDonorsCount: number;
   lastDonationAtMs: number | null;
@@ -30,6 +31,7 @@ export interface UseCampaignStatsResult {
   stats: CampaignStatsSummary;
   statsId: string | null;
   totalUsdMicro: bigint;
+  recipientTotalUsdMicro: bigint;
   totalDonationsCount: number;
   uniqueDonorsCount: number;
   perCoinTotals: CampaignPerCoinTotals | null;
@@ -61,6 +63,7 @@ export function useCampaignStats(
         statsId: null,
         campaignId: campaignId ?? null,
         totalUsdMicro: 0n,
+        recipientTotalUsdMicro: 0n,
         totalDonationsCount: 0,
         uniqueDonorsCount: 0,
         lastDonationAtMs: null,
@@ -69,6 +72,9 @@ export function useCampaignStats(
 
     const detail = query.data;
     const totalUsdMicro = BigInt(detail.stats?.totalUsdMicro ?? 0);
+    const recipientTotalUsdMicro = BigInt(
+      detail.stats?.recipientTotalUsdMicro ?? detail.stats?.totalUsdMicro ?? 0,
+    );
     const totalDonationsCount = detail.stats?.totalDonationsCount ?? 0;
     const uniqueDonorsCount = detail.stats?.uniqueDonorsCount ?? 0;
 
@@ -76,6 +82,7 @@ export function useCampaignStats(
       statsId: detail.statsId ?? null,
       campaignId: detail.campaignId ?? null,
       totalUsdMicro,
+      recipientTotalUsdMicro,
       totalDonationsCount,
       uniqueDonorsCount,
       lastDonationAtMs: detail.stats?.lastDonationAtMs ?? null,
@@ -123,6 +130,7 @@ export function useCampaignStats(
     stats,
     statsId: stats.statsId,
     totalUsdMicro: stats.totalUsdMicro,
+    recipientTotalUsdMicro: stats.recipientTotalUsdMicro,
     totalDonationsCount: stats.totalDonationsCount,
     uniqueDonorsCount: stats.uniqueDonorsCount,
     perCoinTotals,

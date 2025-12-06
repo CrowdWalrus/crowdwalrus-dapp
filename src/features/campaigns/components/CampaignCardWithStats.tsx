@@ -11,7 +11,7 @@ export function CampaignCardWithStats({
   return (
     <CampaignCard
       campaign={campaign}
-      raisedUsdMicro={campaign.totalUsdMicro}
+      raisedUsdMicro={campaign.recipientTotalUsdMicro}
       supportersCount={campaign.uniqueDonorsCount}
     />
   );

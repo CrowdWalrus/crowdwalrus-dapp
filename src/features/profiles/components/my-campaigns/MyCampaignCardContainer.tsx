@@ -57,7 +57,7 @@ export function MyCampaignCardContainer({
   const [isDeactivateModalOpen, setIsDeactivateModalOpen] = useState(false);
   const [isActivateModalOpen, setIsActivateModalOpen] = useState(false);
   const {
-    totalUsdMicro,
+    recipientTotalUsdMicro,
     uniqueDonorsCount,
     isPending: isStatsPending,
     error: statsError,
@@ -204,7 +204,7 @@ export function MyCampaignCardContainer({
         campaign={campaign}
         actions={quickActions}
         raisedAmountUsdMicro={
-          statsError || isStatsPending ? 0n : totalUsdMicro
+          statsError || isStatsPending ? 0n : recipientTotalUsdMicro
         }
         supportersCount={
           statsError || isStatsPending ? undefined : uniqueDonorsCount

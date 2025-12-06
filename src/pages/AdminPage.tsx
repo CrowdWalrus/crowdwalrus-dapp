@@ -289,7 +289,7 @@ function CampaignCardWithActions({
   onRefetch,
 }: CampaignCardWithActionsProps) {
   const {
-    totalUsdMicro,
+    recipientTotalUsdMicro,
     uniqueDonorsCount,
     isPending: isStatsPending,
     error: statsError,
@@ -332,7 +332,9 @@ function CampaignCardWithActions({
       onVerify={verifyCampaign}
       onUnverify={unverifyCampaign}
       canTakeAction={Boolean(primaryVerifyCapId)}
-      raisedUsdMicro={statsError || isStatsPending ? 0n : totalUsdMicro}
+      raisedUsdMicro={
+        statsError || isStatsPending ? 0n : recipientTotalUsdMicro
+      }
       supportersCount={statsError || isStatsPending ? 0 : uniqueDonorsCount}
     />
   );

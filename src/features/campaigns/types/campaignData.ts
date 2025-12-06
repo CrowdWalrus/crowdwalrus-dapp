@@ -40,6 +40,7 @@ export interface CampaignData {
   parametersLocked: boolean;
   updateCount: number;
   totalUsdMicro: bigint;
+  recipientTotalUsdMicro: bigint;
   totalDonationsCount: number;
   uniqueDonorsCount: number;
   lastDonationAtMs: number | null;
