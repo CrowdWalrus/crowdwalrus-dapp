@@ -1,13 +1,9 @@
 import { useMemo } from "react";
-import { useSuiClient } from "@mysten/dapp-kit";
 import { useQuery } from "@tanstack/react-query";
-import { getContractConfig } from "@/shared/config/contracts";
+
 import { DEFAULT_NETWORK } from "@/shared/config/networkConfig";
 import type { SupportedNetwork } from "@/shared/types/network";
-import {
-  fetchTokenRegistryEntries,
-  type TokenRegistryEntry,
-} from "@/services/tokenRegistry";
+import { fetchTokenRegistryEntries, type TokenRegistryEntry } from "@/services/tokenRegistry";
 
 export interface UseEnabledTokensOptions {
   network?: SupportedNetwork;
@@ -32,16 +28,12 @@ export function useEnabledTokens(
     enabled: isHookEnabled = true,
   } = options;
 
-  const suiClient = useSuiClient();
-  const config = getContractConfig(network);
-  const registryId = config.contracts.tokenRegistryObjectId;
-
   const query = useQuery<TokenRegistryEntry[], Error>({
-    queryKey: ["token-registry", network, registryId],
-    queryFn: () => fetchTokenRegistryEntries(suiClient, registryId),
+    queryKey: ["token-registry", network],
+    queryFn: () => fetchTokenRegistryEntries(),
     staleTime: 60 * 1000,
     gcTime: 5 * 60 * 1000,
-    enabled: Boolean(isHookEnabled && registryId),
+    enabled: Boolean(isHookEnabled),
   });
 
   const allTokens = useMemo(() => query.data ?? [], [query.data]);
