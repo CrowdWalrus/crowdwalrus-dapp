@@ -31,6 +31,7 @@ import { useDocumentTitle } from "@/shared/hooks/useDocumentTitle";
 import { Button } from "@/shared/components/ui/button";
 import { Card, CardContent } from "@/shared/components/ui/card";
 import { ROUTES } from "@/shared/config/routes";
+import { formatUsdLocaleFromMicros } from "@/shared/utils/currency";
 
 const DESCRIPTION_EMPTY_STATE =
   "It appears that your profile is currently incomplete. Please take a moment to create your profile and share information about yourself.";
@@ -56,15 +57,13 @@ export function ProfilePage() {
   const { isOwner } = useProfileOwnership({ profileAddress: addressParam });
   const {
     metadata: metadataMap,
+    profile,
     hasProfile,
     isPending: isProfilePending,
     isError: isProfileError,
     error: profileError,
     refetch: refetchProfile,
   } = useProfile({
-    ownerAddress: addressParam,
-  });
-  const { badges: donorBadges } = useDonorBadges({
     ownerAddress: addressParam,
   });
   const [searchParams, setSearchParams] = useSearchParams();
@@ -86,6 +85,11 @@ export function ProfilePage() {
     () => parseSocialLinksFromMetadata(metadataMap),
     [metadataMap],
   );
+
+  const { badges: donorBadges } = useDonorBadges({
+    ownerAddress: addressParam,
+    enabled: Boolean(addressParam),
+  });
 
   const fullName = (metadataMap[PROFILE_METADATA_KEYS.FULL_NAME] ?? "").trim();
   const email = (metadataMap[PROFILE_METADATA_KEYS.EMAIL] ?? "").trim();
@@ -117,7 +121,6 @@ export function ProfilePage() {
       }
     : null;
 
-  // TODO: Replace placeholder conditions once profile data fetching is available.
   const badges = useMemo(
     () =>
       donorBadges.map((badge) => ({
@@ -129,18 +132,20 @@ export function ProfilePage() {
   );
 
   const placeholderStats = useMemo(() => {
-    // TODO: Replace placeholder stats with real profile aggregates.
+    const contributions = profile?.totalDonationsCount ?? 0;
+    const totalContributedMicros = profile?.totalUsdMicro ?? BigInt(0);
+
     return [
       {
         id: "contributions",
         label: "Contributions",
-        value: "10",
+        value: contributions.toString(),
         icon: HandHeart,
       },
       {
         id: "total-contributed",
         label: "Total Amount Contributed",
-        value: "$200.40",
+        value: `$${formatUsdLocaleFromMicros(totalContributedMicros)}`,
         icon: HandCoins,
       },
       {
@@ -152,11 +157,11 @@ export function ProfilePage() {
       {
         id: "total-raised",
         label: "Total Amount Raised",
-        value: "$20,000.00",
+        value: "$0.00",
         icon: BanknoteArrowDown,
       },
     ];
-  }, [campaignCount]);
+  }, [campaignCount, profile?.totalDonationsCount, profile?.totalUsdMicro]);
 
   if (!addressParam) {
     return <Navigate to={ROUTES.NOT_FOUND} replace />;
