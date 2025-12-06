@@ -290,13 +290,12 @@ function CampaignCardWithActions({
 }: CampaignCardWithActionsProps) {
   const {
     totalUsdMicro,
-    totalDonationsCount,
+    uniqueDonorsCount,
     isPending: isStatsPending,
     error: statsError,
   } = useCampaignStats({
     campaignId: campaign.id,
-    statsId: campaign.statsId,
-    enabled: Boolean(campaign.statsId || campaign.id),
+    enabled: Boolean(campaign.id),
   });
 
   useEffect(() => {
@@ -334,7 +333,7 @@ function CampaignCardWithActions({
       onUnverify={unverifyCampaign}
       canTakeAction={Boolean(primaryVerifyCapId)}
       raisedUsdMicro={statsError || isStatsPending ? 0n : totalUsdMicro}
-      supportersCount={statsError || isStatsPending ? 0 : totalDonationsCount}
+      supportersCount={statsError || isStatsPending ? 0 : uniqueDonorsCount}
     />
   );
 }

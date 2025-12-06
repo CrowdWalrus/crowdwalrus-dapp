@@ -14,7 +14,7 @@ import {
   useSuiClientQuery,
 } from "@mysten/dapp-kit";
 import type { Transaction } from "@mysten/sui/transactions";
-import { normalizeSuiAddress, SUI_TYPE_ARG } from "@mysten/sui/utils";
+import { normalizeSuiAddress } from "@mysten/sui/utils";
 import { toast } from "sonner";
 import { Share2, Clock, Loader2, AlertTriangleIcon } from "lucide-react";
 
@@ -56,6 +56,7 @@ import {
   type TokenDisplayData,
 } from "@/shared/config/tokenDisplay";
 import { buildProfileDetailPath } from "@/shared/utils/routes";
+import { isSuiCoinType } from "@/shared/utils/sui";
 import { cn } from "@/shared/lib/utils";
 import { getCampaignStatusInfo } from "../utils/campaignStatus";
 import { DonationProcessingModal } from "./modals/DonationProcessingModal";
@@ -571,7 +572,7 @@ export function DonationCard({
     isDeleted,
   );
 
-  const isSuiDonation = selectedToken?.coinType === SUI_TYPE_ARG;
+  const isSuiDonation = isSuiCoinType(selectedToken?.coinType);
   const donatingEntireSuiBalance = Boolean(
     isSuiDonation &&
       balanceRaw !== null &&
