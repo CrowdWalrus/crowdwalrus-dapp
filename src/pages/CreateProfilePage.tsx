@@ -630,7 +630,7 @@ export default function CreateProfilePage() {
   const waitForProfileId = useCallback(async () => {
     for (let attempt = 0; attempt < PROFILE_REFETCH_ATTEMPTS; attempt++) {
       const result = await refetchProfileData();
-      const candidate = result.data?.profileId ?? null;
+      const candidate = result.data?.profile?.profileId ?? null;
       if (candidate) {
         return candidate;
       }
@@ -904,7 +904,7 @@ export default function CreateProfilePage() {
 
       if (!targetProfileId) {
         const latest = await refetchProfileData();
-        targetProfileId = latest.data?.profileId ?? null;
+        targetProfileId = latest.data?.profile?.profileId ?? null;
       }
 
       if (!targetProfileId) {

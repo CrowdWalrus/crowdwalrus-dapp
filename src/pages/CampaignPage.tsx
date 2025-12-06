@@ -19,7 +19,6 @@ import {
 } from "@/shared/config/networkConfig";
 import { Card, CardContent } from "@/shared/components/ui/card";
 import { Button } from "@/shared/components/ui/button";
-import { Separator } from "@/shared/components/ui/separator";
 import { Dialog, DialogContent } from "@/shared/components/ui/dialog";
 import {
   Tabs,
@@ -43,13 +42,13 @@ import { DeactivateCampaignModal } from "@/features/campaigns/components/modals/
 import { ActivateCampaignModal } from "@/features/campaigns/components/modals/ActivateCampaignModal";
 import { DeleteCampaignModal } from "@/features/campaigns/components/modals/DeleteCampaignModal";
 import { ProcessingState } from "@/features/campaigns/components/campaign-creation-modal/states/ProcessingState";
+import { CampaignContributionsTable } from "@/features/campaigns/components/CampaignContributionsTable";
 import {
   CircleCheck,
   OctagonMinus,
   Trash2,
   Pencil,
   SendIcon,
-  Sparkles,
 } from "lucide-react";
 import { ROUTES } from "@/shared/config/routes";
 import {
@@ -108,15 +107,14 @@ export function CampaignPage() {
   } = useCampaign(campaignId ?? "", network);
 
   const {
-    totalUsdMicro: totalRaisedUsdMicro,
-    totalDonationsCount,
+    recipientTotalUsdMicro: netRaisedUsdMicro,
+    uniqueDonorsCount,
     isPending: isStatsPending,
     error: statsError,
     refetch: refetchCampaignStats,
   } = useCampaignStats({
     campaignId: campaign?.id ?? campaignId ?? "",
-    statsId: campaign?.statsId,
-    enabled: Boolean(campaign?.statsId),
+    enabled: Boolean(campaignId),
   });
 
   // Fetch cover image
@@ -275,11 +273,7 @@ export function CampaignPage() {
   }, [tabParam]);
 
   const handleTabChange = (value: string) => {
-    if (
-      value !== "about" &&
-      value !== "contributions" &&
-      value !== "updates"
-    ) {
+    if (value !== "about" && value !== "contributions" && value !== "updates") {
       return;
     }
 
@@ -384,9 +378,9 @@ export function CampaignPage() {
     );
   }
 
-  const contributorsCount = statsError ? 0 : totalDonationsCount;
+  const contributorsCount = statsError ? 0 : uniqueDonorsCount;
   const amountRaisedUsdMicro =
-    isStatsPending || statsError ? 0n : totalRaisedUsdMicro;
+    isStatsPending || statsError ? 0n : netRaisedUsdMicro;
   const showProcessingDialog =
     (processingType === "deactivate" && isDeactivationProcessing) ||
     (processingType === "activate" && isActivationProcessing) ||
@@ -560,32 +554,7 @@ export function CampaignPage() {
                   value="contributions"
                   className="pt-4 sm:pt-6 lg:pt-8"
                 >
-                  {/* TODO: Replace placeholder with live contributions table once API is available. */}
-                  <div className="relative overflow-hidden rounded-3xl border border-blue-100 bg-gradient-to-br from-blue-50 via-white-50 to-purple-50 px-6 py-8 sm:px-10 sm:py-12 shadow-[0_18px_50px_-32px_rgba(15,23,42,0.35)]">
-                    <div className="pointer-events-none absolute inset-0 bg-[radial-gradient(circle_at_20%_24%,rgba(97,61,255,0.09),transparent_36%),radial-gradient(circle_at_78%_16%,rgba(187,135,239,0.12),transparent_34%)]" />
-
-                    <div className="relative flex flex-col gap-6">
-                      <div className="inline-flex items-center gap-2 self-start rounded-full bg-white/90 px-3 py-1.5 text-xs font-semibold uppercase tracking-[0.18em] text-blue-700 ring-1 ring-blue-200">
-                        <Sparkles className="h-4 w-4" />
-                        Contributions Coming Soon
-                      </div>
-
-                      <div className="space-y-3 max-w-2xl">
-                        <h3 className="text-2xl sm:text-3xl font-bold text-black-500">
-                          A clean, transparent ledger is on the way
-                        </h3>
-                        <p className="text-base text-black-300">
-                          You will be able to browse every contribution and keep
-                          supporters visible for your team.
-                        </p>
-                      </div>
-
-                      <div className="inline-flex items-center gap-2 self-start rounded-lg bg-blue-600 hover:bg-blue-500 transition-colors px-4 py-2 text-sm font-medium text-white-50 shadow-md shadow-blue-700/20">
-                        <Sparkles className="h-4 w-4" />
-                        <span>Stay tuned for the next release</span>
-                      </div>
-                    </div>
-                  </div>
+                  <CampaignContributionsTable campaignId={campaign.id} />
                 </TabsContent>
 
                 <TabsContent value="updates" className="pt-4 sm:pt-6 lg:pt-8">
@@ -606,9 +575,6 @@ export function CampaignPage() {
                 </TabsContent>
               </Tabs>
 
-              <div className="pb-6 sm:pb-8 lg:pb-10">
-                <Separator />
-              </div>
               {/* Deactivate and Delete Buttons - Only visible to campaign owners in owner view */}
               {isOwnerView && isOwner && (
                 <>

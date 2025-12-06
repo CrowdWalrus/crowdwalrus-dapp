@@ -57,14 +57,13 @@ export function MyCampaignCardContainer({
   const [isDeactivateModalOpen, setIsDeactivateModalOpen] = useState(false);
   const [isActivateModalOpen, setIsActivateModalOpen] = useState(false);
   const {
-    totalUsdMicro,
-    totalDonationsCount,
+    recipientTotalUsdMicro,
+    uniqueDonorsCount,
     isPending: isStatsPending,
     error: statsError,
   } = useCampaignStats({
     campaignId: campaign.id,
-    statsId: campaign.statsId,
-    enabled: Boolean(campaign.statsId || campaign.id),
+    enabled: Boolean(campaign.id),
   });
 
   useEffect(() => {
@@ -205,10 +204,10 @@ export function MyCampaignCardContainer({
         campaign={campaign}
         actions={quickActions}
         raisedAmountUsdMicro={
-          statsError || isStatsPending ? 0n : totalUsdMicro
+          statsError || isStatsPending ? 0n : recipientTotalUsdMicro
         }
         supportersCount={
-          statsError || isStatsPending ? undefined : totalDonationsCount
+          statsError || isStatsPending ? undefined : uniqueDonorsCount
         }
         className={className}
       />
