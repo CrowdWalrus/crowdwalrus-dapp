@@ -115,8 +115,7 @@ export function CampaignPage() {
     refetch: refetchCampaignStats,
   } = useCampaignStats({
     campaignId: campaign?.id ?? campaignId ?? "",
-    statsId: campaign?.statsId,
-    enabled: Boolean(campaign?.statsId),
+    enabled: Boolean(campaignId),
   });
 
   // Fetch cover image
