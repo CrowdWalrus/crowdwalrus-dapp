@@ -7,7 +7,6 @@ import {
   HandCoins,
   HandHeart,
   PenLine,
-  Sparkles,
 } from "lucide-react";
 
 import {
@@ -26,11 +25,13 @@ import { parseSocialLinksFromMetadata } from "@/features/campaigns/utils/socials
 import { useDonorBadges } from "@/features/badges/hooks/useDonorBadges";
 import { useProfile } from "@/features/profiles/hooks/useProfile";
 import { useProfileOwnership } from "@/features/profiles/hooks/useProfileOwnership";
+import { ProfileDonationsTable } from "@/features/profiles/components/ProfileDonationsTable";
 import { PROFILE_METADATA_KEYS } from "@/features/profiles/constants/metadata";
 import { useDocumentTitle } from "@/shared/hooks/useDocumentTitle";
 import { Button } from "@/shared/components/ui/button";
 import { Card, CardContent } from "@/shared/components/ui/card";
 import { ROUTES } from "@/shared/config/routes";
+import { useNetworkVariable } from "@/shared/config/networkConfig";
 import { formatUsdLocaleFromMicros } from "@/shared/utils/currency";
 
 const DESCRIPTION_EMPTY_STATE =
@@ -78,6 +79,7 @@ export function ProfilePage() {
   const campaignCount = activeCampaignData.campaigns.length;
 
   useDocumentTitle("Profile");
+  const campaignDomain = useNetworkVariable("campaignDomain");
 
   const addressLabel = formatAddressForDisplay(addressParam);
 
@@ -99,7 +101,6 @@ export function ProfilePage() {
     metadataMap[PROFILE_METADATA_KEYS.AVATAR_WALRUS_ID] ?? ""
   ).trim();
   const profileDisplayName = fullName || addressLabel;
-  const profilePossessiveLabel = buildPossessiveLabel(profileDisplayName);
 
   const hasDisplayableMetadata = Boolean(
     fullName ||
@@ -217,35 +218,11 @@ export function ProfilePage() {
   const contributionsTabLabel = isOwner ? "My Contributions" : "Contributions";
 
   const contributionsContent = (
-    // TODO: Swap placeholder with real contributions list once profile contributions endpoint is ready.
-    <div className="relative overflow-hidden rounded-3xl border border-blue-100 bg-gradient-to-br from-blue-50 via-white-50 to-purple-50 px-6 py-8 sm:px-10 sm:py-12 shadow-[0_18px_50px_-32px_rgba(15,23,42,0.35)]">
-      <div className="pointer-events-none absolute inset-0 bg-[radial-gradient(circle_at_20%_24%,rgba(97,61,255,0.09),transparent_36%),radial-gradient(circle_at_78%_16%,rgba(187,135,239,0.12),transparent_34%)]" />
-
-      <div className="relative flex flex-col gap-6">
-        <div className="inline-flex items-center gap-2 self-start rounded-full bg-white/90 px-3 py-1.5 text-xs font-semibold uppercase tracking-[0.18em] text-blue-700 ring-1 ring-blue-200">
-          <Sparkles className="h-4 w-4" />
-          {contributionsTabLabel}
-        </div>
-
-        <div className="space-y-3 max-w-2xl">
-          <h3 className="text-2xl sm:text-3xl font-bold text-black-500">
-            {isOwner
-              ? "Your contribution trail is nearly here"
-              : `${profilePossessiveLabel} contribution trail is nearly here`}
-          </h3>
-          <p className="text-base text-black-300">
-            {isOwner
-              ? "You will soon see every contribution you've made and keep your support visible."
-              : `Soon you will see every contribution from ${profilePossessiveLabel} and keep their support visible.`}
-          </p>
-        </div>
-
-        <div className="inline-flex items-center gap-2 self-start rounded-lg bg-blue-600 hover:bg-blue-500 transition-colors px-4 py-2 text-sm font-medium text-white-50 shadow-md shadow-blue-700/20">
-          <Sparkles className="h-4 w-4" />
-          <span>Stay tuned for the next release</span>
-        </div>
-      </div>
-    </div>
+    <ProfileDonationsTable
+      ownerAddress={addressParam}
+      campaignDomain={campaignDomain}
+      title={contributionsTabLabel}
+    />
   );
 
   const tabs: ProfileTabConfig[] = [
@@ -321,16 +298,4 @@ export function ProfilePage() {
       </div>
     </div>
   );
-}
-
-function buildPossessiveLabel(label?: string | null) {
-  if (!label) {
-    return "their";
-  }
-  const trimmed = label.trim();
-  if (!trimmed) {
-    return "their";
-  }
-  const endsWithS = /s$/i.test(trimmed);
-  return endsWithS ? `${trimmed}'` : `${trimmed}'s`;
 }
