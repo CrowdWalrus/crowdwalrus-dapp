@@ -11,6 +11,9 @@ import {
 import { getCampaignStatusInfo } from "@/features/campaigns/utils/campaignStatus";
 import { Check, X } from "lucide-react";
 import { formatUsdLocaleFromMicros } from "@/shared/utils/currency";
+import { Link } from "react-router-dom";
+import { useNetworkVariable } from "@/shared/config/networkConfig";
+import { buildCampaignDetailPath } from "@/shared/utils/routes";
 
 /**
  * Format address for display (0x36...c088)
@@ -42,6 +45,9 @@ export function CampaignCard({
   raisedUsdMicro,
   supportersCount,
 }: CampaignCardProps) {
+  const campaignDomain = useNetworkVariable("campaignDomain") as
+    | string
+    | undefined;
   const statusInfo = getCampaignStatusInfo(
     campaign.startDateMs,
     campaign.endDateMs,
@@ -81,9 +87,15 @@ export function CampaignCard({
       {/* Campaign content */}
       <div className="flex flex-col gap-4">
         <div className="flex flex-col gap-2">
-          <h3 className="text-xl font-semibold text-black-500 leading-relaxed">
+          <Link
+            to={buildCampaignDetailPath(campaign.id, {
+              subdomainName: campaign.subdomainName,
+              campaignDomain,
+            })}
+            className="text-xl font-semibold text-black-500 leading-relaxed hover:text-primary transition-colors"
+          >
             {campaign.name}
-          </h3>
+          </Link>
           <p className="text-base text-black-400 leading-relaxed">
             {campaign.shortDescription}
           </p>
