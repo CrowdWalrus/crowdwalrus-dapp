@@ -2,6 +2,7 @@ import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import { useForm, FormProvider, useWatch } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
+import { useQueryClient } from "@tanstack/react-query";
 import {
   useCurrentAccount,
   useSignAndExecuteTransaction,
@@ -66,6 +67,7 @@ import {
   updateProfileMetadata,
   type ProfileMetadataUpdate,
 } from "@/services/profile";
+import type { ProfileResponse } from "@/services/indexer-services";
 import { isUserRejectedError } from "@/shared/utils/errors";
 import { formatSubdomain } from "@/shared/utils/subdomain";
 import { buildProfileDetailPath } from "@/shared/utils/routes";
@@ -104,6 +106,8 @@ const PROFILE_FORM_KEYS = {
 
 const PROFILE_REFETCH_ATTEMPTS = 4;
 const PROFILE_REFETCH_DELAY_MS = 1000;
+const AVATAR_PROPAGATION_ATTEMPTS = 6;
+const AVATAR_PROPAGATION_DELAY_MS = 800;
 const STORAGE_PENDING_LABEL = "Upload an image to calculate";
 const AUTO_CALCULATING_LABEL = "Calculating...";
 
@@ -123,10 +127,7 @@ function extractSubdomainLabel(
     : storedValue;
 }
 
-function formatProfileSubdomain(
-  value: string,
-  campaignDomain: string | null,
-) {
+function formatProfileSubdomain(value: string, campaignDomain: string | null) {
   const trimmed = value.trim().toLowerCase();
   if (!trimmed) {
     return "";
@@ -278,9 +279,8 @@ export default function CreateProfilePage() {
   const lastProfileImageRef = useRef<File | null>(null);
   const redirectTimeoutRef = useRef<number | null>(null);
 
-  const [selectedEpochs, setSelectedEpochs] = useState<number>(
-    avatarStorageEpochs,
-  );
+  const [selectedEpochs, setSelectedEpochs] =
+    useState<number>(avatarStorageEpochs);
   const [isSavingProfile, setIsSavingProfile] = useState(false);
   const [wizardStep, setWizardStep] = useState<WizardStep>(WizardStep.FORM);
   const walrus = useWalrusUpload();
@@ -291,15 +291,19 @@ export default function CreateProfilePage() {
     reset: resetAvatarCost,
   } = useEstimateProfileAvatarCost();
   const [flowState, setFlowState] = useState<WalrusFlowState | null>(null);
-  const [registerResult, setRegisterResult] =
-    useState<RegisterResult | null>(null);
+  const [registerResult, setRegisterResult] = useState<RegisterResult | null>(
+    null,
+  );
   const [uploadCompleted, setUploadCompleted] = useState(false);
-  const [certifyResult, setCertifyResult] =
-    useState<CertifyResult | null>(null);
-  const [certifyRejectionMessage, setCertifyRejectionMessage] =
-    useState<string | null>(null);
-  const [pendingAvatarWalrusUrl, setPendingAvatarWalrusUrl] =
-    useState<string | null>(null);
+  const [certifyResult, setCertifyResult] = useState<CertifyResult | null>(
+    null,
+  );
+  const [certifyRejectionMessage, setCertifyRejectionMessage] = useState<
+    string | null
+  >(null);
+  const [pendingAvatarWalrusUrl, setPendingAvatarWalrusUrl] = useState<
+    string | null
+  >(null);
   const [walrusError, setWalrusError] = useState<Error | null>(null);
   const [avatarCostState, setAvatarCostState] = useState<{
     estimate: StorageCostEstimate | null;
@@ -342,9 +346,7 @@ export default function CreateProfilePage() {
   const lastInitializedProfileIdRef = useRef<string | null>(null);
 
   const hasProfileImage = profileImageValue instanceof File;
-  const profileImageFile = hasProfileImage
-    ? (profileImageValue as File)
-    : null;
+  const profileImageFile = hasProfileImage ? (profileImageValue as File) : null;
   const currentImageFileKey = profileImageFile
     ? buildAvatarFileKey(profileImageFile)
     : null;
@@ -427,7 +429,9 @@ export default function CreateProfilePage() {
   const isSubmitDisabled = isFormReadOnly || !hasPendingChanges;
   const registrationDisabled =
     !hasProfileImage || isFormReadOnly || isRegistrationPending;
-  
+
+  const queryClient = useQueryClient();
+
   useEffect(() => {
     if (
       wizardStep === WizardStep.FORM ||
@@ -451,11 +455,9 @@ export default function CreateProfilePage() {
         },
         {
           label: "Encoded size",
-          amount: `${(
-            avatarCostEstimate.encodedSize /
-            1024 /
-            1024
-          ).toFixed(2)} MB`,
+          amount: `${(avatarCostEstimate.encodedSize / 1024 / 1024).toFixed(
+            2,
+          )} MB`,
         },
         {
           label: `Storage (${avatarCostEstimate.epochs} epochs)`,
@@ -465,8 +467,7 @@ export default function CreateProfilePage() {
           label: "Upload cost",
           amount: `${avatarCostEstimate.subsidizedUploadCost.toFixed(6)} WAL`,
         },
-        ...(avatarCostEstimate.subsidyRate &&
-        avatarCostEstimate.subsidyRate > 0
+        ...(avatarCostEstimate.subsidyRate && avatarCostEstimate.subsidyRate > 0
           ? [
               {
                 label: `Subsidy discount (${(
@@ -580,37 +581,38 @@ export default function CreateProfilePage() {
     modal.closeModal();
 
     lastInitializedProfileIdRef.current = profileId;
-  }, [
-    campaignDomain,
-    form,
-    metadata,
-    modal,
-    profile,
-    profileId,
-  ]);
+  }, [campaignDomain, form, metadata, modal, profile, profileId]);
 
   const epochConfig = WALRUS_EPOCH_CONFIG[DEFAULT_NETWORK];
   const totalStorageDays = selectedEpochs * epochConfig.epochDurationDays;
   const registrationSummary = `Profile images are stored for ${selectedEpochs} epoch${
     selectedEpochs !== 1 ? "s" : ""
   } (~${totalStorageDays} day${totalStorageDays !== 1 ? "s" : ""}).`;
-  const registrationHint = "Storage duration is automatically managed for avatars.";
+  const registrationHint =
+    "Storage duration is automatically managed for avatars.";
   const hasInsufficientBalance = Boolean(
     avatarCostEstimate &&
       !isBalanceLoading &&
-      BigInt(
-        Math.floor(avatarCostEstimate.subsidizedTotalCost * 10 ** 9),
-      ) > BigInt(walBalanceRaw ?? "0"),
+      BigInt(Math.floor(avatarCostEstimate.subsidizedTotalCost * 10 ** 9)) >
+        BigInt(walBalanceRaw ?? "0"),
   );
-  const storedAvatarWalrusUrl =
+  const storedAvatarWalrusValue =
     (metadata[PROFILE_FORM_KEYS.avatar] ?? "").trim() ?? "";
+  const storedAvatarWalrusUrl =
+    storedAvatarWalrusValue === PROFILE_METADATA_REMOVED_VALUE
+      ? ""
+      : storedAvatarWalrusValue;
+  const shouldWarnOnAvatarReplace = Boolean(storedAvatarWalrusUrl);
   const resolvedAvatarPreview = pendingAvatarWalrusUrl ?? storedAvatarWalrusUrl;
   const walrusBalanceDisplay = isBalanceLoading
     ? "Loading..."
     : formattedBalance;
   const rawErrorMessage = walrusError?.message ?? "";
   const isUploadError =
-    !!walrusError && registerResult !== null && !uploadCompleted && !certifyResult;
+    !!walrusError &&
+    registerResult !== null &&
+    !uploadCompleted &&
+    !certifyResult;
   const errorHeading = (() => {
     if (!walrusError) {
       return "";
@@ -642,6 +644,31 @@ export default function CreateProfilePage() {
 
     return null;
   }, [refetchProfileData]);
+
+  const waitForAvatarPropagation = useCallback(
+    async (targetWalrusUrl: string | null | undefined) => {
+      if (!targetWalrusUrl) {
+        return false;
+      }
+
+      for (let attempt = 0; attempt < AVATAR_PROPAGATION_ATTEMPTS; attempt++) {
+        const result = await refetchProfileData();
+        const rawValue = result.data?.profile?.metadata?.[PROFILE_FORM_KEYS.avatar];
+        const current = typeof rawValue === "string" ? rawValue.trim() : null;
+
+        if (current === targetWalrusUrl) {
+          return true;
+        }
+
+        await new Promise((resolve) =>
+          setTimeout(resolve, AVATAR_PROPAGATION_DELAY_MS * (attempt + 1)),
+        );
+      }
+
+      return false;
+    },
+    [refetchProfileData],
+  );
 
   const startCertifyFlow = useCallback(
     (state: WalrusFlowState | null) => {
@@ -830,7 +857,6 @@ export default function CreateProfilePage() {
     executeUpload(registerResult);
   }, [executeUpload, registerResult]);
 
-
   const handleRetryCertify = useCallback(() => {
     if (registerResult) {
       startCertifyFlow(registerResult.flowState);
@@ -936,6 +962,38 @@ export default function CreateProfilePage() {
 
       await refetchProfileData();
 
+      // Poll for the updated avatar to propagate through the indexer so users
+      // land on their profile with the fresh image already available.
+      if (pendingAvatarWalrusUrl) {
+        await waitForAvatarPropagation(pendingAvatarWalrusUrl);
+      }
+
+      if (pendingAvatarWalrusUrl) {
+        queryClient.setQueriesData<ProfileResponse | null>(
+          { queryKey: ["indexer", "profile", account?.address] },
+          (existing) => {
+            if (!existing?.profile) {
+              return existing;
+            }
+
+            return {
+              ...existing,
+              profile: {
+                ...existing.profile,
+                metadata: {
+                  ...existing.profile.metadata,
+                  [PROFILE_FORM_KEYS.avatar]: pendingAvatarWalrusUrl,
+                },
+              },
+            };
+          },
+        );
+      }
+
+      // Force downstream profile consumers (e.g., ProfilePage) to fetch fresh
+      // metadata immediately so the new avatar shows without a manual reload.
+      await queryClient.invalidateQueries({ queryKey: ["indexer", "profile"] });
+
       // Clear the local profile image field so future saves aren't blocked by
       // a stale File reference that no longer needs Walrus registration.
       form.resetField("profileImage", { defaultValue: null });
@@ -1035,10 +1093,12 @@ export default function CreateProfilePage() {
                     <ProfileAvatarUpload
                       disabled={isFormReadOnly}
                       initialPreviewUrl={
-                        resolvedAvatarPreview && resolvedAvatarPreview.length > 0
+                        resolvedAvatarPreview &&
+                        resolvedAvatarPreview.length > 0
                           ? resolvedAvatarPreview
                           : null
                       }
+                      warnOnReupload={shouldWarnOnAvatarReplace}
                     />
 
                     <div className="grid gap-6 md:grid-cols-2">
@@ -1097,17 +1157,17 @@ export default function CreateProfilePage() {
                       name="bio"
                       render={({ field }) => (
                         <FormItem className="flex flex-col gap-2">
-                            <FormLabel className="font-medium text-base">
-                              Bio
-                            </FormLabel>
-                            <FormControl>
-                              <Textarea
-                                placeholder="Add something about yourself"
-                                rows={4}
-                                disabled={isFormReadOnly}
-                                {...field}
-                              />
-                            </FormControl>
+                          <FormLabel className="font-medium text-base">
+                            Bio
+                          </FormLabel>
+                          <FormControl>
+                            <Textarea
+                              placeholder="Add something about yourself"
+                              rows={4}
+                              disabled={isFormReadOnly}
+                              {...field}
+                            />
+                          </FormControl>
                           <FormMessage />
                         </FormItem>
                       )}
@@ -1118,9 +1178,7 @@ export default function CreateProfilePage() {
                       name="socials"
                       render={() => (
                         <FormItem className="flex flex-col gap-2">
-                          <CampaignSocialsSection
-                            disabled={isFormReadOnly}
-                          />
+                          <CampaignSocialsSection disabled={isFormReadOnly} />
                           <FormMessage />
                         </FormItem>
                       )}
