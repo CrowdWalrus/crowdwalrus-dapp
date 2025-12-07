@@ -18,6 +18,7 @@ import { toast } from "sonner";
 
 import { Button } from "@/shared/components/ui/button";
 import { FormMessage } from "@/shared/components/ui/form";
+import { WalrusReuploadWarningModal } from "@/features/campaigns/components/modals/WalrusReuploadWarningModal";
 import {
   Dialog,
   DialogContent,
@@ -135,11 +136,13 @@ const getCroppedBlob = async (
 export interface ProfileAvatarUploadProps {
   disabled?: boolean;
   initialPreviewUrl?: string | null;
+  warnOnReupload?: boolean;
 }
 
 export function ProfileAvatarUpload({
   disabled = false,
   initialPreviewUrl = null,
+  warnOnReupload = false,
 }: ProfileAvatarUploadProps) {
   const form = useFormContext<CreateProfileFormData>();
   const { control, watch } = form;
@@ -161,6 +164,7 @@ export function ProfileAvatarUpload({
   const [pixelCrop, setPixelCrop] = useState<PixelCrop | null>(null);
   const [isApplyingCrop, setIsApplyingCrop] = useState(false);
   const [isPreparingExistingCrop, setIsPreparingExistingCrop] = useState(false);
+  const [showWalrusWarning, setShowWalrusWarning] = useState(false);
 
   const clearCropImageUrl = useCallback(() => {
     if (cropImageObjectUrlRef.current) {
@@ -263,6 +267,19 @@ export function ProfileAvatarUpload({
     if (disabled) {
       return;
     }
+    if (warnOnReupload) {
+      setShowWalrusWarning(true);
+      return;
+    }
+    fileInputRef.current?.click();
+  }, [disabled, warnOnReupload]);
+
+  const handleConfirmWalrusWarning = useCallback(() => {
+    if (disabled) {
+      setShowWalrusWarning(false);
+      return;
+    }
+    setShowWalrusWarning(false);
     fileInputRef.current?.click();
   }, [disabled]);
 
@@ -350,172 +367,182 @@ export function ProfileAvatarUpload({
   );
 
   return (
-    <Controller
-      control={control}
-      name="profileImage"
-      render={({ field: { value, onChange }, fieldState: { error } }) => {
-        const currentFile = value instanceof File ? (value as File) : null;
+    <>
+      <Controller
+        control={control}
+        name="profileImage"
+        render={({ field: { value, onChange }, fieldState: { error } }) => {
+          const currentFile = value instanceof File ? (value as File) : null;
 
-        return (
-          <div className="flex flex-col gap-4">
-            <input
-              ref={fileInputRef}
-              type="file"
-              accept="image/png,image/jpeg"
-              className="sr-only"
-              onChange={(event) => void handleFileInputChange(event, onChange)}
-              disabled={disabled}
-            />
-            <div className="flex w-full flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
-              <div className="flex items-center gap-6">
-                <div className="size-[120px] shrink-0 overflow-hidden rounded-3xl bg-black-50">
-                  {previewUrl ? (
-                    <img
-                      src={previewUrl}
-                      alt="Profile preview"
-                      className="size-full object-cover"
-                    />
-                  ) : (
-                    <div className="flex max-w-sm size-full items-center justify-center text-[42px] font-medium text-black-400">
-                      0x.
-                    </div>
-                  )}
-                </div>
-                <div className="flex flex-col gap-3">
-                  <Button
-                    type="button"
-                    variant="outline"
-                    className="w-fit gap-2 border-black-50"
-                    onClick={handleBrowseClick}
-                    disabled={disabled}
-                  >
-                    <Upload className="size-[13.25px]" />
-                    Upload new image
-                  </Button>
-                  <p className="text-xs text-black-300">
-                    Upload JPG or PNG, max up to 5MB.
-                  </p>
-                  <p className="text-xs text-black-300">
-                    The profile image incurs storage costs, which will be
-                    detailed below. Please ensure the transaction is completed
-                    before saving any changes.
-                  </p>
-                  {currentFile && (
+          return (
+            <div className="flex flex-col gap-4">
+              <input
+                ref={fileInputRef}
+                type="file"
+                accept="image/png,image/jpeg"
+                className="sr-only"
+                onChange={(event) =>
+                  void handleFileInputChange(event, onChange)
+                }
+                disabled={disabled}
+              />
+              <div className="flex w-full flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
+                <div className="flex items-center gap-6">
+                  <div className="size-[120px] shrink-0 overflow-hidden rounded-3xl bg-black-50">
+                    {previewUrl ? (
+                      <img
+                        src={previewUrl}
+                        alt="Profile preview"
+                        className="size-full object-cover"
+                      />
+                    ) : (
+                      <div className="flex max-w-sm size-full items-center justify-center text-[42px] font-medium text-black-400">
+                        0x.
+                      </div>
+                    )}
+                  </div>
+                  <div className="flex flex-col gap-3">
                     <Button
                       type="button"
                       variant="outline"
-                      size="sm"
-                      className="w-fit gap-2"
-                      onClick={() => handleAdjustExisting(currentFile)}
-                      disabled={disabled || isPreparingExistingCrop}
+                      className="w-fit gap-2 border-black-50"
+                      onClick={handleBrowseClick}
+                      disabled={disabled}
                     >
-                      {isPreparingExistingCrop ? (
-                        <Loader2 className="size-4 animate-spin" />
-                      ) : (
-                        <CropIcon className="size-4" />
-                      )}
-                      Adjust crop
+                      <Upload className="size-[13.25px]" />
+                      Upload new image
                     </Button>
-                  )}
-                </div>
-              </div>
-            </div>
-            {error && <FormMessage>{error.message}</FormMessage>}
-
-            <Dialog
-              open={isCropDialogOpen}
-              onOpenChange={(open) => {
-                if (!open) {
-                  setIsCropDialogOpen(false);
-                  clearCropImageUrl();
-                  pendingFileRef.current = null;
-                  imageRef.current = null;
-                  if (fileInputRef.current) {
-                    fileInputRef.current.value = "";
-                  }
-                } else {
-                  setIsCropDialogOpen(true);
-                }
-              }}
-            >
-              {cropImageUrl && (
-                <DialogContent className="max-w-[520px] w-[95vw] sm:w-[480px] overflow-hidden p-0">
-                  <div className="flex h-full flex-col">
-                    <div className="px-6 pt-6">
-                      <DialogHeader>
-                        <DialogTitle>Adjust profile image</DialogTitle>
-                        <DialogDescription>
-                          Use the square crop to frame your avatar exactly the
-                          way you want.
-                        </DialogDescription>
-                      </DialogHeader>
-                    </div>
-                    <div className="flex-1 overflow-auto px-6 py-4">
-                      <div className="mx-auto flex max-w-[360px] flex-col items-center gap-4">
-                        <ReactCrop
-                          crop={percentCrop}
-                          onChange={(nextPixelCrop, nextPercentCrop) => {
-                            setPercentCrop(nextPercentCrop);
-                            setPixelCrop(nextPixelCrop);
-                          }}
-                          onComplete={(nextPixelCrop) => {
-                            setPixelCrop(nextPixelCrop);
-                          }}
-                          aspect={AVATAR_ASPECT_RATIO}
-                          keepSelection
-                          ruleOfThirds
-                          className="w-full rounded-xl border border-black-50 bg-white"
-                        >
-                          <img
-                            src={cropImageUrl}
-                            alt="Crop preview"
-                            onLoad={handleImageLoaded}
-                            className="block max-h-[360px] w-full object-contain"
-                          />
-                        </ReactCrop>
-                        <p className="text-center text-xs text-muted-foreground">
-                          Drag the handles or move the crop to adjust your
-                          avatar.
-                        </p>
-                      </div>
-                    </div>
-                    <DialogFooter className="flex flex-row justify-end gap-3 border-t px-6 py-4">
+                    <p className="text-xs text-black-300">
+                      Upload JPG or PNG, max up to 5MB.
+                    </p>
+                    <p className="text-xs text-black-300">
+                      The profile image incurs storage costs, which will be
+                      detailed below. Please ensure the transaction is completed
+                      before saving any changes.
+                    </p>
+                    {currentFile && (
                       <Button
                         type="button"
                         variant="outline"
-                        onClick={() => {
-                          setIsCropDialogOpen(false);
-                          clearCropImageUrl();
-                          pendingFileRef.current = null;
-                          imageRef.current = null;
-                        }}
-                        disabled={isApplyingCrop}
+                        size="sm"
+                        className="w-fit gap-2"
+                        onClick={() => handleAdjustExisting(currentFile)}
+                        disabled={disabled || isPreparingExistingCrop}
                       >
-                        Cancel
-                      </Button>
-                      <Button
-                        type="button"
-                        className="min-w-[120px]"
-                        onClick={() => void handleApplyCrop(onChange)}
-                        disabled={isApplyingCrop || !pixelCrop}
-                      >
-                        {isApplyingCrop ? (
-                          <span className="flex items-center gap-2">
-                            <Loader2 className="size-4 animate-spin" />
-                            Applying…
-                          </span>
+                        {isPreparingExistingCrop ? (
+                          <Loader2 className="size-4 animate-spin" />
                         ) : (
-                          "Save crop"
+                          <CropIcon className="size-4" />
                         )}
+                        Adjust crop
                       </Button>
-                    </DialogFooter>
+                    )}
                   </div>
-                </DialogContent>
-              )}
-            </Dialog>
-          </div>
-        );
-      }}
-    />
+                </div>
+              </div>
+              {error && <FormMessage>{error.message}</FormMessage>}
+
+              <Dialog
+                open={isCropDialogOpen}
+                onOpenChange={(open) => {
+                  if (!open) {
+                    setIsCropDialogOpen(false);
+                    clearCropImageUrl();
+                    pendingFileRef.current = null;
+                    imageRef.current = null;
+                    if (fileInputRef.current) {
+                      fileInputRef.current.value = "";
+                    }
+                  } else {
+                    setIsCropDialogOpen(true);
+                  }
+                }}
+              >
+                {cropImageUrl && (
+                  <DialogContent className="max-w-[520px] w-[95vw] sm:w-[480px] overflow-hidden p-0">
+                    <div className="flex h-full flex-col">
+                      <div className="px-6 pt-6">
+                        <DialogHeader>
+                          <DialogTitle>Adjust profile image</DialogTitle>
+                          <DialogDescription>
+                            Use the square crop to frame your avatar exactly the
+                            way you want.
+                          </DialogDescription>
+                        </DialogHeader>
+                      </div>
+                      <div className="flex-1 overflow-auto px-6 py-4">
+                        <div className="mx-auto flex max-w-[360px] flex-col items-center gap-4">
+                          <ReactCrop
+                            crop={percentCrop}
+                            onChange={(nextPixelCrop, nextPercentCrop) => {
+                              setPercentCrop(nextPercentCrop);
+                              setPixelCrop(nextPixelCrop);
+                            }}
+                            onComplete={(nextPixelCrop) => {
+                              setPixelCrop(nextPixelCrop);
+                            }}
+                            aspect={AVATAR_ASPECT_RATIO}
+                            keepSelection
+                            ruleOfThirds
+                            className="w-full rounded-xl border border-black-50 bg-white"
+                          >
+                            <img
+                              src={cropImageUrl}
+                              alt="Crop preview"
+                              onLoad={handleImageLoaded}
+                              className="block max-h-[360px] w-full object-contain"
+                            />
+                          </ReactCrop>
+                          <p className="text-center text-xs text-muted-foreground">
+                            Drag the handles or move the crop to adjust your
+                            avatar.
+                          </p>
+                        </div>
+                      </div>
+                      <DialogFooter className="flex flex-row justify-end gap-3 border-t px-6 py-4">
+                        <Button
+                          type="button"
+                          variant="outline"
+                          onClick={() => {
+                            setIsCropDialogOpen(false);
+                            clearCropImageUrl();
+                            pendingFileRef.current = null;
+                            imageRef.current = null;
+                          }}
+                          disabled={isApplyingCrop}
+                        >
+                          Cancel
+                        </Button>
+                        <Button
+                          type="button"
+                          className="min-w-[120px]"
+                          onClick={() => void handleApplyCrop(onChange)}
+                          disabled={isApplyingCrop || !pixelCrop}
+                        >
+                          {isApplyingCrop ? (
+                            <span className="flex items-center gap-2">
+                              <Loader2 className="size-4 animate-spin" />
+                              Applying…
+                            </span>
+                          ) : (
+                            "Save crop"
+                          )}
+                        </Button>
+                      </DialogFooter>
+                    </div>
+                  </DialogContent>
+                )}
+              </Dialog>
+            </div>
+          );
+        }}
+      />
+
+      <WalrusReuploadWarningModal
+        open={showWalrusWarning}
+        onConfirm={handleConfirmWalrusWarning}
+        onClose={() => setShowWalrusWarning(false)}
+      />
+    </>
   );
 }
