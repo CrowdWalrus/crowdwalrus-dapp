@@ -13,7 +13,7 @@ import ReactCrop, {
   type PercentCrop,
   type PixelCrop,
 } from "react-image-crop";
-import { Upload, Crop as CropIcon, Loader2 } from "lucide-react";
+import { Upload, Crop as CropIcon, Loader2, X } from "lucide-react";
 import { toast } from "sonner";
 
 import { Button } from "@/shared/components/ui/button";
@@ -137,12 +137,16 @@ export interface ProfileAvatarUploadProps {
   disabled?: boolean;
   initialPreviewUrl?: string | null;
   warnOnReupload?: boolean;
+  onAvatarRemove?: () => void;
+  isMarkedForRemoval?: boolean;
 }
 
 export function ProfileAvatarUpload({
   disabled = false,
   initialPreviewUrl = null,
   warnOnReupload = false,
+  onAvatarRemove,
+  isMarkedForRemoval = false,
 }: ProfileAvatarUploadProps) {
   const form = useFormContext<CreateProfileFormData>();
   const { control, watch } = form;
@@ -200,6 +204,20 @@ export function ProfileAvatarUpload({
       }
     };
   }, []);
+
+  useEffect(() => {
+    if (!isMarkedForRemoval) {
+      return;
+    }
+
+    pendingFileRef.current = null;
+    imageRef.current = null;
+    setIsCropDialogOpen(false);
+    setPercentCrop(undefined);
+    setPixelCrop(null);
+    clearCropImageUrl();
+    updatePreviewUrl(null, false);
+  }, [clearCropImageUrl, isMarkedForRemoval, updatePreviewUrl]);
 
   useEffect(() => {
     const imageFile =
@@ -366,6 +384,22 @@ export function ProfileAvatarUpload({
     [openCropperWithFile],
   );
 
+  const handleRemoveAvatar = useCallback(() => {
+    if (disabled) {
+      return;
+    }
+    pendingFileRef.current = null;
+    imageRef.current = null;
+    setIsCropDialogOpen(false);
+    setPercentCrop(undefined);
+    setPixelCrop(null);
+    clearCropImageUrl();
+    updatePreviewUrl(null, false);
+    form.setValue("profileImage", null, { shouldDirty: true });
+    setShowWalrusWarning(false);
+    onAvatarRemove?.();
+  }, [clearCropImageUrl, disabled, form, onAvatarRemove, updatePreviewUrl]);
+
   return (
     <>
       <Controller
@@ -388,13 +422,26 @@ export function ProfileAvatarUpload({
               />
               <div className="flex w-full flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
                 <div className="flex items-center gap-6">
-                  <div className="size-[120px] shrink-0 overflow-hidden rounded-3xl bg-black-50">
+                  <div className="relative size-[120px] shrink-0 overflow-hidden rounded-3xl bg-black-50">
                     {previewUrl ? (
-                      <img
-                        src={previewUrl}
-                        alt="Profile preview"
-                        className="size-full object-cover"
-                      />
+                      <>
+                        <img
+                          src={previewUrl}
+                          alt="Profile preview"
+                          className="size-full object-cover"
+                        />
+                        {!disabled && !isMarkedForRemoval ? (
+                          <Button
+                            type="button"
+                            size="icon"
+                            variant="destructive"
+                            className="absolute top-2 right-2 h-8 w-8"
+                            onClick={handleRemoveAvatar}
+                          >
+                            <X className="h-4 w-4" />
+                          </Button>
+                        ) : null}
+                      </>
                     ) : (
                       <div className="flex max-w-sm size-full items-center justify-center text-[42px] font-medium text-black-400">
                         0x.
