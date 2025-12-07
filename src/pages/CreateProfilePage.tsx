@@ -176,6 +176,7 @@ function buildProfileMetadataUpdates(
   rawMetadata: Record<string, string>,
   campaignDomain: string | null,
   avatarWalrusUrl?: string | null,
+  removeAvatar = false,
 ) {
   const updates: ProfileMetadataUpdate[] = [];
 
@@ -226,16 +227,17 @@ function buildProfileMetadataUpdates(
     rawMetadata,
   );
 
-  const normalizedAvatarUrl = avatarWalrusUrl?.trim() ?? "";
-  if (normalizedAvatarUrl.length > 0) {
-    addMetadataUpdate(
-      updates,
-      PROFILE_FORM_KEYS.avatar,
-      normalizedAvatarUrl,
-      currentMetadata,
-      rawMetadata,
-    );
-  }
+  const normalizedAvatarUrl = removeAvatar
+    ? ""
+    : avatarWalrusUrl?.trim() ?? "";
+
+  addMetadataUpdate(
+    updates,
+    PROFILE_FORM_KEYS.avatar,
+    normalizedAvatarUrl,
+    currentMetadata,
+    rawMetadata,
+  );
 
   return updates;
 }
@@ -304,6 +306,8 @@ export default function CreateProfilePage() {
   const [pendingAvatarWalrusUrl, setPendingAvatarWalrusUrl] = useState<
     string | null
   >(null);
+  const [avatarMarkedForRemoval, setAvatarMarkedForRemoval] =
+    useState(false);
   const [walrusError, setWalrusError] = useState<Error | null>(null);
   const [avatarCostState, setAvatarCostState] = useState<{
     estimate: StorageCostEstimate | null;
@@ -370,6 +374,7 @@ export default function CreateProfilePage() {
     setUploadCompleted(false);
     setCertifyResult(null);
     setPendingAvatarWalrusUrl(null);
+    setAvatarMarkedForRemoval(false);
     setCertifyRejectionMessage(null);
     setWalrusError(null);
     setWizardStep(WizardStep.FORM);
@@ -425,7 +430,8 @@ export default function CreateProfilePage() {
     !hasProfile ||
     hasBasicFieldChanges ||
     socialsDirty ||
-    Boolean(pendingAvatarWalrusUrl);
+    Boolean(pendingAvatarWalrusUrl) ||
+    avatarMarkedForRemoval;
   const isSubmitDisabled = isFormReadOnly || !hasPendingChanges;
   const registrationDisabled =
     !hasProfileImage || isFormReadOnly || isRegistrationPending;
@@ -602,8 +608,11 @@ export default function CreateProfilePage() {
     storedAvatarWalrusValue === PROFILE_METADATA_REMOVED_VALUE
       ? ""
       : storedAvatarWalrusValue;
-  const shouldWarnOnAvatarReplace = Boolean(storedAvatarWalrusUrl);
-  const resolvedAvatarPreview = pendingAvatarWalrusUrl ?? storedAvatarWalrusUrl;
+  const shouldWarnOnAvatarReplace =
+    Boolean(storedAvatarWalrusUrl) && !avatarMarkedForRemoval;
+  const resolvedAvatarPreview = avatarMarkedForRemoval
+    ? null
+    : pendingAvatarWalrusUrl ?? storedAvatarWalrusUrl;
   const walrusBalanceDisplay = isBalanceLoading
     ? "Loading..."
     : formattedBalance;
@@ -646,17 +655,24 @@ export default function CreateProfilePage() {
   }, [refetchProfileData]);
 
   const waitForAvatarPropagation = useCallback(
-    async (targetWalrusUrl: string | null | undefined) => {
-      if (!targetWalrusUrl) {
+    async (
+      targetWalrusUrl: string | null | undefined,
+      expectRemoval = false,
+    ) => {
+      if (!targetWalrusUrl && !expectRemoval) {
         return false;
       }
 
       for (let attempt = 0; attempt < AVATAR_PROPAGATION_ATTEMPTS; attempt++) {
         const result = await refetchProfileData();
-        const rawValue = result.data?.profile?.metadata?.[PROFILE_FORM_KEYS.avatar];
+        const rawValue =
+          result.data?.profile?.metadata?.[PROFILE_FORM_KEYS.avatar];
         const current = typeof rawValue === "string" ? rawValue.trim() : null;
 
-        if (current === targetWalrusUrl) {
+        if (
+          (expectRemoval && (!current || current.length === 0)) ||
+          (!expectRemoval && current === targetWalrusUrl)
+        ) {
           return true;
         }
 
@@ -895,6 +911,20 @@ export default function CreateProfilePage() {
     uploadCompleted,
   ]);
 
+  const handleAvatarRemove = useCallback(() => {
+    setPendingAvatarWalrusUrl(null);
+    setAvatarMarkedForRemoval(true);
+    setFlowState(null);
+    setRegisterResult(null);
+    setUploadCompleted(false);
+    setCertifyResult(null);
+    setCertifyRejectionMessage(null);
+    setWalrusError(null);
+    setWizardStep(WizardStep.FORM);
+    lastProfileImageRef.current = null;
+    form.setValue("profileImage", null, { shouldDirty: true });
+  }, [form]);
+
   const handleSubmit = form.handleSubmit(async (values) => {
     if (!account?.address) {
       toast.error("Connect your wallet to create a profile.");
@@ -902,7 +932,7 @@ export default function CreateProfilePage() {
     }
 
     const imageDirty = Boolean(form.formState.dirtyFields.profileImage);
-    if (imageDirty && !pendingAvatarWalrusUrl) {
+    if (imageDirty && !pendingAvatarWalrusUrl && !avatarMarkedForRemoval) {
       toast.error(
         "Complete the Walrus storage steps for your new profile image before saving.",
       );
@@ -915,6 +945,7 @@ export default function CreateProfilePage() {
       rawMetadata,
       campaignDomain,
       pendingAvatarWalrusUrl ?? undefined,
+      avatarMarkedForRemoval,
     );
 
     if (updates.length === 0 && hasProfile) {
@@ -964,11 +995,12 @@ export default function CreateProfilePage() {
 
       // Poll for the updated avatar to propagate through the indexer so users
       // land on their profile with the fresh image already available.
-      if (pendingAvatarWalrusUrl) {
-        await waitForAvatarPropagation(pendingAvatarWalrusUrl);
-      }
+      await waitForAvatarPropagation(
+        pendingAvatarWalrusUrl,
+        avatarMarkedForRemoval,
+      );
 
-      if (pendingAvatarWalrusUrl) {
+      if (pendingAvatarWalrusUrl && !avatarMarkedForRemoval) {
         queryClient.setQueriesData<ProfileResponse | null>(
           { queryKey: ["indexer", "profile", account?.address] },
           (existing) => {
@@ -983,6 +1015,26 @@ export default function CreateProfilePage() {
                 metadata: {
                   ...existing.profile.metadata,
                   [PROFILE_FORM_KEYS.avatar]: pendingAvatarWalrusUrl,
+                },
+              },
+            };
+          },
+        );
+      } else if (avatarMarkedForRemoval) {
+        queryClient.setQueriesData<ProfileResponse | null>(
+          { queryKey: ["indexer", "profile", account?.address] },
+          (existing) => {
+            if (!existing?.profile) {
+              return existing;
+            }
+
+            return {
+              ...existing,
+              profile: {
+                ...existing.profile,
+                metadata: {
+                  ...existing.profile.metadata,
+                  [PROFILE_FORM_KEYS.avatar]: "",
                 },
               },
             };
@@ -1016,6 +1068,7 @@ export default function CreateProfilePage() {
         }, 2500);
       }
       setPendingAvatarWalrusUrl(null);
+      setAvatarMarkedForRemoval(false);
       setRegisterResult(null);
       setCertifyResult(null);
       setFlowState(null);
@@ -1099,6 +1152,8 @@ export default function CreateProfilePage() {
                           : null
                       }
                       warnOnReupload={shouldWarnOnAvatarReplace}
+                      onAvatarRemove={handleAvatarRemove}
+                      isMarkedForRemoval={avatarMarkedForRemoval}
                     />
 
                     <div className="grid gap-6 md:grid-cols-2">
