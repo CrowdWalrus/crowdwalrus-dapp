@@ -46,6 +46,7 @@ import { previewPriceOracleQuote } from "@/services/priceOracle";
 import {
   DEFAULT_NETWORK,
   SUI_EXPLORER_URLS,
+  useNetworkVariable,
 } from "@/shared/config/networkConfig";
 import type { SupportedNetwork } from "@/shared/types/network";
 import type { TokenRegistryEntry } from "@/services/tokenRegistry";
@@ -55,7 +56,7 @@ import {
   getTokenDisplayData,
   type TokenDisplayData,
 } from "@/shared/config/tokenDisplay";
-import { buildProfileDetailPath } from "@/shared/utils/routes";
+import { buildCampaignDetailPath } from "@/shared/utils/routes";
 import { isSuiCoinType } from "@/shared/utils/sui";
 import { cn } from "@/shared/lib/utils";
 import { getCampaignStatusInfo } from "../utils/campaignStatus";
@@ -94,6 +95,7 @@ interface DonationCardProps {
   isActive: boolean;
   isDeleted?: boolean;
   subdomainName?: string | null;
+  campaignDomain?: string | null;
   platformBps?: number;
   onDonationComplete?: () => Promise<void> | void;
   onViewUpdates?: () => void;
@@ -114,12 +116,16 @@ export function DonationCard({
   isActive,
   isDeleted = false,
   subdomainName,
+  campaignDomain,
   platformBps,
   onDonationComplete,
   onViewUpdates,
 }: DonationCardProps) {
   const navigate = useNavigate();
   const network = DEFAULT_NETWORK;
+  const resolvedCampaignDomain = useNetworkVariable("campaignDomain") as
+    | string
+    | undefined;
   const contractConfig = useMemo(() => getContractConfig(network), [network]);
   const currentAccount = useCurrentAccount();
   const suiClient = useSuiClient();
@@ -232,13 +238,14 @@ export function DonationCard({
   }, [shouldOpenBadgeModal]);
 
   const handleViewContributions = useCallback(() => {
-    if (!currentAccount?.address) {
-      return;
-    }
-    const profilePath = buildProfileDetailPath(currentAccount.address);
-    navigate(`${profilePath}?tab=contributions`);
+    const campaignPath = buildCampaignDetailPath(campaignId, {
+      subdomainName,
+      campaignDomain: campaignDomain ?? resolvedCampaignDomain,
+    });
+
+    navigate(`${campaignPath}?tab=contributions`);
     setIsSuccessModalOpen(false);
-  }, [currentAccount?.address, navigate]);
+  }, [campaignDomain, campaignId, navigate, resolvedCampaignDomain, subdomainName]);
 
   const handleBadgeModalClose = useCallback(() => {
     setIsBadgeModalOpen(false);
@@ -1452,9 +1459,7 @@ export function DonationCard({
         open={isSuccessModalOpen}
         receipt={successReceipt}
         onClose={handleSuccessModalClose}
-        onViewContributions={
-          currentAccount?.address ? handleViewContributions : undefined
-        }
+        onViewContributions={handleViewContributions}
       />
       <BadgeRewardModal
         open={isBadgeModalOpen}
