@@ -628,6 +628,7 @@ export function CampaignPage() {
                 isActive={campaign.isActive}
                 isDeleted={campaign.isDeleted}
                 subdomainName={campaign.subdomainName}
+                campaignDomain={campaignDomain}
                 platformBps={campaign.payoutPlatformBps}
                 onDonationComplete={handleDonationComplete}
                 onViewUpdates={() => handleTabChange("updates")}
