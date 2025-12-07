@@ -578,7 +578,7 @@ export function CampaignPage() {
               {/* Deactivate and Delete Buttons - Only visible to campaign owners in owner view */}
               {isOwnerView && isOwner && (
                 <>
-                  <div className="flex flex-col sm:flex-row gap-2 sm:gap-2 justify-end">
+                  <div className="flex flex-col sm:flex-row gap-2 sm:gap-2 justify-end pt-6">
                     {campaign.isActive && (
                       <Button
                         onClick={() => setIsDeactivateModalOpen(true)}
