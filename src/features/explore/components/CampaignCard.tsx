@@ -67,14 +67,22 @@ export function CampaignCard({
   const displayCoverImageUrl = hasCoverImage
     ? coverImageObjectUrl
     : CAMPAIGN_PLACEHOLDER_IMAGE;
-  const detailPath = useMemo(
-    () =>
-      buildCampaignDetailPath(campaign.id, {
-        subdomainName: campaign.subdomainName,
-        campaignDomain,
-      }),
-    [campaign.id, campaign.subdomainName, campaignDomain],
-  );
+  const detailPath = useMemo(() => {
+    const basePath = buildCampaignDetailPath(campaign.id, {
+      subdomainName: campaign.subdomainName,
+      campaignDomain,
+    });
+    // If the button is "View Updates", add the tab=updates query parameter
+    if (statusInfo.buttonText === "View Updates") {
+      return `${basePath}?tab=updates`;
+    }
+    return basePath;
+  }, [
+    campaign.id,
+    campaign.subdomainName,
+    campaignDomain,
+    statusInfo.buttonText,
+  ]);
 
   return (
     <div className="flex flex-col overflow-hidden rounded-[24px] relative">
