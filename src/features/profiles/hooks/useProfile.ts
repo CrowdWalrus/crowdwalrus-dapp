@@ -26,6 +26,12 @@ export interface ProfileData {
   metadata: Record<string, string>;
   rawMetadata: Record<string, string>;
   metadataEntries: ProfileMetadataEntry[];
+  fundraisingTotals: ProfileFundraisingTotals;
+}
+
+export interface ProfileFundraisingTotals {
+  totalUsdMicro: bigint;
+  recipientTotalUsdMicro: bigint;
 }
 
 interface ProfileQueryResult {
@@ -71,8 +77,7 @@ function normalizeMetadataRecord(
 ): Record<string, string> {
   const normalized: Record<string, string> = {};
   Object.entries(raw).forEach(([key, value]) => {
-    normalized[key] =
-      value === PROFILE_METADATA_REMOVED_VALUE ? "" : value;
+    normalized[key] = value === PROFILE_METADATA_REMOVED_VALUE ? "" : value;
   });
   return normalized;
 }
@@ -101,6 +106,13 @@ function mapProfileResponse(
 
   const normalizedMetadata = normalizeMetadataRecord(rawMetadata);
 
+  const fundraisingTotals: ProfileFundraisingTotals = {
+    totalUsdMicro: BigInt(profile.fundraisingTotals?.totalUsdMicro ?? 0),
+    recipientTotalUsdMicro: BigInt(
+      profile.fundraisingTotals?.recipientTotalUsdMicro ?? 0,
+    ),
+  };
+
   return {
     profileId: profile.profileId,
     profile: {
@@ -114,6 +126,7 @@ function mapProfileResponse(
       metadataEntries: Object.entries(normalizedMetadata).map(
         ([key, value]) => ({ key, value }),
       ),
+      fundraisingTotals,
     },
     badges: response.badges ?? [],
     donations: response.donations ?? null,
