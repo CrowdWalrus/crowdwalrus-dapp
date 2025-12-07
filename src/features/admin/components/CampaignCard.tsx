@@ -119,7 +119,7 @@ export function CampaignCard({
               {`$${formattedRaised} raised`}
             </span>
             <span className="text-black-500">
-              Goal {formatUsdLocaleFromMicros(campaign.fundingGoalUsdMicro)}
+              Goal ${formatUsdLocaleFromMicros(campaign.fundingGoalUsdMicro)}
             </span>
             <span className="flex-1 text-right text-black-500">
               {fundingPercent}% funded

@@ -168,7 +168,8 @@ export function CampaignCard({
                     {`$${formattedRaised} raised`}
                   </span>
                   <span>
-                    of {formatUsdLocaleFromMicros(campaign.fundingGoalUsdMicro)}
+                    of $
+                    {formatUsdLocaleFromMicros(campaign.fundingGoalUsdMicro)}
                   </span>
                 </div>
                 <span>{fundingPercentage}% funded</span>
@@ -184,7 +185,7 @@ export function CampaignCard({
                   {`$${formattedRaised} raised`}
                 </span>
                 <span>
-                  of {formatUsdLocaleFromMicros(campaign.fundingGoalUsdMicro)}
+                  of ${formatUsdLocaleFromMicros(campaign.fundingGoalUsdMicro)}
                 </span>
               </div>
               <span>{fundingPercentage}% funded</span>
