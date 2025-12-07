@@ -18,7 +18,10 @@ import {
 } from "@/features/campaigns/components/CampaignBadges";
 import { getCampaignStatusInfo } from "@/features/campaigns/utils/campaignStatus";
 import { useNetworkVariable } from "@/shared/config/networkConfig";
-import { buildCampaignDetailPath } from "@/shared/utils/routes";
+import {
+  buildCampaignDetailPath,
+  buildProfileDetailPath,
+} from "@/shared/utils/routes";
 import { formatUsdLocaleFromMicros } from "@/shared/utils/currency";
 
 interface CampaignCardProps {
@@ -84,6 +87,16 @@ export function CampaignCard({
     statusInfo.buttonText,
   ]);
 
+  const publisherAddress = campaign.creatorAddress?.trim();
+  const hasPublisherAddress =
+    typeof publisherAddress === "string" &&
+    publisherAddress.length >= 10 &&
+    publisherAddress.startsWith("0x");
+  const publisherProfilePath = hasPublisherAddress
+    ? buildProfileDetailPath(publisherAddress)
+    : null;
+  const formattedPublisher = formatAddress(publisherAddress);
+
   return (
     <div className="flex flex-col overflow-hidden rounded-[24px] relative">
       {/* Cover Image */}
@@ -145,9 +158,18 @@ export function CampaignCard({
               <span className="text-xs text-black-200 leading-relaxed">
                 Published by
               </span>
-              <span className="text-sm font-medium leading-relaxed">
-                {formatAddress(campaign.creatorAddress)}
-              </span>
+              {publisherProfilePath ? (
+                <Link
+                  to={publisherProfilePath}
+                  className="text-sm font-medium leading-relaxed text-black-500 underline-offset-4 hover:text-black-500 hover:underline"
+                >
+                  {formattedPublisher}
+                </Link>
+              ) : (
+                <span className="text-sm font-medium leading-relaxed">
+                  {formattedPublisher}
+                </span>
+              )}
             </div>
 
             <div className="flex items-center gap-2 flex-wrap">
