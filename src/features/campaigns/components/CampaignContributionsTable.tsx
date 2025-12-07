@@ -256,33 +256,44 @@ export function CampaignContributionsTable({
           )}
       </div>
 
-      <div className="overflow-hidden bg-white-50">
-        <Table className="min-w-[760px] text-base text-black-500">
-          <TableHeader className="bg-white-400">
-            <TableRow className="hover:bg-transparent border-white">
-              <TableHead className="px-4 py-3 text-left text-black-500 font-medium ">
-                Paid at
-              </TableHead>
-              <TableHead className="px-4 py-3 text-left text-black-500 font-medium">
-                Contributor
-              </TableHead>
-              <TableHead className="px-4 py-3 text-left text-black-500 font-medium">
-                Token
-              </TableHead>
-              <TableHead className="px-4 py-3 text-left text-black-500 font-medium">
-                Amount
-              </TableHead>
-              <TableHead className="px-4 py-3 text-left text-black-500 font-medium">
-                USD Value
-              </TableHead>
-              <TableHead className="px-4 py-3 text-left text-black-500 font-medium">
-                Net USD Value
-              </TableHead>
-            </TableRow>
-          </TableHeader>
-          <TableBody>{renderRows()}</TableBody>
-        </Table>
-      </div>
+      {showEmptyState ? (
+        <div className="flex flex-col items-center justify-center py-12 px-4 text-center bg-white-200 rounded-lg">
+          <p className="text-lg font-medium text-black-400">
+            No contributions yet
+          </p>
+          <p className="mt-1 text-sm text-black-300">
+            Be the first to support this campaign.
+          </p>
+        </div>
+      ) : (
+        <div className="overflow-hidden bg-white-50">
+          <Table className="min-w-[760px] text-base text-black-500">
+            <TableHeader className="bg-white-400">
+              <TableRow className="hover:bg-transparent border-white">
+                <TableHead className="px-4 py-3 text-left text-black-500 font-medium ">
+                  Paid at
+                </TableHead>
+                <TableHead className="px-4 py-3 text-left text-black-500 font-medium">
+                  Contributor
+                </TableHead>
+                <TableHead className="px-4 py-3 text-left text-black-500 font-medium">
+                  Token
+                </TableHead>
+                <TableHead className="px-4 py-3 text-left text-black-500 font-medium">
+                  Amount
+                </TableHead>
+                <TableHead className="px-4 py-3 text-left text-black-500 font-medium">
+                  USD Value
+                </TableHead>
+                <TableHead className="px-4 py-3 text-left text-black-500 font-medium">
+                  Net USD Value
+                </TableHead>
+              </TableRow>
+            </TableHeader>
+            <TableBody>{renderRows()}</TableBody>
+          </Table>
+        </div>
+      )}
 
       {(pageNumbers.length > 1 || (lastPage?.hasMore ?? false)) && (
         <Pagination className="pt-2">
