@@ -1,5 +1,6 @@
 import { useEffect, useMemo, useState } from "react";
 import { AlertCircle } from "lucide-react";
+import { Link } from "react-router-dom";
 
 import {
   Pagination,
@@ -21,6 +22,7 @@ import {
 import { cn } from "@/shared/lib/utils";
 import { formatUsdLocaleFromMicros } from "@/shared/utils/currency";
 import { canonicalizeCoinType } from "@/shared/utils/sui";
+import { buildProfileDetailPath } from "@/shared/utils/routes";
 import {
   formatContributionDate,
   formatTokenAmount,
@@ -40,6 +42,13 @@ function formatContributor(address: string): string {
   const value = address.trim();
   if (value.length <= 10) return value;
   return `${value.slice(0, 5)}...${value.slice(-4)}`;
+}
+
+function getContributorProfilePath(address: string | null | undefined): string | null {
+  if (!address) return null;
+  const value = address.trim();
+  if (value.length === 0 || !value.startsWith("0x")) return null;
+  return buildProfileDetailPath(value);
 }
 
 export function CampaignContributionsTable({
@@ -190,6 +199,8 @@ export function CampaignContributionsTable({
       const Icon = tokenInfo.Icon;
       const amountRaw = BigInt(donation.amountRaw ?? 0);
       const amountDisplay = `${formatTokenAmount(amountRaw, tokenInfo.decimals)} ${tokenInfo.label}`;
+      const contributorProfilePath = getContributorProfilePath(donation.donor);
+      const contributorLabel = formatContributor(donation.donor);
 
       const totalUsd = BigInt(donation.amountUsdMicro ?? 0);
       const platformUsd = BigInt(donation.platformAmountUsdMicro ?? 0);
@@ -208,7 +219,16 @@ export function CampaignContributionsTable({
             {formatContributionDate(donation.timestampMs)}
           </TableCell>
           <TableCell className="px-4 py-4 text-black-500">
-            {formatContributor(donation.donor)}
+            {contributorProfilePath ? (
+              <Link
+                to={contributorProfilePath}
+                className="underline-offset-2 hover:text-black-500 hover:underline"
+              >
+                {contributorLabel}
+              </Link>
+            ) : (
+              contributorLabel
+            )}
           </TableCell>
           <TableCell className="px-4 py-4 text-black-500">
             <div className="flex items-center gap-2">
@@ -256,33 +276,44 @@ export function CampaignContributionsTable({
           )}
       </div>
 
-      <div className="overflow-hidden bg-white-50">
-        <Table className="min-w-[760px] text-base text-black-500">
-          <TableHeader className="bg-white-400">
-            <TableRow className="hover:bg-transparent border-white">
-              <TableHead className="px-4 py-3 text-left text-black-500 font-medium ">
-                Paid at
-              </TableHead>
-              <TableHead className="px-4 py-3 text-left text-black-500 font-medium">
-                Contributor
-              </TableHead>
-              <TableHead className="px-4 py-3 text-left text-black-500 font-medium">
-                Token
-              </TableHead>
-              <TableHead className="px-4 py-3 text-left text-black-500 font-medium">
-                Amount
-              </TableHead>
-              <TableHead className="px-4 py-3 text-left text-black-500 font-medium">
-                USD Value
-              </TableHead>
-              <TableHead className="px-4 py-3 text-left text-black-500 font-medium">
-                Net USD Value
-              </TableHead>
-            </TableRow>
-          </TableHeader>
-          <TableBody>{renderRows()}</TableBody>
-        </Table>
-      </div>
+      {showEmptyState ? (
+        <div className="flex flex-col items-center justify-center py-12 px-4 text-center bg-white-200 rounded-lg">
+          <p className="text-lg font-medium text-black-400">
+            No contributions yet
+          </p>
+          <p className="mt-1 text-sm text-black-300">
+            Be the first to support this campaign.
+          </p>
+        </div>
+      ) : (
+        <div className="overflow-hidden bg-white-50">
+          <Table className="min-w-[760px] text-base text-black-500">
+            <TableHeader className="bg-white-400">
+              <TableRow className="hover:bg-transparent border-white">
+                <TableHead className="px-4 py-3 text-left text-black-500 font-medium ">
+                  Paid at
+                </TableHead>
+                <TableHead className="px-4 py-3 text-left text-black-500 font-medium">
+                  Contributor
+                </TableHead>
+                <TableHead className="px-4 py-3 text-left text-black-500 font-medium">
+                  Token
+                </TableHead>
+                <TableHead className="px-4 py-3 text-left text-black-500 font-medium">
+                  Amount
+                </TableHead>
+                <TableHead className="px-4 py-3 text-left text-black-500 font-medium">
+                  USD Value
+                </TableHead>
+                <TableHead className="px-4 py-3 text-left text-black-500 font-medium">
+                  Net USD Value
+                </TableHead>
+              </TableRow>
+            </TableHeader>
+            <TableBody>{renderRows()}</TableBody>
+          </Table>
+        </div>
+      )}
 
       {(pageNumbers.length > 1 || (lastPage?.hasMore ?? false)) && (
         <Pagination className="pt-2">

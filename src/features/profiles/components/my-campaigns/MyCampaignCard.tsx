@@ -92,13 +92,8 @@ export function MyCampaignCard({
     campaign.fundingGoalUsdMicro > 0n
       ? Number((raisedUsdMicro * 100n) / campaign.fundingGoalUsdMicro)
       : 0;
-  const fundingPercentage = Math.min(
-    100,
-    Math.max(0, fundingPercentageRaw),
-  );
-  const formattedGoal = formatUsdLocaleFromMicros(
-    campaign.fundingGoalUsdMicro,
-  );
+  const fundingPercentage = Math.min(100, Math.max(0, fundingPercentageRaw));
+  const formattedGoal = formatUsdLocaleFromMicros(campaign.fundingGoalUsdMicro);
   const formattedRaised = formatUsdLocaleFromMicros(raisedUsdMicro);
   const resolvedSupportersCount =
     typeof supportersCount === "number" && Number.isFinite(supportersCount)
@@ -153,9 +148,7 @@ export function MyCampaignCard({
 
             <div className="flex flex-wrap items-center gap-2">
               <CategoriesBadgeGroup categories={campaign.category ?? ""} />
-              <ContributorsBadge
-                contributorsCount={resolvedSupportersCount}
-              />
+              <ContributorsBadge contributorsCount={resolvedSupportersCount} />
             </div>
           </div>
 
@@ -175,7 +168,7 @@ export function MyCampaignCard({
                 <span className="font-semibold">
                   {`$${formattedRaised} raised`}
                 </span>
-                <span>Goal {formattedGoal}</span>
+                <span>Goal ${formattedGoal}</span>
               </div>
               <span>{fundingPercentage}% funded</span>
             </div>

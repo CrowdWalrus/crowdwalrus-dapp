@@ -4,6 +4,7 @@
  */
 
 import { Globe } from "lucide-react";
+import { Link } from "react-router-dom";
 import { SOCIAL_PLATFORM_CONFIG } from "@/features/campaigns/constants/socialPlatforms";
 import type { CampaignSocialLink } from "@/features/campaigns/types/campaign";
 import { Separator } from "@/shared/components/ui/separator";
@@ -15,6 +16,7 @@ import {
   StartsInBadge,
 } from "./CampaignBadges";
 import { getCampaignStatusInfo } from "../utils/campaignStatus";
+import { buildProfileDetailPath } from "@/shared/utils/routes";
 
 const PLACEHOLDER_IMAGE = "/assets/images/placeholders/campaign.png";
 
@@ -94,6 +96,16 @@ export function CampaignHero({
     isDeleted,
   );
 
+  const normalizedPublisherAddress = publisherAddress?.trim();
+  const hasPublisherAddress =
+    typeof normalizedPublisherAddress === "string" &&
+    normalizedPublisherAddress.length >= 10 &&
+    normalizedPublisherAddress.startsWith("0x");
+  const publisherProfilePath = hasPublisherAddress
+    ? buildProfileDetailPath(normalizedPublisherAddress)
+    : null;
+  const formattedPublisher = formatAddress(normalizedPublisherAddress);
+
   return (
     <div className="flex flex-col gap-4 sm:gap-5 lg:gap-6 w-full">
       {/* Cover Image */}
@@ -152,9 +164,16 @@ export function CampaignHero({
           {/* Published by */}
           <div className="flex flex-col">
             <p className="text-xs sm:text-sm text-black-200">Published by</p>
-            <p className="text-sm sm:text-base">
-              {formatAddress(publisherAddress)}
-            </p>
+            {publisherProfilePath ? (
+              <Link
+                to={publisherProfilePath}
+                className="text-sm sm:text-base text-black-500 underline-offset-4 hover:text-black-500 hover:underline"
+              >
+                {formattedPublisher}
+              </Link>
+            ) : (
+              <p className="text-sm sm:text-base">{formattedPublisher}</p>
+            )}
           </div>
 
           {/* Social Icons */}

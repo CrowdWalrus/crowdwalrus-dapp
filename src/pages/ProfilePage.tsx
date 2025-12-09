@@ -135,6 +135,8 @@ export function ProfilePage() {
   const placeholderStats = useMemo(() => {
     const contributions = profile?.totalDonationsCount ?? 0;
     const totalContributedMicros = profile?.totalUsdMicro ?? BigInt(0);
+    const totalRaisedNetMicros =
+      profile?.fundraisingTotals.recipientTotalUsdMicro ?? BigInt(0);
 
     return [
       {
@@ -158,11 +160,16 @@ export function ProfilePage() {
       {
         id: "total-raised",
         label: "Total Amount Raised",
-        value: "$0.00",
+        value: `$${formatUsdLocaleFromMicros(totalRaisedNetMicros)}`,
         icon: BanknoteArrowDown,
       },
     ];
-  }, [campaignCount, profile?.totalDonationsCount, profile?.totalUsdMicro]);
+  }, [
+    campaignCount,
+    profile?.fundraisingTotals.recipientTotalUsdMicro,
+    profile?.totalDonationsCount,
+    profile?.totalUsdMicro,
+  ]);
 
   if (!addressParam) {
     return <Navigate to={ROUTES.NOT_FOUND} replace />;

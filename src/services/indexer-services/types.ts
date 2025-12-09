@@ -133,6 +133,10 @@ export interface ProfileDataResponse {
   metadata: Record<string, unknown>;
   checkpointSequenceNumber: number;
   txDigest: string;
+  fundraisingTotals: {
+    totalUsdMicro: number;
+    recipientTotalUsdMicro: number;
+  };
 }
 
 export interface BadgeMintResponse {

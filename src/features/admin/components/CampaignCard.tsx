@@ -11,6 +11,12 @@ import {
 import { getCampaignStatusInfo } from "@/features/campaigns/utils/campaignStatus";
 import { Check, X } from "lucide-react";
 import { formatUsdLocaleFromMicros } from "@/shared/utils/currency";
+import { Link } from "react-router-dom";
+import { useNetworkVariable } from "@/shared/config/networkConfig";
+import {
+  buildCampaignDetailPath,
+  buildProfileDetailPath,
+} from "@/shared/utils/routes";
 
 /**
  * Format address for display (0x36...c088)
@@ -42,6 +48,9 @@ export function CampaignCard({
   raisedUsdMicro,
   supportersCount,
 }: CampaignCardProps) {
+  const campaignDomain = useNetworkVariable("campaignDomain") as
+    | string
+    | undefined;
   const statusInfo = getCampaignStatusInfo(
     campaign.startDateMs,
     campaign.endDateMs,
@@ -62,6 +71,15 @@ export function CampaignCard({
         )
       : 0;
   const formattedRaised = formatUsdLocaleFromMicros(raisedValue);
+  const publisherAddress = campaign.creatorAddress?.trim();
+  const hasPublisherAddress =
+    typeof publisherAddress === "string" &&
+    publisherAddress.length >= 10 &&
+    publisherAddress.startsWith("0x");
+  const publisherProfilePath = hasPublisherAddress
+    ? buildProfileDetailPath(publisherAddress)
+    : null;
+  const formattedPublisher = formatAddress(publisherAddress);
 
   return (
     <div className="bg-white-100 border border-black-50 rounded-3xl p-6 flex flex-col gap-6">
@@ -81,9 +99,15 @@ export function CampaignCard({
       {/* Campaign content */}
       <div className="flex flex-col gap-4">
         <div className="flex flex-col gap-2">
-          <h3 className="text-xl font-semibold text-black-500 leading-relaxed">
+          <Link
+            to={buildCampaignDetailPath(campaign.id, {
+              subdomainName: campaign.subdomainName,
+              campaignDomain,
+            })}
+            className="text-xl font-semibold text-black-500 leading-relaxed hover:text-primary transition-colors"
+          >
             {campaign.name}
-          </h3>
+          </Link>
           <p className="text-base text-black-400 leading-relaxed">
             {campaign.shortDescription}
           </p>
@@ -99,12 +123,21 @@ export function CampaignCard({
 
       {/* Publisher and metadata */}
       <div className="flex flex-col gap-4">
-        <div className="flex items-start justify-between">
-          <div className="flex flex-col leading-relaxed">
-            <p className="text-xs text-black-200">Published by</p>
-            <p className="text-sm font-medium text-black-500">
-              {formatAddress(campaign.creatorAddress)}
-            </p>
+          <div className="flex items-start justify-between">
+            <div className="flex flex-col leading-relaxed">
+              <p className="text-xs text-black-200">Published by</p>
+              {publisherProfilePath ? (
+                <Link
+                  to={publisherProfilePath}
+                  className="text-sm font-medium text-black-500 underline-offset-4 hover:text-black-500 hover:underline"
+                >
+                  {formattedPublisher}
+                </Link>
+              ) : (
+                <p className="text-sm font-medium text-black-500">
+                {formattedPublisher}
+              </p>
+            )}
           </div>
           <div className="flex items-center gap-2 flex-wrap">
             <CategoryBadge category={campaign.category} />
@@ -119,7 +152,7 @@ export function CampaignCard({
               {`$${formattedRaised} raised`}
             </span>
             <span className="text-black-500">
-              Goal {formatUsdLocaleFromMicros(campaign.fundingGoalUsdMicro)}
+              Goal ${formatUsdLocaleFromMicros(campaign.fundingGoalUsdMicro)}
             </span>
             <span className="flex-1 text-right text-black-500">
               {fundingPercent}% funded
