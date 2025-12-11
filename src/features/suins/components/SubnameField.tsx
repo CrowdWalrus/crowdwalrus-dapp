@@ -32,6 +32,8 @@ export function SubnameField({
   const form = useFormContext();
   const subdomainValue = useWatch({ control: form.control, name });
 
+  const inputId = `${name}-input`;
+
   const rawSubdomain = (subdomainValue ?? "").trim();
   const debouncedSubdomain = useDebounce(rawSubdomain, 400);
   const hasRawSubdomain = rawSubdomain.length > 0;
@@ -199,8 +201,11 @@ export function SubnameField({
       control={form.control}
       name={name}
       render={({ field }) => (
-        <FormItem className="flex flex-col gap-4">
-          <FormLabel className="font-medium text-base">
+        <FormItem
+          className="flex flex-col gap-4"
+          data-field-error={name}
+        >
+          <FormLabel className="font-medium text-base" htmlFor={inputId}>
             {label} {required && <span className="text-red-300">*</span>}
           </FormLabel>
           <div className="flex flex-col gap-2">
@@ -216,6 +221,7 @@ export function SubnameField({
               <FormControl>
                 <input
                   {...field}
+                  id={inputId}
                   placeholder={placeholder}
                   disabled={disabled}
                   className="flex-1 bg-transparent text-sm outline-none placeholder:text-muted-foreground/50"

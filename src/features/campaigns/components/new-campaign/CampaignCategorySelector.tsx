@@ -53,7 +53,10 @@ export function CampaignCategorySelector({
         const selectedCategories = Array.isArray(value) ? value : [];
 
         return (
-          <div className="flex flex-col gap-8">
+          <div
+            className="flex flex-col gap-8"
+            data-field-error="categories"
+          >
             <div className="flex flex-wrap items-center justify-between gap-3">
               <p className="font-bold text-2xl leading-[1.6]">
                 <span>Select Category </span>

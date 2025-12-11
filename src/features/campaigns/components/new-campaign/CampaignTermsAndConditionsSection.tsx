@@ -4,12 +4,26 @@ import { Checkbox } from "@/shared/components/ui/checkbox";
 import { Label } from "@/shared/components/ui/label";
 import { FormMessage } from "@/shared/components/ui/form";
 import { AlertCircleIcon } from "lucide-react";
+import { cn } from "@/shared/lib/utils";
 
-export function CampaignTermsAndConditionsSection() {
+interface CampaignTermsAndConditionsSectionProps {
+  emphasizeRequiredNotice?: boolean;
+}
+
+export function CampaignTermsAndConditionsSection({
+  emphasizeRequiredNotice = false,
+}: CampaignTermsAndConditionsSectionProps) {
   const { control } = useFormContext();
 
+  const requiredNoticeClasses = emphasizeRequiredNotice
+    ? "text-red-600 font-semibold"
+    : "text-neutral-700";
+
   return (
-    <section className="mb-12 flex flex-col gap-4">
+    <section
+      className="mb-12 flex flex-col gap-4"
+      data-field-error="termsAccepted"
+    >
       <h3 className="text-base font-medium ">Terms and conditions</h3>
 
       <div className="flex flex-col gap-2">
@@ -39,11 +53,29 @@ export function CampaignTermsAndConditionsSection() {
           )}
         />
 
-        <Alert className="p-4 gap-4 rounded-lg border-neutral-200">
-          <AlertDescription className="text-sm text-neutral-700 leading-[1.5]">
+        <Alert
+          className={cn(
+            "p-4 gap-4 rounded-lg border-neutral-200",
+            emphasizeRequiredNotice && "border-red-200 bg-red-50",
+          )}
+        >
+          <AlertDescription
+            className={cn(
+              "text-sm leading-[1.5]",
+              emphasizeRequiredNotice ? "text-red-600" : "text-neutral-700",
+            )}
+          >
             <span className="flex items-center gap-2">
-              <AlertCircleIcon className="mt-1" size={16} />
-              <span>Fields marked with * are required.</span>
+              <AlertCircleIcon
+                className={cn(
+                  "mt-1",
+                  emphasizeRequiredNotice ? "text-red-600" : undefined,
+                )}
+                size={16}
+              />
+              <span className={requiredNoticeClasses}>
+                Fields marked with * are required.
+              </span>
             </span>
           </AlertDescription>
         </Alert>

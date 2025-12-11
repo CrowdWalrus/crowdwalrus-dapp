@@ -126,7 +126,10 @@ export function CampaignFundingTargetSection({
           control={control}
           name="targetAmount"
           render={({ field }) => (
-            <FormItem className="flex flex-col gap-4">
+            <FormItem
+              className="flex flex-col gap-4"
+              data-field-error="targetAmount"
+            >
               <FormLabel className="font-medium text-base">
                 Enter your campaign's goal amount
               </FormLabel>
@@ -161,7 +164,10 @@ export function CampaignFundingTargetSection({
           control={control}
           name="walletAddress"
           render={({ field }) => (
-            <FormItem className="flex flex-col gap-4">
+            <FormItem
+              className="flex flex-col gap-4"
+              data-field-error="walletAddress"
+            >
               <FormLabel className="font-medium text-base">
                 Add a funding Sui address
               </FormLabel>

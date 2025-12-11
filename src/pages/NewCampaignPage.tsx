@@ -1,5 +1,10 @@
 import { Link } from "react-router-dom";
-import { useForm, FormProvider, useWatch } from "react-hook-form";
+import {
+  useForm,
+  FormProvider,
+  useWatch,
+  type Path,
+} from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useState, useEffect, useRef } from "react";
 import { useDebounce } from "@/shared/hooks/useDebounce";
@@ -139,6 +144,8 @@ export default function NewCampaignPage() {
   const [campaignResult, setCampaignResult] =
     useState<CreateCampaignResult | null>(null);
   const [error, setError] = useState<Error | null>(null);
+  const [shouldEmphasizeRequiredFields, setShouldEmphasizeRequiredFields] =
+    useState(false);
 
   // Storage epochs state
   const [selectedEpochs, setSelectedEpochs] = useState<number>(
@@ -151,6 +158,21 @@ export default function NewCampaignPage() {
     const clampedEpochs = Math.min(Math.max(1, epochs), config.maxEpochs);
     setSelectedEpochs(clampedEpochs);
   };
+
+  const requiredFieldOrder: (keyof NewCampaignFormData)[] = [
+    "campaignName",
+    "description",
+    "subdomain",
+    "coverImage",
+    "campaignType",
+    "categories",
+    "startDate",
+    "endDate",
+    "targetAmount",
+    "walletAddress",
+    "campaignDetails",
+    "termsAccepted",
+  ];
 
   // Hooks for each step
   const {
@@ -360,13 +382,59 @@ export default function NewCampaignPage() {
     );
   };
 
+  const scrollToFirstInvalidField = () => {
+    const firstErrorField = requiredFieldOrder.find(
+      (fieldName) => form.formState.errors[fieldName],
+    );
+
+    if (!firstErrorField) {
+      return;
+    }
+
+    const focusOnField = () => {
+      const targetElement =
+        document.querySelector<HTMLElement>(
+          `[data-field-error="${firstErrorField}"]`,
+        ) ||
+        document.querySelector<HTMLElement>(
+          `[name="${firstErrorField}"]`,
+        ) ||
+        document.getElementById(firstErrorField);
+
+      if (targetElement) {
+        targetElement.scrollIntoView({
+          behavior: "smooth",
+          block: "center",
+        });
+
+        if (typeof targetElement.focus === "function") {
+          targetElement.focus({ preventScroll: true });
+        } else {
+          form.setFocus(firstErrorField as Path<NewCampaignFormData>);
+        }
+      } else {
+        form.setFocus(firstErrorField as Path<NewCampaignFormData>);
+        window.scrollTo({ top: 0, behavior: "smooth" });
+      }
+    };
+
+    window.requestAnimationFrame(focusOnField);
+  };
+
   // Handler for Register Storage button - validates form first
   const handleRegisterStorageClick = async () => {
-    const isValid = await form.trigger();
-    if (isValid) {
-      const data = form.getValues();
-      onSubmit(data);
+    const isValid = await form.trigger(undefined, { shouldFocus: false });
+
+    if (!isValid) {
+      setShouldEmphasizeRequiredFields(true);
+      scrollToFirstInvalidField();
+      return;
     }
+
+    setShouldEmphasizeRequiredFields(false);
+
+    const data = form.getValues();
+    onSubmit(data);
   };
 
   // Step 2: User confirms registration - buy Walrus storage
@@ -751,12 +819,19 @@ export default function NewCampaignPage() {
                           control={form.control}
                           name="campaignName"
                           render={({ field }) => (
-                            <FormItem className="flex flex-col gap-4">
-                              <FormLabel className="font-medium text-base">
+                            <FormItem
+                              className="flex flex-col gap-4"
+                              data-field-error="campaignName"
+                            >
+                              <FormLabel
+                                className="font-medium text-base"
+                                htmlFor="campaign-name"
+                              >
                                 Title <span className="text-red-300">*</span>
                               </FormLabel>
                               <FormControl>
                                 <Input
+                                  id="campaign-name"
                                   placeholder="Enter your campaign name"
                                   {...field}
                                 />
@@ -771,13 +846,20 @@ export default function NewCampaignPage() {
                           control={form.control}
                           name="description"
                           render={({ field }) => (
-                            <FormItem className="flex flex-col gap-4">
-                              <FormLabel className="font-medium text-base">
+                            <FormItem
+                              className="flex flex-col gap-4"
+                              data-field-error="description"
+                            >
+                              <FormLabel
+                                className="font-medium text-base"
+                                htmlFor="campaign-description"
+                              >
                                 Short description{" "}
                                 <span className="text-red-300">*</span>
                               </FormLabel>
                               <FormControl>
                                 <Textarea
+                                  id="campaign-description"
                                   placeholder="Brief description of your campaign"
                                   rows={4}
                                   {...field}
@@ -830,7 +912,7 @@ export default function NewCampaignPage() {
                         control={form.control}
                         name="socials"
                         render={() => (
-                          <FormItem>
+                          <FormItem data-field-error="socials">
                             <CampaignSocialsSection />
                             <FormMessage />
                           </FormItem>
@@ -844,7 +926,9 @@ export default function NewCampaignPage() {
                     <Separator />
 
                     {/* Terms and Conditions Section */}
-                    <CampaignTermsAndConditionsSection />
+                    <CampaignTermsAndConditionsSection
+                      emphasizeRequiredNotice={shouldEmphasizeRequiredFields}
+                    />
                   </fieldset>
 
                   {/* Storage Registration Section */}
