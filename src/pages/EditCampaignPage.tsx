@@ -7,6 +7,7 @@ import {
   type Path,
 } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
+import { useQueryClient } from "@tanstack/react-query";
 import {
   useCurrentAccount,
   useSignAndExecuteTransaction,
@@ -116,6 +117,8 @@ const DEFAULT_FORM_VALUES: EditCampaignFormData = {
 
 const SAVE_STATUS_TIMEOUT = 4000;
 const AUTO_CALCULATING_LABEL = "Calculating...";
+const CAMPAIGN_PROPAGATION_ATTEMPTS = 6;
+const CAMPAIGN_PROPAGATION_DELAY_MS = 800;
 
 type SectionKey =
   | "campaignName"
@@ -321,6 +324,7 @@ export default function EditCampaignPage() {
     error: campaignError,
     refetch: refetchCampaign,
   } = useCampaign(campaignId, network);
+  const queryClient = useQueryClient();
 
   const campaignDetailPath = useMemo(() => {
     const fallbackId = campaign?.id || campaignId || rawIdentifier;
@@ -619,7 +623,9 @@ export default function EditCampaignPage() {
 
       const sanitizedSocials = sanitizeSocialLinks(values.socials);
       const policyPresetName =
-        values.campaignType || campaign.policyPresetName || DEFAULT_POLICY_PRESET;
+        values.campaignType ||
+        campaign.policyPresetName ||
+        DEFAULT_POLICY_PRESET;
 
       const walrusFormData = {
         name: campaign.name,
@@ -677,6 +683,69 @@ export default function EditCampaignPage() {
     isCampaignLoading ||
     isCapLoading ||
     (!initialized && isWalrusLoading && !isWalrusError);
+
+  const waitForCampaignPropagation = useCallback(
+    async (params: {
+      expectedName?: string;
+      expectedShortDescription?: string;
+      expectedMetadata?: Record<string, string>;
+    }): Promise<void> => {
+      const { expectedName, expectedShortDescription, expectedMetadata } =
+        params;
+
+      for (
+        let attempt = 0;
+        attempt < CAMPAIGN_PROPAGATION_ATTEMPTS;
+        attempt++
+      ) {
+        let detail: Awaited<
+          ReturnType<typeof refetchCampaign>
+        >["data"] = undefined;
+
+        try {
+          const result = await refetchCampaign();
+          detail = result.data;
+        } catch (error) {
+          console.warn(
+            "[EditCampaign] Refetch failed during propagation wait:",
+            error,
+          );
+        }
+
+        if (detail) {
+          const basicsMatch =
+            (expectedName === undefined ||
+              detail.name.trim() === expectedName.trim()) &&
+            (expectedShortDescription === undefined ||
+              detail.shortDescription.trim() ===
+                expectedShortDescription.trim());
+
+          const metadataMatch =
+            !expectedMetadata ||
+            Object.entries(expectedMetadata).every(([key, expectedValue]) => {
+              if (expectedValue === undefined) return true;
+              const current = detail.metadata?.[key];
+              const normalizedCurrent =
+                typeof current === "string"
+                  ? current.trim()
+                  : current === null || current === undefined
+                    ? ""
+                    : String(current).trim();
+              return normalizedCurrent === expectedValue.trim();
+            });
+
+          if (basicsMatch && metadataMatch) {
+            return;
+          }
+        }
+
+        await new Promise((resolve) =>
+          setTimeout(resolve, CAMPAIGN_PROPAGATION_DELAY_MS * (attempt + 1)),
+        );
+      }
+    },
+    [refetchCampaign],
+  );
 
   const identifierDisplay = rawIdentifier || campaignId || "";
 
@@ -1233,6 +1302,14 @@ export default function EditCampaignPage() {
           metadataUpdates[key as keyof typeof metadataUpdates] !== undefined,
       );
 
+      const expectedMetadata: Record<string, string> = {};
+      metadataKeys.forEach((key) => {
+        const value = metadataUpdates[key as keyof typeof metadataUpdates];
+        if (typeof value === "string") {
+          expectedMetadata[key] = value.trim();
+        }
+      });
+
       const hasMetadataPayload = metadataKeys.length > 0;
 
       if (hasBasicsChanges && hasMetadataPayload) {
@@ -1325,7 +1402,19 @@ export default function EditCampaignPage() {
       initialValuesRef.current = currentValues;
       form.reset(currentValues);
 
-      await refetchCampaign();
+      await waitForCampaignPropagation({
+        expectedName: basicsUpdates.name,
+        expectedShortDescription: basicsUpdates.short_description,
+        expectedMetadata:
+          Object.keys(expectedMetadata).length > 0
+            ? expectedMetadata
+            : undefined,
+      });
+
+      await Promise.all([
+        queryClient.invalidateQueries({ queryKey: ["indexer", "campaign"] }),
+        queryClient.invalidateQueries({ queryKey: ["indexer", "campaigns"] }),
+      ]);
       toast.success("Campaign updated successfully.");
       setInitialized(false);
       navigate(campaignDetailPath);
