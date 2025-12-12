@@ -463,6 +463,11 @@
   input[type="number"] {
     -moz-appearance: textfield;
   }
+
+  /* Ensure validation scroll targets aren't hidden by future sticky headers */
+  [data-field-error] {
+    scroll-margin-top: 96px;
+  }
 }
 
 /* ============================================
