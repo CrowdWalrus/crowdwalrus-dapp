@@ -1,10 +1,5 @@
 import { Link } from "react-router-dom";
-import {
-  useForm,
-  FormProvider,
-  useWatch,
-  type Path,
-} from "react-hook-form";
+import { useForm, FormProvider, useWatch, type Path } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useState, useEffect, useRef } from "react";
 import { useDebounce } from "@/shared/hooks/useDebounce";
@@ -81,10 +76,7 @@ import {
   type NewCampaignFormData,
 } from "@/features/campaigns/schemas/newCampaignSchema";
 import { isUserRejectedError } from "@/shared/utils/errors";
-import {
-  AlertCircleIcon,
-  WalletMinimal,
-} from "lucide-react";
+import { AlertCircleIcon, WalletMinimal } from "lucide-react";
 
 const AUTO_CALCULATING_LABEL = "Calculating...";
 
@@ -173,6 +165,23 @@ export default function NewCampaignPage() {
     "campaignDetails",
     "termsAccepted",
   ];
+
+  const findFocusableDescendant = (element?: HTMLElement | null) => {
+    if (!element) return null;
+
+    const selector =
+      "input, select, textarea, button, [tabindex]:not([tabindex='-1']), a[href]";
+
+    if (
+      element.matches(selector) &&
+      !element.hasAttribute("disabled") &&
+      element.getAttribute("aria-hidden") !== "true"
+    ) {
+      return element;
+    }
+
+    return element.querySelector<HTMLElement>(selector);
+  };
 
   // Hooks for each step
   const {
@@ -382,23 +391,24 @@ export default function NewCampaignPage() {
     );
   };
 
-  const scrollToFirstInvalidField = () => {
-    const firstErrorField = requiredFieldOrder.find(
-      (fieldName) => form.formState.errors[fieldName],
+  const getFirstInvalidField = () =>
+    requiredFieldOrder.find(
+      (fieldName) => form.getFieldState(fieldName).invalid,
     );
+
+  const scrollToFirstInvalidField = () => {
+    const firstErrorField = getFirstInvalidField();
 
     if (!firstErrorField) {
       return;
     }
 
-    const focusOnField = () => {
+    window.requestAnimationFrame(() => {
       const targetElement =
         document.querySelector<HTMLElement>(
           `[data-field-error="${firstErrorField}"]`,
         ) ||
-        document.querySelector<HTMLElement>(
-          `[name="${firstErrorField}"]`,
-        ) ||
+        document.querySelector<HTMLElement>(`[name="${firstErrorField}"]`) ||
         document.getElementById(firstErrorField);
 
       if (targetElement) {
@@ -406,19 +416,18 @@ export default function NewCampaignPage() {
           behavior: "smooth",
           block: "center",
         });
-
-        if (typeof targetElement.focus === "function") {
-          targetElement.focus({ preventScroll: true });
-        } else {
-          form.setFocus(firstErrorField as Path<NewCampaignFormData>);
-        }
-      } else {
-        form.setFocus(firstErrorField as Path<NewCampaignFormData>);
-        window.scrollTo({ top: 0, behavior: "smooth" });
       }
-    };
 
-    window.requestAnimationFrame(focusOnField);
+      const focusTarget = findFocusableDescendant(targetElement);
+
+      if (focusTarget) {
+        focusTarget.focus({ preventScroll: true });
+      } else {
+        form.setFocus(firstErrorField as Path<NewCampaignFormData>, {
+          shouldSelect: true,
+        });
+      }
+    });
   };
 
   // Handler for Register Storage button - validates form first
@@ -436,6 +445,18 @@ export default function NewCampaignPage() {
     const data = form.getValues();
     onSubmit(data);
   };
+
+  useEffect(() => {
+    if (!shouldEmphasizeRequiredFields) return;
+
+    const subscription = form.watch(() => {
+      if (form.formState.isValid) {
+        setShouldEmphasizeRequiredFields(false);
+      }
+    });
+
+    return () => subscription.unsubscribe();
+  }, [form, shouldEmphasizeRequiredFields]);
 
   // Step 2: User confirms registration - buy Walrus storage
   const handleConfirmRegister = () => {
