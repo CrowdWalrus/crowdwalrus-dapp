@@ -67,7 +67,6 @@ import {
   updateProfileMetadata,
   type ProfileMetadataUpdate,
 } from "@/services/profile";
-import type { ProfileResponse } from "@/services/indexer-services";
 import { isUserRejectedError } from "@/shared/utils/errors";
 import { formatSubdomain } from "@/shared/utils/subdomain";
 import { buildProfileDetailPath } from "@/shared/utils/routes";
@@ -106,8 +105,8 @@ const PROFILE_FORM_KEYS = {
 
 const PROFILE_REFETCH_ATTEMPTS = 4;
 const PROFILE_REFETCH_DELAY_MS = 1000;
-const AVATAR_PROPAGATION_ATTEMPTS = 6;
-const AVATAR_PROPAGATION_DELAY_MS = 800;
+const METADATA_PROPAGATION_ATTEMPTS = 6;
+const METADATA_PROPAGATION_DELAY_MS = 800;
 const STORAGE_PENDING_LABEL = "Upload an image to calculate";
 const AUTO_CALCULATING_LABEL = "Calculating...";
 
@@ -296,6 +295,7 @@ export default function CreateProfilePage() {
   const [selectedEpochs, setSelectedEpochs] =
     useState<number>(avatarStorageEpochs);
   const [isSavingProfile, setIsSavingProfile] = useState(false);
+  const [isRedirectingPostSave, setIsRedirectingPostSave] = useState(false);
   const [wizardStep, setWizardStep] = useState<WizardStep>(WizardStep.FORM);
   const walrus = useWalrusUpload();
   const {
@@ -418,12 +418,17 @@ export default function CreateProfilePage() {
 
   const submitButtonLabel = isSavingProfile
     ? "Saving..."
-    : profileId
-      ? "Save Changes"
-      : "Create Profile";
+    : isRedirectingPostSave
+      ? "Redirecting..."
+      : profileId
+        ? "Save Changes"
+        : "Create Profile";
 
   const isFormReadOnly =
-    isSavingProfile || !isWalletConnected || isProfileFetching;
+    isSavingProfile ||
+    isRedirectingPostSave ||
+    !isWalletConnected ||
+    isProfileFetching;
   const dirtyFields = form.formState.dirtyFields;
   const hasBasicFieldChanges = Boolean(
     dirtyFields.fullName ||
@@ -666,30 +671,38 @@ export default function CreateProfilePage() {
     return null;
   }, [refetchProfileData]);
 
-  const waitForAvatarPropagation = useCallback(
-    async (
-      targetWalrusUrl: string | null | undefined,
-      expectRemoval = false,
-    ) => {
-      if (!targetWalrusUrl && !expectRemoval) {
-        return false;
+  const waitForMetadataPropagation = useCallback(
+    async (updates: ProfileMetadataUpdate[]) => {
+      if (!updates.length) {
+        return true;
       }
 
-      for (let attempt = 0; attempt < AVATAR_PROPAGATION_ATTEMPTS; attempt++) {
-        const result = await refetchProfileData();
-        const rawValue =
-          result.data?.profile?.metadata?.[PROFILE_FORM_KEYS.avatar];
-        const current = typeof rawValue === "string" ? rawValue.trim() : null;
+      const expectedEntries = updates.map(({ key, value }) => ({
+        key,
+        expected:
+          value === PROFILE_METADATA_REMOVED_VALUE ? "" : value.trim(),
+      }));
 
-        if (
-          (expectRemoval && (!current || current.length === 0)) ||
-          (!expectRemoval && current === targetWalrusUrl)
-        ) {
+      for (
+        let attempt = 0;
+        attempt < METADATA_PROPAGATION_ATTEMPTS;
+        attempt++
+      ) {
+        const result = await refetchProfileData();
+        const current = result.data?.profile?.metadata ?? {};
+
+        const allMatch = expectedEntries.every(({ key, expected }) => {
+          const currentValue =
+            typeof current[key] === "string" ? current[key].trim() : "";
+          return currentValue === expected;
+        });
+
+        if (allMatch) {
           return true;
         }
 
         await new Promise((resolve) =>
-          setTimeout(resolve, AVATAR_PROPAGATION_DELAY_MS * (attempt + 1)),
+          setTimeout(resolve, METADATA_PROPAGATION_DELAY_MS * (attempt + 1)),
         );
       }
 
@@ -1005,57 +1018,12 @@ export default function CreateProfilePage() {
 
       await refetchProfileData();
 
-      // Poll for the updated avatar to propagate through the indexer so users
-      // land on their profile with the fresh image already available.
-      await waitForAvatarPropagation(
-        pendingAvatarWalrusUrl,
-        avatarMarkedForRemoval,
-      );
-
-      if (pendingAvatarWalrusUrl && !avatarMarkedForRemoval) {
-        queryClient.setQueriesData<ProfileResponse | null>(
-          { queryKey: ["indexer", "profile", account?.address] },
-          (existing) => {
-            if (!existing?.profile) {
-              return existing;
-            }
-
-            return {
-              ...existing,
-              profile: {
-                ...existing.profile,
-                metadata: {
-                  ...existing.profile.metadata,
-                  [PROFILE_FORM_KEYS.avatar]: pendingAvatarWalrusUrl,
-                },
-              },
-            };
-          },
-        );
-      } else if (avatarMarkedForRemoval) {
-        queryClient.setQueriesData<ProfileResponse | null>(
-          { queryKey: ["indexer", "profile", account?.address] },
-          (existing) => {
-            if (!existing?.profile) {
-              return existing;
-            }
-
-            return {
-              ...existing,
-              profile: {
-                ...existing.profile,
-                metadata: {
-                  ...existing.profile.metadata,
-                  [PROFILE_FORM_KEYS.avatar]: "",
-                },
-              },
-            };
-          },
-        );
-      }
+      // Poll until the indexer reflects all metadata updates so the profile page
+      // shows fresh data immediately after redirect.
+      await waitForMetadataPropagation(updates);
 
       // Force downstream profile consumers (e.g., ProfilePage) to fetch fresh
-      // metadata immediately so the new avatar shows without a manual reload.
+      // metadata immediately so the new values show without a manual reload.
       await queryClient.invalidateQueries({ queryKey: ["indexer", "profile"] });
 
       // Clear the local profile image field so future saves aren't blocked by
@@ -1072,6 +1040,7 @@ export default function CreateProfilePage() {
 
       toast.success(actionMessage);
       if (account?.address) {
+        setIsRedirectingPostSave(true);
         if (redirectTimeoutRef.current !== null) {
           window.clearTimeout(redirectTimeoutRef.current);
         }
