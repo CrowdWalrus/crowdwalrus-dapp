@@ -92,7 +92,7 @@ export function MyCampaignCard({
     campaign.fundingGoalUsdMicro > 0n
       ? Number((raisedUsdMicro * 100n) / campaign.fundingGoalUsdMicro)
       : 0;
-  const fundingPercentage = Math.min(100, Math.max(0, fundingPercentageRaw));
+  const fundingPercentage = Math.max(0, fundingPercentageRaw);
   const formattedGoal = formatUsdLocaleFromMicros(campaign.fundingGoalUsdMicro);
   const formattedRaised = formatUsdLocaleFromMicros(raisedUsdMicro);
   const resolvedSupportersCount =
