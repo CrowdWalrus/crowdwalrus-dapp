@@ -47,7 +47,7 @@ export function CampaignDetailsEditor({
         }
 
         return (
-          <div>
+          <div data-field-error="campaignDetails">
             <div className="mb-4 flex flex-col gap-1.5">
               <div className="flex flex-wrap items-center justify-between gap-3">
                 <FormLabel

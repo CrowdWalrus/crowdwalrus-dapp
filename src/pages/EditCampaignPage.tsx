@@ -4,6 +4,7 @@ import {
   useForm,
   useWatch,
   type FieldNamesMarkedBoolean,
+  type Path,
 } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import {
@@ -124,6 +125,15 @@ type SectionKey =
   | "campaignType"
   | "categories"
   | "socials";
+
+const REQUIRED_FIELD_ORDER: (keyof EditCampaignFormData)[] = [
+  "campaignName",
+  "description",
+  "categories",
+  "coverImage",
+  "socials",
+  "campaignDetails",
+];
 
 function parseCategories(category: string | undefined | null): string[] {
   if (!category) {
@@ -288,6 +298,7 @@ export default function EditCampaignPage() {
   const form = useForm<EditCampaignFormData>({
     resolver: zodResolver(buildEditCampaignSchema()),
     mode: "onChange",
+    shouldFocusError: false,
     defaultValues: DEFAULT_FORM_VALUES,
   });
 
@@ -893,6 +904,12 @@ export default function EditCampaignPage() {
       return;
     }
 
+    const isValid = await form.trigger(undefined, { shouldFocus: false });
+    if (!isValid) {
+      scrollToFirstInvalidField();
+      return;
+    }
+
     if (!walrusChangesDetected) {
       toast.info("No Walrus-related changes detected.");
       return;
@@ -1165,7 +1182,7 @@ export default function EditCampaignPage() {
     setPendingWalrusSection(null);
   };
 
-  const handleSubmit = form.handleSubmit(async (values) => {
+  const onSubmit = async (values: EditCampaignFormData) => {
     if (!ownerCapId) {
       toast.error(
         "Missing campaign owner capability. Connect the correct wallet and try again.",
@@ -1324,6 +1341,10 @@ export default function EditCampaignPage() {
     } finally {
       setIsSubmitting(false);
     }
+  };
+
+  const handleSubmit = form.handleSubmit(onSubmit, () => {
+    scrollToFirstInvalidField();
   });
 
   const disableSubmit =
@@ -1380,6 +1401,62 @@ export default function EditCampaignPage() {
     !isLoadingWalBalance &&
     BigInt(Math.floor((costEstimate?.subsidizedTotalCost ?? 0) * 10 ** 9)) >
       BigInt(walBalanceRaw || "0");
+
+  const findFocusableDescendant = (element?: HTMLElement | null) => {
+    if (!element) return null;
+
+    const selector =
+      "input, select, textarea, button, [tabindex]:not([tabindex='-1']), a[href]";
+
+    if (
+      element.matches(selector) &&
+      !element.hasAttribute("disabled") &&
+      element.getAttribute("aria-hidden") !== "true"
+    ) {
+      return element;
+    }
+
+    return element.querySelector<HTMLElement>(selector);
+  };
+
+  const getFirstInvalidField = () =>
+    REQUIRED_FIELD_ORDER.find(
+      (fieldName) => form.getFieldState(fieldName).invalid,
+    );
+
+  const scrollToFirstInvalidField = () => {
+    const firstErrorField = getFirstInvalidField();
+
+    if (!firstErrorField) {
+      return;
+    }
+
+    window.requestAnimationFrame(() => {
+      const targetElement =
+        document.querySelector<HTMLElement>(
+          `[data-field-error="${firstErrorField}"]`,
+        ) ||
+        document.querySelector<HTMLElement>(`[name="${firstErrorField}"]`) ||
+        document.getElementById(firstErrorField);
+
+      if (targetElement) {
+        targetElement.scrollIntoView({
+          behavior: "smooth",
+          block: "center",
+        });
+      }
+
+      const focusTarget = findFocusableDescendant(targetElement);
+
+      if (focusTarget) {
+        focusTarget.focus({ preventScroll: true });
+      } else {
+        form.setFocus(firstErrorField as Path<EditCampaignFormData>, {
+          shouldSelect: true,
+        });
+      }
+    });
+  };
 
   const storageCosts: StorageCost[] = costEstimate
     ? [
@@ -1539,9 +1616,15 @@ export default function EditCampaignPage() {
                     control={form.control}
                     name="campaignName"
                     render={({ field }) => (
-                      <FormItem className="flex flex-col gap-4">
+                      <FormItem
+                        className="flex flex-col gap-4"
+                        data-field-error="campaignName"
+                      >
                         <div className="flex items-center justify-between">
-                          <FormLabel className="font-medium text-base">
+                          <FormLabel
+                            className="font-medium text-base"
+                            htmlFor="edit-campaign-name"
+                          >
                             Title <span className="text-red-300">*</span>
                           </FormLabel>
                           <div className="flex items-center gap-3">
@@ -1553,6 +1636,7 @@ export default function EditCampaignPage() {
                         </div>
                         <FormControl>
                           <Input
+                            id="edit-campaign-name"
                             placeholder="Enter your campaign name"
                             {...field}
                             disabled={!editingSections.campaignName}
@@ -1567,9 +1651,15 @@ export default function EditCampaignPage() {
                     control={form.control}
                     name="description"
                     render={({ field }) => (
-                      <FormItem className="flex flex-col gap-4">
+                      <FormItem
+                        className="flex flex-col gap-4"
+                        data-field-error="description"
+                      >
                         <div className="flex items-center justify-between">
-                          <FormLabel className="font-medium text-base">
+                          <FormLabel
+                            className="font-medium text-base"
+                            htmlFor="edit-campaign-description"
+                          >
                             Short description{" "}
                             <span className="text-red-300">*</span>
                           </FormLabel>
@@ -1582,6 +1672,7 @@ export default function EditCampaignPage() {
                         </div>
                         <FormControl>
                           <Textarea
+                            id="edit-campaign-description"
                             placeholder="Brief description of your campaign"
                             rows={4}
                             {...field}
@@ -1723,7 +1814,7 @@ export default function EditCampaignPage() {
                     control={form.control}
                     name="socials"
                     render={() => (
-                      <FormItem>
+                      <FormItem data-field-error="socials">
                         <CampaignSocialsSection
                           disabled={!editingSections.socials}
                           labelStatus={
