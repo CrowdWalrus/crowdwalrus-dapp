@@ -247,6 +247,13 @@ export function CampaignPage() {
   };
 
   useEffect(() => {
+    if (!campaignId) {
+      return;
+    }
+    window.scrollTo({ top: 0, behavior: "smooth" });
+  }, [campaignId]);
+
+  useEffect(() => {
     if (!campaignId || !accountAddress) {
       return;
     }
