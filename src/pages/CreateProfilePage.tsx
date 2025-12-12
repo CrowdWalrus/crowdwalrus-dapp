@@ -227,17 +227,29 @@ function buildProfileMetadataUpdates(
     rawMetadata,
   );
 
-  const normalizedAvatarUrl = removeAvatar
-    ? ""
-    : avatarWalrusUrl?.trim() ?? "";
+  // Only touch the avatar metadata when the user explicitly changed it
+  // (new upload or removal). Previously we would pass an empty string when
+  // `avatarWalrusUrl` was undefined, which caused the existing avatar to be
+  // cleared whenever any other field was edited.
+  if (removeAvatar) {
+    addMetadataUpdate(
+      updates,
+      PROFILE_FORM_KEYS.avatar,
+      "",
+      currentMetadata,
+      rawMetadata,
+    );
+  } else if (typeof avatarWalrusUrl === "string") {
+    const normalizedAvatarUrl = avatarWalrusUrl.trim();
 
-  addMetadataUpdate(
-    updates,
-    PROFILE_FORM_KEYS.avatar,
-    normalizedAvatarUrl,
-    currentMetadata,
-    rawMetadata,
-  );
+    addMetadataUpdate(
+      updates,
+      PROFILE_FORM_KEYS.avatar,
+      normalizedAvatarUrl,
+      currentMetadata,
+      rawMetadata,
+    );
+  }
 
   return updates;
 }
