@@ -131,6 +131,7 @@ export interface ProfileDataResponse {
   totalDonationsCount: number;
   badgeLevelsEarned: number;
   metadata: Record<string, unknown>;
+  subdomainName: string | null;
   checkpointSequenceNumber: number;
   txDigest: string;
   fundraisingTotals: {
