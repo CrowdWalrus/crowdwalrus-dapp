@@ -38,8 +38,7 @@ import {
   createProfileSchema,
   type CreateProfileFormData,
 } from "@/features/profiles/schemas/createProfileSchema";
-// TODO: Re-enable suiNS subname registration once Move profile supports subname registration.
-// import { SubnameField } from "@/features/suins/components/SubnameField";
+import { SubnameField } from "@/features/suins/components/SubnameField";
 import {
   CampaignSocialsSection,
   CampaignStorageRegistrationCard,
@@ -63,8 +62,7 @@ import {
   PROFILE_METADATA_REMOVED_VALUE,
 } from "@/features/profiles/constants/metadata";
 import {
-  createProfile,
-  updateProfileMetadata,
+  buildProfileTransaction,
   type ProfileMetadataUpdate,
 } from "@/services/profile";
 import { isUserRejectedError } from "@/shared/utils/errors";
@@ -98,7 +96,6 @@ const PROFILE_FORM_KEYS = {
   fullName: PROFILE_METADATA_KEYS.FULL_NAME,
   email: PROFILE_METADATA_KEYS.EMAIL,
   bio: PROFILE_METADATA_KEYS.BIO,
-  subdomain: PROFILE_METADATA_KEYS.SUBDOMAIN,
   socials: PROFILE_METADATA_KEYS.SOCIALS_JSON,
   avatar: PROFILE_METADATA_KEYS.AVATAR_WALRUS_ID,
 };
@@ -173,7 +170,6 @@ function buildProfileMetadataUpdates(
   values: CreateProfileFormData,
   currentMetadata: Record<string, string>,
   rawMetadata: Record<string, string>,
-  campaignDomain: string | null,
   avatarWalrusUrl?: string | null,
   removeAvatar = false,
 ) {
@@ -200,18 +196,6 @@ function buildProfileMetadataUpdates(
     updates,
     PROFILE_FORM_KEYS.bio,
     values.bio.trim(),
-    currentMetadata,
-    rawMetadata,
-  );
-
-  const formattedSubdomain = formatProfileSubdomain(
-    values.subdomain,
-    campaignDomain,
-  );
-  addMetadataUpdate(
-    updates,
-    PROFILE_FORM_KEYS.subdomain,
-    formattedSubdomain,
     currentMetadata,
     rawMetadata,
   );
@@ -360,6 +344,11 @@ export default function CreateProfilePage() {
     enabled: Boolean(account?.address),
   });
   const lastInitializedProfileIdRef = useRef<string | null>(null);
+  const [optimisticSubdomain, setOptimisticSubdomain] = useState<string | null>(
+    null,
+  );
+  const existingProfileSubdomain =
+    optimisticSubdomain ?? profile?.subdomainName ?? null;
 
   const hasProfileImage = profileImageValue instanceof File;
   const profileImageFile = hasProfileImage ? (profileImageValue as File) : null;
@@ -449,7 +438,12 @@ export default function CreateProfilePage() {
     socialsDirty ||
     Boolean(pendingAvatarWalrusUrl) ||
     avatarMarkedForRemoval;
-  const isSubmitDisabled = isFormReadOnly || !hasPendingChanges;
+  const hasIncompleteWalrusUpload =
+    hasProfileImage &&
+    !avatarMarkedForRemoval &&
+    !hasCompletedStorageRegistration;
+  const isSubmitDisabled =
+    isFormReadOnly || !hasPendingChanges || hasIncompleteWalrusUpload;
   const registrationDisabled =
     !hasProfileImage || isFormReadOnly || isRegistrationPending;
 
@@ -569,6 +563,7 @@ export default function CreateProfilePage() {
         form.reset(DEFAULT_VALUES);
         lastInitializedProfileIdRef.current = null;
       }
+      setOptimisticSubdomain(null);
       return;
     }
 
@@ -585,10 +580,7 @@ export default function CreateProfilePage() {
       fullName: metadata[PROFILE_FORM_KEYS.fullName] ?? "",
       email: metadata[PROFILE_FORM_KEYS.email] ?? "",
       bio: metadata[PROFILE_FORM_KEYS.bio] ?? "",
-      subdomain: extractSubdomainLabel(
-        metadata[PROFILE_FORM_KEYS.subdomain],
-        campaignDomain,
-      ),
+      subdomain: "",
       socials: existingSocials,
       profileImage: null,
     });
@@ -605,6 +597,31 @@ export default function CreateProfilePage() {
 
     lastInitializedProfileIdRef.current = profileId;
   }, [campaignDomain, form, metadata, modal, profile, profileId]);
+
+  const existingProfileSubdomainLabel = useMemo(
+    () =>
+      existingProfileSubdomain
+        ? extractSubdomainLabel(existingProfileSubdomain, campaignDomain)
+        : "",
+    [campaignDomain, existingProfileSubdomain],
+  );
+
+  useEffect(() => {
+    if (!profileId) {
+      return;
+    }
+
+    const fieldState = form.getFieldState("subdomain");
+    if (fieldState.isDirty) {
+      return;
+    }
+
+    form.setValue("subdomain", existingProfileSubdomainLabel, {
+      shouldDirty: false,
+      shouldTouch: false,
+      shouldValidate: false,
+    });
+  }, [existingProfileSubdomainLabel, form, profileId]);
 
   const epochConfig = WALRUS_EPOCH_CONFIG[DEFAULT_NETWORK];
   const totalStorageDays = selectedEpochs * epochConfig.epochDurationDays;
@@ -968,18 +985,35 @@ export default function CreateProfilePage() {
       values,
       metadata,
       rawMetadata,
-      campaignDomain,
       pendingAvatarWalrusUrl ?? undefined,
       avatarMarkedForRemoval,
     );
 
-    if (updates.length === 0 && hasProfile) {
+    const desiredSubdomainFullName = formatProfileSubdomain(
+      values.subdomain,
+      campaignDomain,
+    );
+    const wantsSubdomain = Boolean(desiredSubdomainFullName);
+    const hasRegisteredSubdomain = Boolean(existingProfileSubdomain);
+    const shouldRegisterSubdomain = wantsSubdomain && !hasRegisteredSubdomain;
+
+    if (
+      hasRegisteredSubdomain &&
+      wantsSubdomain &&
+      desiredSubdomainFullName !== existingProfileSubdomain
+    ) {
+      toast.error("Your nickname is already set and can't be changed.");
+      return;
+    }
+
+    if (updates.length === 0 && !shouldRegisterSubdomain && hasProfile) {
       toast.info("Your profile is already up to date.");
       return;
     }
 
     setIsSavingProfile(true);
     const existedBeforeSubmit = Boolean(profileId);
+    const didRegisterSubdomain = shouldRegisterSubdomain;
 
     try {
       let targetProfileId = profileId ?? null;
@@ -989,13 +1023,22 @@ export default function CreateProfilePage() {
         targetProfileId = latest.data?.profile?.profileId ?? null;
       }
 
-      if (!targetProfileId) {
-        const createTx = createProfile(DEFAULT_NETWORK);
-        await signAndExecuteTransaction({
-          transaction: createTx,
-          chain: `sui:${DEFAULT_NETWORK}`,
-        });
+      const hadProfileBeforeSubmit = Boolean(targetProfileId);
 
+      const tx = buildProfileTransaction({
+        senderAddress: account.address,
+        profileId: targetProfileId,
+        metadataUpdates: updates,
+        subdomainFullName: shouldRegisterSubdomain ? desiredSubdomainFullName : null,
+        network: DEFAULT_NETWORK,
+      });
+
+      await signAndExecuteTransaction({
+        transaction: tx,
+        chain: `sui:${DEFAULT_NETWORK}`,
+      });
+
+      if (!hadProfileBeforeSubmit) {
         targetProfileId = await waitForProfileId();
         if (!targetProfileId) {
           throw new Error(
@@ -1004,16 +1047,8 @@ export default function CreateProfilePage() {
         }
       }
 
-      if (updates.length > 0) {
-        const updateTx = updateProfileMetadata(
-          targetProfileId,
-          updates,
-          DEFAULT_NETWORK,
-        );
-        await signAndExecuteTransaction({
-          transaction: updateTx,
-          chain: `sui:${DEFAULT_NETWORK}`,
-        });
+      if (didRegisterSubdomain) {
+        setOptimisticSubdomain(desiredSubdomainFullName);
       }
 
       await refetchProfileData();
@@ -1032,10 +1067,10 @@ export default function CreateProfilePage() {
       lastProfileImageRef.current = null;
 
       const actionMessage =
-        updates.length === 0
-          ? "Profile created successfully."
-          : existedBeforeSubmit
-            ? "Profile updated successfully."
+        existedBeforeSubmit || !targetProfileId
+          ? "Profile updated successfully."
+          : updates.length === 0 && !didRegisterSubdomain
+            ? "Profile created successfully."
             : "Profile created and updated successfully.";
 
       toast.success(actionMessage);
@@ -1138,10 +1173,10 @@ export default function CreateProfilePage() {
                     />
 
                     <div className="grid gap-6 md:grid-cols-2">
-                      <FormField
-                        control={form.control}
-                        name="fullName"
-                        render={({ field }) => (
+                  <FormField
+                    control={form.control}
+                    name="fullName"
+                    render={({ field }) => (
                           <FormItem className="flex flex-col gap-2">
                             <FormLabel className="font-medium text-base">
                               Name
@@ -1179,14 +1214,14 @@ export default function CreateProfilePage() {
                       />
                     </div>
 
-                    {/* TODO: Re-enable suiNS SubnameField once Move profile supports subname registration again. */}
-                    {/*
-                      <SubnameField
-                        label="Setup your nick name"
-                        placeholder="your-name"
-                        disabled={isFormReadOnly}
-                      />
-                    */}
+                    <SubnameField
+                      label="Setup your nick name"
+                      placeholder="your-name"
+                      locked={Boolean(existingProfileSubdomain)}
+                      disabled={
+                        isFormReadOnly || Boolean(existingProfileSubdomain)
+                      }
+                    />
 
                     <FormField
                       control={form.control}
