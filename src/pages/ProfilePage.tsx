@@ -227,13 +227,34 @@ export function ProfilePage() {
   const contributionsTabLabel = isOwner ? "My Contributions" : "Contributions";
   const contributionsCount = profile?.totalDonationsCount ?? 0;
 
-  const contributionsContent = (
-    <ProfileDonationsTable
-      ownerAddress={addressParam}
-      campaignDomain={campaignDomain}
-      title={contributionsTabLabel}
-    />
-  );
+  const contributionsContent =
+    isOwner && !hasProfile ? (
+      <Card className="border-dashed border-black-50 bg-white">
+        <CardContent className="flex flex-col items-center gap-4 py-12 text-center">
+          <div className="flex size-16 items-center justify-center rounded-full bg-white-500 text-black-400">
+            <HandHeart className="size-8" />
+          </div>
+          <div className="space-y-2">
+            <h3 className="text-lg font-semibold text-black-500">
+              Create your profile to view your contributions
+            </h3>
+            <p className="text-sm text-black-300">
+              Once your profile is created, your donation history will appear
+              here.
+            </p>
+          </div>
+          <Button asChild className="h-10 rounded-lg px-6">
+            <Link to={ROUTES.PROFILE_CREATE}>Create your profile</Link>
+          </Button>
+        </CardContent>
+      </Card>
+    ) : (
+      <ProfileDonationsTable
+        ownerAddress={addressParam}
+        campaignDomain={campaignDomain}
+        title={contributionsTabLabel}
+      />
+    );
 
   const tabs: ProfileTabConfig[] = [
     {
