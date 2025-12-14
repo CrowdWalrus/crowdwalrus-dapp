@@ -96,7 +96,9 @@ export function ProfilePage() {
   const fullName = (metadataMap[PROFILE_METADATA_KEYS.FULL_NAME] ?? "").trim();
   const email = (metadataMap[PROFILE_METADATA_KEYS.EMAIL] ?? "").trim();
   const bio = (metadataMap[PROFILE_METADATA_KEYS.BIO] ?? "").trim();
-  const subdomain = (metadataMap[PROFILE_METADATA_KEYS.SUBDOMAIN] ?? "").trim();
+  const subdomain = (
+    profile?.subdomainName ?? metadataMap[PROFILE_METADATA_KEYS.SUBDOMAIN] ?? ""
+  ).trim();
   const avatarWalrusUrl = (
     metadataMap[PROFILE_METADATA_KEYS.AVATAR_WALRUS_ID] ?? ""
   ).trim();
