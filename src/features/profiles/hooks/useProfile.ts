@@ -10,7 +10,10 @@ import type {
   PaginatedResponse,
   ProfileResponse,
 } from "@/services/indexer-services";
-import { PROFILE_METADATA_REMOVED_VALUE } from "@/features/profiles/constants/metadata";
+import {
+  PROFILE_METADATA_KEYS,
+  PROFILE_METADATA_REMOVED_VALUE,
+} from "@/features/profiles/constants/metadata";
 
 export interface ProfileMetadataEntry {
   key: string;
@@ -23,6 +26,7 @@ export interface ProfileData {
   totalUsdMicro: bigint;
   totalDonationsCount: number;
   badgeLevelsEarned: number;
+  subdomainName: string | null;
   metadata: Record<string, string>;
   rawMetadata: Record<string, string>;
   metadataEntries: ProfileMetadataEntry[];
@@ -105,6 +109,12 @@ function mapProfileResponse(
   );
 
   const normalizedMetadata = normalizeMetadataRecord(rawMetadata);
+  const indexerSubdomainName =
+    (profile.subdomainName ?? "").trim() || null;
+  const fallbackSubdomainName =
+    (normalizedMetadata[PROFILE_METADATA_KEYS.SUBDOMAIN] ?? "").trim() ||
+    null;
+  const subdomainName = indexerSubdomainName || fallbackSubdomainName;
 
   const fundraisingTotals: ProfileFundraisingTotals = {
     totalUsdMicro: BigInt(profile.fundraisingTotals?.totalUsdMicro ?? 0),
@@ -121,6 +131,7 @@ function mapProfileResponse(
       totalUsdMicro: BigInt(profile.totalUsdMicro ?? 0),
       totalDonationsCount: profile.totalDonationsCount ?? 0,
       badgeLevelsEarned: profile.badgeLevelsEarned ?? 0,
+      subdomainName,
       metadata: normalizedMetadata,
       rawMetadata,
       metadataEntries: Object.entries(normalizedMetadata).map(
@@ -166,6 +177,7 @@ export function useProfile(options: UseProfileOptions = {}) {
     metadata: profile?.metadata ?? {},
     rawMetadata: profile?.rawMetadata ?? {},
     metadataEntries: profile?.metadataEntries ?? [],
+    subdomainName: profile?.subdomainName ?? null,
     badges: mapped.badges,
     donations: mapped.donations,
     hasProfile: Boolean(profileId && profile),
