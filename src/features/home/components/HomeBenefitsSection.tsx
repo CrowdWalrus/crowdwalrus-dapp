@@ -25,7 +25,7 @@ export function HomeBenefitsSection() {
   return (
     <section className="bg-white-50">
       <div className="container px-4 lg:px-0">
-        <div className="flex flex-col gap-16 py-[100px] lg:gap-20">
+        <div className="flex flex-col items-center gap-16 py-[100px] lg:gap-20">
           <div className="mx-auto flex max-w-[1000px] flex-col items-center gap-6 text-center">
             <h2 className="max-w-[726px] text-4xl font-semibold leading-[1.2] tracking-[0.48px] text-black-500 sm:text-5xl">
               Fund on Your Terms,
@@ -33,10 +33,10 @@ export function HomeBenefitsSection() {
               Built for Web3—Simple as Web2
             </h2>
             <p className="text-lg font-normal leading-[1.6] text-black-400 sm:text-xl">
-              CrowdWalrus is more than just a platform; it&apos;s a launchpad for
-              your ideas. We&apos;ve removed blockchain complexity so you can
-              focus on your mission. Create a permanent, tamper-resistant home
-              for your campaign, rally your community, and raise funds with
+              CrowdWalrus is more than just a platform; it&apos;s a launchpad
+              for your ideas. We&apos;ve removed blockchain complexity so you
+              can focus on your mission. Create a permanent, tamper-resistant
+              home for your campaign, rally your community, and raise funds with
               clarity and control.
             </p>
           </div>
