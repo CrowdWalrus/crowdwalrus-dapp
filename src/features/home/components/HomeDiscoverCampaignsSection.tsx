@@ -1,6 +1,6 @@
 import { useMemo } from "react";
 import { Link } from "react-router-dom";
-import { ArrowRight, ArrowUpRight } from "lucide-react";
+import { ArrowRight, HandHeart } from "lucide-react";
 
 import { useAllCampaigns } from "@/features/campaigns/hooks/useAllCampaigns";
 import { Button } from "@/shared/components/ui/button";
@@ -92,7 +92,7 @@ export function HomeDiscoverCampaignsSection() {
             >
               <Link to={ROUTES.EXPLORE}>
                 Contribute
-                <ArrowUpRight />
+                <HandHeart />
               </Link>
             </Button>
 

@@ -19,21 +19,25 @@ export function HomeManifestoSection() {
 
             <div className="flex max-w-[1000px] flex-col gap-5 text-base leading-[1.8] text-white-50/90 sm:text-lg">
               <p>
-                We believe fundraising should be open, verifiable, and owned by
-                the people doing the work—not gated by platforms or hidden
-                rules.
+                We believe fundraising should be open, transparent, and free
+                from gatekeepers. CrowdWalrus bridges usability and
+                decentralization: you own your campaign, your identity, and your
+                impact. By combining the accessibility of Web2 with the
+                sovereignty of Web3, we ensure that every creator—whether a
+                startup founder, a public good provider, or an artist—can raise
+                support without hidden fees, platform lock-ins, or arbitrary
+                takedowns.
               </p>
               <p>
-                CrowdWalrus is built on Sui and Walrus so every campaign can
-                have a permanent home, a human-readable subname, and transparent
-                contribution tracking—without sacrificing the simplicity people
-                expect from Web2.
-              </p>
-              <p>
-                Whether you&apos;re supporting a cause, launching a community
-                initiative, or building something new, we&apos;re here to help
-                you rally supporters and deliver impact with clarity and
-                control.
+                Fundraising should not be limited by geography, privilege, or
+                technical expertise. With CrowdWalrus, campaigns become
+                permanent, tamper-proof, and owned directly by their creators.
+                Every contribution is recorded on-chain, every campaign has a
+                clear and auditable history, and every supporter knows their
+                impact is real. Our mission is to empower individuals and
+                communities to fund on their own terms, building a more
+                resilient, transparent, and borderless future for collective
+                creation.
               </p>
             </div>
           </div>

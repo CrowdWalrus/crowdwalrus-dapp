@@ -31,8 +31,8 @@ export function HomeFeaturedCaseStudiesSection() {
               Featured Case Studies
             </h2>
             <p className="text-lg leading-[1.6] text-black-400 sm:text-xl">
-              Real results from inspiring campaigns on CrowdWalrus—how
-              supporters and creators built meaningful impact, story by story.
+              Real results from campaigns that launched with CrowdWalrus—from
+              creative projects to social impact causes to early-stage startups.
             </p>
           </div>
 
