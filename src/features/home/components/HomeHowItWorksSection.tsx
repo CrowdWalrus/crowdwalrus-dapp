@@ -40,9 +40,9 @@ export function HomeHowItWorksSection() {
       <HomeHowItWorksBackground />
 
       <div className="relative">
-        <div className="container px-4 lg:px-0">
-          <div className="flex flex-col pb-[80px] pt-[100px]">
-            <div className="mx-auto flex max-w-[720px] flex-col items-center gap-4 text-center">
+        <div className="container mx-auto px-4 lg:px-0">
+          <div className="flex flex-col items-center pb-[80px] pt-[100px]">
+            <div className="flex w-full max-w-[720px] flex-col items-center justify-center gap-4 text-center">
               <h2 className="text-4xl font-semibold leading-[1.5] text-black-500 sm:text-5xl">
                 How CrowdWalrus Works?
               </h2>
