@@ -1,7 +1,7 @@
 export function HomeHeroBackground() {
   return (
     <div className="pointer-events-none absolute inset-0 overflow-hidden">
-      <div className="absolute left-1/2 top-0 h-[980px] w-[1728px] -translate-x-1/2 overflow-hidden bg-white-50">
+      <div className="absolute left-1/2 top-0 h-[980px] w-[1728px] -translate-x-1/2 -translate-y-[100px] overflow-hidden bg-white-50">
         <div className="absolute left-0 top-[8px] h-[972px] w-[1728px] overflow-hidden bg-white-50">
           <img
             src="/assets/images/home/hero/background-wave-noise.svg"
