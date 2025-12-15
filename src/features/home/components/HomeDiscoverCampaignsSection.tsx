@@ -39,7 +39,7 @@ export function HomeDiscoverCampaignsSection() {
 
   return (
     <section className="bg-white-50">
-      <div className="container px-4 lg:px-0">
+      <div className="container px-4">
         <div className="flex flex-col items-center gap-20 py-[100px]">
           {/* Header */}
           <div className="flex w-full max-w-[1000px] flex-col gap-4 text-center">

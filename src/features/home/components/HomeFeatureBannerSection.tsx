@@ -20,7 +20,7 @@ function FeatureItem({
 export function HomeFeatureBannerSection() {
   return (
     <section className="bg-sky-50">
-      <div className="container px-4 lg:px-0">
+      <div className="container px-4">
         <div className="flex flex-col items-center justify-center gap-6 py-10 lg:flex-row lg:gap-6 lg:py-16">
           <FeatureItem
             icon={HeartHandshake}
@@ -29,7 +29,10 @@ export function HomeFeatureBannerSection() {
 
           <div className="hidden w-[240px] border-t border-dashed border-black-200 lg:block" />
 
-          <FeatureItem icon={HandHeart} label="Own your campaign & SuiNS subname" />
+          <FeatureItem
+            icon={HandHeart}
+            label="Own your campaign & SuiNS subname"
+          />
 
           <div className="hidden w-[240px] border-t border-dashed border-black-200 lg:block" />
 
@@ -42,4 +45,3 @@ export function HomeFeatureBannerSection() {
     </section>
   );
 }
-

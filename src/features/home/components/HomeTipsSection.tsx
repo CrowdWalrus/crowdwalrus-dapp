@@ -23,7 +23,7 @@ const TIPS = [
 export function HomeTipsSection() {
   return (
     <section className="bg-white-50">
-      <div className="container px-4 lg:px-0">
+      <div className="container px-4">
         <div className="flex flex-col gap-10 py-[100px]">
           <div className="flex flex-col items-center gap-4 text-center">
             <h2 className="text-4xl font-semibold leading-[1.2] tracking-[0.48px] text-black-500 sm:text-5xl">
@@ -50,4 +50,3 @@ export function HomeTipsSection() {
     </section>
   );
 }
-

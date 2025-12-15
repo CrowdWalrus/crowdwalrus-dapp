@@ -24,7 +24,7 @@ const BENEFITS = [
 export function HomeBenefitsSection() {
   return (
     <section className="bg-white-50">
-      <div className="container px-4 lg:px-0">
+      <div className="container px-4">
         <div className="flex flex-col items-center gap-16 py-[100px] lg:gap-20">
           <div className="mx-auto flex max-w-[1000px] flex-col items-center gap-6 text-center">
             <h2 className="max-w-[726px] text-4xl font-semibold leading-[1.2] tracking-[0.48px] text-black-500 sm:text-5xl">

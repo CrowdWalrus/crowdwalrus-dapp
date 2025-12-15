@@ -11,7 +11,7 @@ export function HomeHeroSection() {
       <HomeHeroBackground />
 
       <div className="relative">
-        <div className="container px-4 lg:px-0">
+        <div className="container px-4">
           <div className="flex flex-col gap-10 pb-16 pt-12 sm:pb-20 sm:pt-16 lg:pb-[273px] lg:pt-[185px]">
             <div className="flex max-w-[780px] flex-col gap-6">
               <h1 className="font-semibold leading-[1.2] text-black-500">

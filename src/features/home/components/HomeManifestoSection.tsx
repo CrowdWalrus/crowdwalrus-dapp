@@ -11,7 +11,7 @@ export function HomeManifestoSection() {
       </div>
 
       <div className="relative">
-        <div className="container px-4 lg:px-0">
+        <div className="container px-4">
           <div className="flex flex-col gap-8 py-[100px] text-white-50">
             <h2 className="text-4xl font-semibold leading-[1.2] tracking-[0.48px] sm:text-5xl">
               Our Manifesto
@@ -42,4 +42,3 @@ export function HomeManifestoSection() {
     </section>
   );
 }
-
