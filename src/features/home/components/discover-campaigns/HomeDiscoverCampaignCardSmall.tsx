@@ -25,9 +25,7 @@ export function HomeDiscoverCampaignCardSmall({
   const campaignDomain = useNetworkVariable("campaignDomain") as
     | string
     | undefined;
-  const { data: coverImageObjectUrl } = useWalrusImage(
-    campaign.coverImageUrl,
-  );
+  const { data: coverImageObjectUrl } = useWalrusImage(campaign.coverImageUrl);
 
   const hasCoverImage =
     typeof coverImageObjectUrl === "string" &&
@@ -71,17 +69,15 @@ export function HomeDiscoverCampaignCardSmall({
         </p>
 
         <div className="flex flex-col gap-3">
-          <div className="h-[8px] w-full overflow-hidden rounded-[99px] bg-blue-100">
+          <div className="h-[8px] w-full overflow-hidden rounded-[99px] bg-purple-200">
             <div
-              className="h-full rounded-[99px] bg-blue-300 transition-all"
+              className="h-full rounded-[99px] bg-purple-600 transition-all"
               style={{ width: `${progress}%` }}
             />
           </div>
 
           <div className="flex items-center justify-between text-xs leading-[1.5] text-black-500">
-            <p className="font-semibold">
-              ${formatUsd(raisedUsdMicro)} raised
-            </p>
+            <p className="font-semibold">${formatUsd(raisedUsdMicro)} raised</p>
             <p className="font-medium">${formatUsd(goalUsdMicro)}</p>
           </div>
         </div>
