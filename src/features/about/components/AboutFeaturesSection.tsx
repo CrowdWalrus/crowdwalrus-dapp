@@ -33,8 +33,27 @@ const FEATURES = [
 
 export function AboutFeaturesSection() {
   return (
-    <section className="bg-black-500">
-      <div className="container px-4">
+    <section className="relative overflow-hidden bg-black-500">
+      {/* Background Decoration */}
+      <div className="pointer-events-none absolute inset-0">
+        {/* Top right glow */}
+        <div className="absolute -right-32 -top-32 h-[500px] w-[500px] rounded-full bg-blue-500/10 blur-3xl" />
+        {/* Bottom left glow */}
+        <div className="absolute -bottom-32 -left-32 h-[400px] w-[400px] rounded-full bg-purple-500/10 blur-3xl" />
+        {/* Center subtle glow */}
+        <div className="absolute left-1/2 top-1/2 h-[300px] w-[300px] -translate-x-1/2 -translate-y-1/2 rounded-full bg-sky-500/5 blur-3xl" />
+        {/* Grid pattern overlay */}
+        <div
+          className="absolute inset-0 opacity-[0.03]"
+          style={{
+            backgroundImage: `linear-gradient(rgba(255,255,255,0.1) 1px, transparent 1px),
+                              linear-gradient(90deg, rgba(255,255,255,0.1) 1px, transparent 1px)`,
+            backgroundSize: "64px 64px",
+          }}
+        />
+      </div>
+
+      <div className="container relative px-4">
         <div className="flex flex-col gap-16 py-20 sm:py-28 lg:py-32">
           <div className="flex flex-col items-center gap-6 text-center">
             <div className="inline-flex items-center gap-2 rounded-full bg-blue-500/20 px-4 py-2 text-sm font-medium text-blue-300">
