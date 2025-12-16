@@ -10,11 +10,13 @@ import CreateProfilePage from "@/pages/CreateProfilePage";
 import { ProfilePage } from "@/pages/ProfilePage";
 import { ROUTES } from "@/shared/config/routes";
 import { NotFoundPage } from "@/pages/NotFoundPage";
+import { AboutPage } from "@/pages/AboutPage";
 
 export function AppRoutes() {
   return (
     <Routes>
       <Route path={ROUTES.HOME} element={<HomePage />} />
+      <Route path={ROUTES.ABOUT} element={<AboutPage />} />
       <Route path={ROUTES.EXPLORE} element={<ExplorePage />} />
       <Route path={ROUTES.ADMIN} element={<AdminPage />} />
       <Route path={ROUTES.CAMPAIGNS_NEW} element={<NewCampaignPage />} />
