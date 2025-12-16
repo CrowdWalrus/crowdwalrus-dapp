@@ -50,19 +50,21 @@ export function AboutFeaturesSection() {
             {FEATURES.map((feature, idx) => (
               <div
                 key={idx}
-                className="group relative overflow-hidden rounded-3xl border border-black-400 bg-black-400/50 p-8 transition-all hover:border-purple-500/50 hover:bg-black-400/80"
+                className="group relative flex flex-col gap-5 overflow-hidden rounded-3xl border border-black-400 bg-black-400/50 p-8 transition-all hover:border-purple-500/50 hover:bg-black-400/80"
               >
                 <div
-                  className={`mb-6 inline-flex h-14 w-14 items-center justify-center rounded-2xl bg-gradient-to-br ${feature.gradient} text-white-50`}
+                  className={`inline-flex h-14 w-14 items-center justify-center rounded-2xl bg-gradient-to-br ${feature.gradient} text-white-50`}
                 >
                   <feature.icon className="h-7 w-7" />
                 </div>
-                <h3 className="mb-4 text-xl font-bold text-white-50 sm:text-2xl">
-                  {feature.title}
-                </h3>
-                <p className="text-base leading-relaxed text-white-700">
-                  {feature.description}
-                </p>
+                <div className="flex flex-col gap-3">
+                  <h3 className="text-xl font-bold text-white-50 sm:text-2xl">
+                    {feature.title}
+                  </h3>
+                  <p className="text-base leading-relaxed text-white-700">
+                    {feature.description}
+                  </p>
+                </div>
               </div>
             ))}
           </div>

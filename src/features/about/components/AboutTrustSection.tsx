@@ -45,8 +45,8 @@ export function AboutTrustSection() {
 
           {/* Right Column */}
           <div className="flex flex-1 flex-col gap-6">
-            <div className="rounded-2xl border border-white-600 bg-white-50 p-8 shadow-sm">
-              <h3 className="mb-4 text-lg font-bold text-black-500">
+            <div className="flex flex-col gap-5 rounded-2xl border border-white-600 bg-white-50 p-8 shadow-sm">
+              <h3 className="text-lg font-bold text-black-500">
                 Non-verified campaigns can still:
               </h3>
               <div className="flex flex-col gap-4">
