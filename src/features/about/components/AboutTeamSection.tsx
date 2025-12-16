@@ -6,6 +6,7 @@ const TEAM = [
   {
     name: "Alireza",
     role: "Tech",
+    image: "/assets/images/team/alireza.webp",
     email: "mailto:alireza@example.com",
     linkedin: "https://linkedin.com/in/alireza",
     twitter: "https://x.com/alireza",
@@ -13,6 +14,7 @@ const TEAM = [
   {
     name: "MoeNick",
     role: "Product",
+    image: "/assets/images/team/moenick.webp",
     email: "mailto:moenick@example.com",
     linkedin: "https://linkedin.com/in/moenick",
     twitter: "https://x.com/moenick",
@@ -20,6 +22,7 @@ const TEAM = [
   {
     name: "Ahmad",
     role: "Business",
+    image: "/assets/images/team/ahmad.webp",
     email: "mailto:ahmad@example.com",
     linkedin: "https://linkedin.com/in/ahmad",
     twitter: "https://x.com/ahmad",
@@ -27,6 +30,7 @@ const TEAM = [
   {
     name: "Freshelle",
     role: "Finance",
+    image: "/assets/images/team/freshelle.webp",
     email: "mailto:freshelle@example.com",
     linkedin: "https://linkedin.com/in/freshelle",
     twitter: "https://x.com/freshelle",
@@ -34,6 +38,7 @@ const TEAM = [
   {
     name: "Mo",
     role: "UI / UX",
+    image: "/assets/images/team/mo.webp",
     email: "mailto:mo@example.com",
     linkedin: "https://linkedin.com/in/mo",
     twitter: "https://x.com/mo",
@@ -41,6 +46,7 @@ const TEAM = [
   {
     name: "Griff",
     role: "Advisor",
+    image: "/assets/images/team/griff.webp",
     email: "mailto:griff@example.com",
     linkedin: "https://linkedin.com/in/griff",
     twitter: "https://x.com/griff",
@@ -77,9 +83,11 @@ export function AboutTeamSection() {
                 key={idx}
                 className="group flex flex-col items-center gap-4 rounded-2xl border border-white-600 bg-white-100 p-6 transition-all hover:border-blue-200 hover:bg-blue-50"
               >
-                <div className="flex h-16 w-16 items-center justify-center rounded-full bg-gradient-to-br from-blue-400 to-purple-500 text-xl font-bold text-white-50">
-                  {member.name.charAt(0)}
-                </div>
+                <img
+                  src={member.image}
+                  alt={member.name}
+                  className="h-16 w-16 rounded-full object-cover"
+                />
                 <div className="flex flex-col items-center gap-3 text-center">
                   <div>
                     <h3 className="text-base font-bold text-black-500">
