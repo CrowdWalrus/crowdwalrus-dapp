@@ -1,4 +1,4 @@
-import { toCampaignSlug } from "@/shared/utils/subdomain";
+import { toCampaignSlug, toProfileSlug } from "@/shared/utils/subdomain";
 
 interface BuildCampaignDetailPathOptions {
   subdomainName?: string | null;
@@ -6,6 +6,7 @@ interface BuildCampaignDetailPathOptions {
 }
 
 const CAMPAIGNS_PREFIX = "/campaigns";
+const PROFILE_PREFIX = "/profile";
 
 const sanitizeSegment = (segment: string | null | undefined): string => {
   if (!segment) {
@@ -57,6 +58,29 @@ export function buildCampaignAddUpdatePath(
   return `${CAMPAIGNS_PREFIX}/${segment}/add-update`;
 }
 
-export function buildProfileDetailPath(profileAddress: string): string {
-  return `/profile/${sanitizeSegment(profileAddress)}`;
+interface BuildProfileDetailPathOptions {
+  subdomainName?: string | null;
+  campaignDomain?: string | null;
+}
+
+const resolveProfileSegment = (
+  profileAddress: string,
+  { subdomainName, campaignDomain }: BuildProfileDetailPathOptions = {},
+): string => {
+  if (subdomainName) {
+    const slug = toProfileSlug(subdomainName, campaignDomain);
+    if (slug) {
+      return sanitizeSegment(slug);
+    }
+  }
+
+  return sanitizeSegment(profileAddress);
+};
+
+export function buildProfileDetailPath(
+  profileAddress: string,
+  options: BuildProfileDetailPathOptions = {},
+): string {
+  const segment = resolveProfileSegment(profileAddress, options);
+  return `${PROFILE_PREFIX}/${segment}`;
 }
