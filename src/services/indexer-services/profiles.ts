@@ -2,6 +2,8 @@ import { indexerRequest } from "./client";
 import type {
   PaginatedResponse,
   ProfileDonationResponse,
+  ProfileIdentityResponse,
+  ProfileResolutionResponse,
   ProfileResponse,
 } from "./types";
 
@@ -43,5 +45,23 @@ export async function getProfileDonations(
         page_size: clampPageSize(pageSize),
       },
     },
+  );
+}
+
+/** Fetch a profile identity (owner + optional registered sub-name) by owner address. */
+export async function getProfileIdentityByAddress(
+  address: string,
+): Promise<ProfileIdentityResponse> {
+  return indexerRequest<ProfileIdentityResponse>(
+    `/v1/profiles/identity/${encodeURIComponent(address)}`,
+  );
+}
+
+/** Resolve an address or SuiNS sub-name to a profile owner address. */
+export async function resolveProfileIdentifier(
+  idOrSubname: string,
+): Promise<ProfileResolutionResponse> {
+  return indexerRequest<ProfileResolutionResponse>(
+    `/v1/profiles/resolve/${encodeURIComponent(idOrSubname)}`,
   );
 }
