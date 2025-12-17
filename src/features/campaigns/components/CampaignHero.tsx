@@ -16,7 +16,7 @@ import {
   StartsInBadge,
 } from "./CampaignBadges";
 import { getCampaignStatusInfo } from "../utils/campaignStatus";
-import { buildProfileDetailPath } from "@/shared/utils/routes";
+import { useProfileHandle } from "@/features/profiles/hooks/useProfileHandle";
 
 const PLACEHOLDER_IMAGE = "/assets/images/placeholders/campaign.png";
 
@@ -101,10 +101,10 @@ export function CampaignHero({
     typeof normalizedPublisherAddress === "string" &&
     normalizedPublisherAddress.length >= 10 &&
     normalizedPublisherAddress.startsWith("0x");
-  const publisherProfilePath = hasPublisherAddress
-    ? buildProfileDetailPath(normalizedPublisherAddress)
-    : null;
+  const { handle: publisherHandle, profilePath: publisherProfilePath } =
+    useProfileHandle(hasPublisherAddress ? normalizedPublisherAddress : null);
   const formattedPublisher = formatAddress(normalizedPublisherAddress);
+  const publisherLabel = publisherHandle ?? formattedPublisher;
 
   return (
     <div className="flex flex-col gap-4 sm:gap-5 lg:gap-6 w-full">
@@ -169,10 +169,10 @@ export function CampaignHero({
                 to={publisherProfilePath}
                 className="text-sm sm:text-base text-black-500 underline-offset-4 hover:text-black-500 hover:underline"
               >
-                {formattedPublisher}
+                {publisherLabel}
               </Link>
             ) : (
-              <p className="text-sm sm:text-base">{formattedPublisher}</p>
+              <p className="text-sm sm:text-base">{publisherLabel}</p>
             )}
           </div>
 
