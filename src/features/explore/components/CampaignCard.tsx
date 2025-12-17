@@ -18,9 +18,9 @@ import {
 } from "@/features/campaigns/components/CampaignBadges";
 import { getCampaignStatusInfo } from "@/features/campaigns/utils/campaignStatus";
 import { useNetworkVariable } from "@/shared/config/networkConfig";
+import { useProfileHandle } from "@/features/profiles/hooks/useProfileHandle";
 import {
   buildCampaignDetailPath,
-  buildProfileDetailPath,
 } from "@/shared/utils/routes";
 import { formatUsdLocaleFromMicros } from "@/shared/utils/currency";
 
@@ -92,10 +92,10 @@ export function CampaignCard({
     typeof publisherAddress === "string" &&
     publisherAddress.length >= 10 &&
     publisherAddress.startsWith("0x");
-  const publisherProfilePath = hasPublisherAddress
-    ? buildProfileDetailPath(publisherAddress)
-    : null;
+  const { handle: publisherHandle, profilePath: publisherProfilePath } =
+    useProfileHandle(hasPublisherAddress ? publisherAddress : null);
   const formattedPublisher = formatAddress(publisherAddress);
+  const publisherLabel = publisherHandle ?? formattedPublisher;
 
   return (
     <div className="flex flex-col overflow-hidden rounded-[24px] relative">
@@ -163,11 +163,11 @@ export function CampaignCard({
                   to={publisherProfilePath}
                   className="text-sm font-medium leading-relaxed text-black-500 underline-offset-4 hover:text-black-500 hover:underline"
                 >
-                  {formattedPublisher}
+                  {publisherLabel}
                 </Link>
               ) : (
                 <span className="text-sm font-medium leading-relaxed">
-                  {formattedPublisher}
+                  {publisherLabel}
                 </span>
               )}
             </div>
