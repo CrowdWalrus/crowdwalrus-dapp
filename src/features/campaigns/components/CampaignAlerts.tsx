@@ -27,6 +27,11 @@ export function InsufficientBalanceAlert({
           variant="outline"
           size="sm"
           className="bg-white border-black-50 shrink-0 h-9 px-4"
+          onClick={(e) => {
+            e.preventDefault();
+            e.stopPropagation();
+            window.open('https://trade.bluefin.io/swap/SUI-WAL', '_blank');
+          }}
         >
           Get $WAL
         </Button>
