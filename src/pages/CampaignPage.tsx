@@ -624,6 +624,8 @@ export function CampaignPage() {
                 campaignId={campaign.id}
                 statsId={campaign.statsId}
                 isVerified={campaign.isVerified}
+                isOwner={isOwner}
+                isOwnerView={isOwnerView}
                 startDateMs={campaign.startDateMs}
                 endDateMs={campaign.endDateMs}
                 campaignName={campaign.name}
