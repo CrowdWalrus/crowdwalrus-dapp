@@ -70,6 +70,7 @@ import {
   type BadgeRewardItem,
 } from "./modals/BadgeRewardModal";
 import { ShareModal } from "./modals/ShareModal";
+import { UnverifiedCampaignModal } from "./modals/UnverifiedCampaignModal";
 
 const COMING_SOON_TOKENS: Pick<
   TokenRegistryEntry,
@@ -84,6 +85,8 @@ interface DonationCardProps {
   campaignId: string;
   statsId: string;
   isVerified: boolean;
+  isOwner?: boolean;
+  isOwnerView?: boolean;
   startDateMs: number;
   endDateMs: number;
   campaignName?: string;
@@ -105,6 +108,8 @@ export function DonationCard({
   campaignId,
   statsId,
   isVerified,
+  isOwner = false,
+  isOwnerView = false,
   startDateMs,
   endDateMs,
   campaignName,
@@ -190,6 +195,8 @@ export function DonationCard({
   const [isBuildingDonation, setIsBuildingDonation] = useState(false);
   const [isWalletRequestPending, setIsWalletRequestPending] = useState(false);
   const [isShareModalOpen, setIsShareModalOpen] = useState(false);
+  const [isUnverifiedCampaignModalOpen, setIsUnverifiedCampaignModalOpen] =
+    useState(false);
   const donationFlowRef = useRef(0);
   const priceQuoteRequestRef = useRef(0);
 
@@ -1047,7 +1054,22 @@ export function DonationCard({
       <div className="bg-white rounded-2xl sm:rounded-3xl p-6 sm:p-8 lg:p-10 flex flex-col gap-4 sm:gap-5 lg:gap-6 w-full shadow-[0px_0px_16px_0px_rgba(0,0,0,0.16)]">
         {/* Verification Badge */}
         <div className="flex items-start">
-          <VerificationBadge isVerified={isVerified} />
+          {!isVerified && isOwner && isOwnerView ? (
+            <button
+              type="button"
+              onClick={() => setIsUnverifiedCampaignModalOpen(true)}
+              className="inline-flex"
+              aria-haspopup="dialog"
+              aria-label="Learn about campaign verification"
+            >
+              <VerificationBadge
+                isVerified={false}
+                className="cursor-pointer hover:opacity-90"
+              />
+            </button>
+          ) : (
+            <VerificationBadge isVerified={isVerified} />
+          )}
         </div>
 
         {/* Timeline */}
@@ -1472,6 +1494,10 @@ export function DonationCard({
         campaignName={campaignName}
         subdomainName={subdomainName}
         onClose={() => setIsShareModalOpen(false)}
+      />
+      <UnverifiedCampaignModal
+        open={isUnverifiedCampaignModalOpen}
+        onClose={() => setIsUnverifiedCampaignModalOpen(false)}
       />
 
       <div ref={connectButtonRef} className="hidden">
