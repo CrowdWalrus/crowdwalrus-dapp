@@ -109,6 +109,7 @@ export function CampaignPage() {
   const {
     recipientTotalUsdMicro: netRaisedUsdMicro,
     uniqueDonorsCount,
+    totalDonationsCount,
     isPending: isStatsPending,
     error: statsError,
     refetch: refetchCampaignStats,
@@ -536,7 +537,7 @@ export function CampaignPage() {
                     value="contributions"
                     className="flex-1 sm:flex-none"
                   >
-                    Contributions
+                    Contributions ({totalDonationsCount})
                   </TabsTrigger>
                   <TabsTrigger value="updates" className="flex-1 sm:flex-none">
                     Updates ({updates.length})
