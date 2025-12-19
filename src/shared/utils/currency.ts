@@ -1,5 +1,23 @@
 const USD_MICROS_PER_DOLLAR = 1_000_000n;
+const USD_MICROS_PER_CENT = USD_MICROS_PER_DOLLAR / 100n;
 const MAX_U64 = (1n << 64n) - 1n;
+const DEFAULT_LOCALE = "en-US";
+
+const groupWithCommas = (value: bigint): string =>
+  value.toString().replace(/\B(?=(\d{3})+(?!\d))/g, ",");
+
+const formatWholeNumber = (value: bigint, locale: string): string => {
+  if (locale === DEFAULT_LOCALE) {
+    return groupWithCommas(value);
+  }
+  const formatter = new Intl.NumberFormat(locale, { maximumFractionDigits: 0 });
+  return formatter.format(Number(value));
+};
+
+const getDecimalSeparator = (locale: string): string => {
+  const parts = new Intl.NumberFormat(locale).formatToParts(1.1);
+  return parts.find((part) => part.type === "decimal")?.value ?? ".";
+};
 
 const sanitizeUsdInput = (value: string) => value.replace(/,/g, "").trim();
 
@@ -64,19 +82,104 @@ export function usdMicrosToNumber(value: bigint): number {
 }
 
 /**
- * Locale-aware formatter for USD micro values with sensible 2-decimal defaults.
+ * Locale-aware formatter for USD micro values.
+ * - Rounds to cents.
+ * - Drops decimals when .00.
+ * - Shows "<0.01" for non-zero values below one cent.
  */
 export function formatUsdLocaleFromMicros(
   value: bigint,
-  locale = "en-US",
-  options: Intl.NumberFormatOptions = {},
+  locale = DEFAULT_LOCALE,
 ): string {
-  const formatter = new Intl.NumberFormat(locale, {
-    minimumFractionDigits: 2,
-    maximumFractionDigits: 2,
-    ...options,
-  });
-  return formatter.format(usdMicrosToNumber(value));
+  const sign = value < 0n ? "-" : "";
+  const absolute = value < 0n ? -value : value;
+
+  if (absolute > 0n && absolute < USD_MICROS_PER_CENT) {
+    const lessThan = new Intl.NumberFormat(locale, {
+      minimumFractionDigits: 2,
+      maximumFractionDigits: 2,
+    }).format(0.01);
+    return `${sign}<${lessThan}`;
+  }
+
+  const roundedCents = (absolute + USD_MICROS_PER_CENT / 2n) / USD_MICROS_PER_CENT;
+  const dollars = roundedCents / 100n;
+  const cents = roundedCents % 100n;
+  const wholeFormatted = formatWholeNumber(dollars, locale);
+
+  if (cents === 0n) {
+    return `${sign}${wholeFormatted}`;
+  }
+
+  const decimalSeparator = getDecimalSeparator(locale);
+  const centsString = cents.toString().padStart(2, "0");
+  return `${sign}${wholeFormatted}${decimalSeparator}${centsString}`;
+}
+
+/**
+ * Format a token amount from raw units (bigint) to 2 decimal places.
+ */
+export function formatTokenAmount(rawAmount: bigint, decimals: number): string {
+  if (rawAmount === 0n) {
+    return "0";
+  }
+
+  const sign = rawAmount < 0n ? "-" : "";
+  const absolute = rawAmount < 0n ? -rawAmount : rawAmount;
+  const safeDecimals = Math.max(decimals, 0);
+  const scale = 10n ** BigInt(safeDecimals);
+  const whole = absolute / scale;
+  const remainder = absolute % scale;
+
+  const fractionScale = 100n;
+  let roundedFraction = (remainder * fractionScale + scale / 2n) / scale;
+  let adjustedWhole = whole;
+
+  if (roundedFraction === fractionScale) {
+    adjustedWhole += 1n;
+    roundedFraction = 0n;
+  }
+
+  const wholeFormatted = groupWithCommas(adjustedWhole);
+  if (adjustedWhole === 0n && roundedFraction === 0n) {
+    return "0";
+  }
+  if (roundedFraction === 0n) {
+    return `${sign}${wholeFormatted}`;
+  }
+
+  const fractionStr = roundedFraction.toString().padStart(2, "0");
+  return `${sign}${wholeFormatted}.${fractionStr}`;
+}
+
+/**
+ * Format a token amount already expressed in token units (number).
+ */
+export function formatTokenAmountFromNumber(
+  value: number,
+  locale = DEFAULT_LOCALE,
+): string {
+  if (!Number.isFinite(value)) {
+    return "0";
+  }
+
+  const sign = value < 0 ? "-" : "";
+  const absolute = Math.abs(value);
+  const fixed = absolute.toFixed(2);
+  if (fixed === "0.00") {
+    return "0";
+  }
+  const [wholePart, fractionPart = "00"] = fixed.split(".");
+  const wholeFormatted = new Intl.NumberFormat(locale, {
+    maximumFractionDigits: 0,
+  }).format(Number(wholePart));
+
+  if (fractionPart === "00") {
+    return `${sign}${wholeFormatted}`;
+  }
+
+  const decimalSeparator = getDecimalSeparator(locale);
+  return `${sign}${wholeFormatted}${decimalSeparator}${fractionPart}`;
 }
 
 export const USD_MICROS = {
