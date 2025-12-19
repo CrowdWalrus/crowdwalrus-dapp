@@ -9,10 +9,7 @@ import { buildCampaignDetailPath } from "@/shared/utils/routes";
 const PLACEHOLDER_IMAGE = "/assets/images/placeholders/campaign.png";
 
 function formatUsd(value: bigint) {
-  return formatUsdLocaleFromMicros(value, "en-US", {
-    minimumFractionDigits: 0,
-    maximumFractionDigits: 0,
-  });
+  return formatUsdLocaleFromMicros(value);
 }
 
 interface HomeDiscoverCampaignCardSmallProps {

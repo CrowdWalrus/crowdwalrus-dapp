@@ -76,6 +76,7 @@ import {
   type NewCampaignFormData,
 } from "@/features/campaigns/schemas/newCampaignSchema";
 import { isUserRejectedError } from "@/shared/utils/errors";
+import { formatTokenAmountFromNumber } from "@/shared/utils/currency";
 import { AlertCircleIcon, WalletMinimal } from "lucide-react";
 
 const AUTO_CALCULATING_LABEL = "Calculating...";
@@ -656,17 +657,19 @@ export default function NewCampaignPage() {
         },
         {
           label: `Storage (${costEstimate.epochs} epochs)`,
-          amount: `${costEstimate.subsidizedStorageCost.toFixed(6)} WAL`,
+          amount: `${formatTokenAmountFromNumber(costEstimate.subsidizedStorageCost)} WAL`,
         },
         {
           label: "Upload cost",
-          amount: `${costEstimate.subsidizedUploadCost.toFixed(6)} WAL`,
+          amount: `${formatTokenAmountFromNumber(costEstimate.subsidizedUploadCost)} WAL`,
         },
         ...(costEstimate.subsidyRate && costEstimate.subsidyRate > 0
           ? [
               {
                 label: `Subsidy discount (${(costEstimate.subsidyRate * 100).toFixed(0)}%)`,
-                amount: `-${(costEstimate.totalCostWal - costEstimate.subsidizedTotalCost).toFixed(6)} WAL`,
+                amount: `${formatTokenAmountFromNumber(
+                  costEstimate.subsidizedTotalCost - costEstimate.totalCostWal,
+                )} WAL`,
               },
             ]
           : []),
@@ -679,7 +682,7 @@ export default function NewCampaignPage() {
       ];
 
   const totalCost = costEstimate
-    ? `${costEstimate.subsidizedTotalCost.toFixed(6)} WAL`
+    ? `${formatTokenAmountFromNumber(costEstimate.subsidizedTotalCost)} WAL`
     : AUTO_CALCULATING_LABEL;
 
   // Unified retry handler for the modal

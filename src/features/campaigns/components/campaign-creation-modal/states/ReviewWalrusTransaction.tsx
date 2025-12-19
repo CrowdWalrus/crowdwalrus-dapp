@@ -25,6 +25,7 @@ import type { StorageCostEstimate } from "@/features/campaigns/types/campaign";
 import { useNetworkVariable } from "@/shared/config/networkConfig";
 import { Button } from "@/shared/components/ui/button";
 import { Card, CardContent } from "@/shared/components/ui/card";
+import { formatTokenAmountFromNumber } from "@/shared/utils/currency";
 import { addDays, format } from "date-fns";
 
 export interface ReviewWalrusTransactionProps {
@@ -65,11 +66,11 @@ export const ReviewWalrusTransaction = ({
     : null;
   const walrusStorageFees =
     walrusFeeValue !== null
-      ? `${walrusFeeValue.toFixed(6)} WAL`
+      ? `${formatTokenAmountFromNumber(walrusFeeValue)} WAL`
       : "Calculate first";
 
   const totalDue = estimatedCost
-    ? `${estimatedCost.subsidizedTotalCost.toFixed(6)} WAL`
+    ? `${formatTokenAmountFromNumber(estimatedCost.subsidizedTotalCost)} WAL`
     : "Calculate first";
 
   const descriptionCopy = {

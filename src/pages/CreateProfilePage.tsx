@@ -66,6 +66,7 @@ import {
   type ProfileMetadataUpdate,
 } from "@/services/profile";
 import { isUserRejectedError } from "@/shared/utils/errors";
+import { formatTokenAmountFromNumber } from "@/shared/utils/currency";
 import { formatSubdomain } from "@/shared/utils/subdomain";
 import { buildProfileDetailPath } from "@/shared/utils/routes";
 import {
@@ -478,11 +479,11 @@ export default function CreateProfilePage() {
         },
         {
           label: `Storage (${avatarCostEstimate.epochs} epochs)`,
-          amount: `${avatarCostEstimate.subsidizedStorageCost.toFixed(6)} WAL`,
+          amount: `${formatTokenAmountFromNumber(avatarCostEstimate.subsidizedStorageCost)} WAL`,
         },
         {
           label: "Upload cost",
-          amount: `${avatarCostEstimate.subsidizedUploadCost.toFixed(6)} WAL`,
+          amount: `${formatTokenAmountFromNumber(avatarCostEstimate.subsidizedUploadCost)} WAL`,
         },
         ...(avatarCostEstimate.subsidyRate && avatarCostEstimate.subsidyRate > 0
           ? [
@@ -490,10 +491,10 @@ export default function CreateProfilePage() {
                 label: `Subsidy discount (${(
                   avatarCostEstimate.subsidyRate * 100
                 ).toFixed(0)}%)`,
-                amount: `-${(
-                  avatarCostEstimate.totalCostWal -
-                  avatarCostEstimate.subsidizedTotalCost
-                ).toFixed(6)} WAL`,
+                amount: `${formatTokenAmountFromNumber(
+                  avatarCostEstimate.subsidizedTotalCost -
+                    avatarCostEstimate.totalCostWal,
+                )} WAL`,
               },
             ]
           : []),
@@ -520,7 +521,7 @@ export default function CreateProfilePage() {
       ];
 
   const totalCost = avatarCostEstimate
-    ? `${avatarCostEstimate.subsidizedTotalCost.toFixed(6)} WAL`
+    ? `${formatTokenAmountFromNumber(avatarCostEstimate.subsidizedTotalCost)} WAL`
     : hasProfileImage
       ? AUTO_CALCULATING_LABEL
       : STORAGE_PENDING_LABEL;
