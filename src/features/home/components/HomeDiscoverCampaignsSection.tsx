@@ -12,11 +12,14 @@ import { HomeDiscoverCampaignCardSmall } from "./discover-campaigns/HomeDiscover
 export function HomeDiscoverCampaignsSection() {
   const { campaigns, isPending, error } = useAllCampaigns(DEFAULT_NETWORK, {
     pageSize: 20,
-    verified: false,
+    verified: true,
   });
 
   const visibleCampaigns = useMemo(
-    () => campaigns.filter((campaign) => !campaign.isDeleted).slice(0, 5),
+    () =>
+      campaigns
+        .filter((campaign) => campaign.isVerified && !campaign.isDeleted)
+        .slice(0, 5),
     [campaigns],
   );
 

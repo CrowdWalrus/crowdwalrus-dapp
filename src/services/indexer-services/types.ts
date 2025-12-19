@@ -155,6 +155,15 @@ export interface ProfileResponse {
   donations: PaginatedResponse<DonationResponse>;
 }
 
+export interface ProfileIdentityResponse {
+  owner: string;
+  subdomainName: string | null;
+}
+
+export interface ProfileResolutionResponse extends ProfileIdentityResponse {
+  resolvedVia: "owner_address" | "profile_subdomain";
+}
+
 export interface TokenResponse {
   coinType: string;
   symbol: string;

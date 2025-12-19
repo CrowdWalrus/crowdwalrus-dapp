@@ -69,6 +69,7 @@ import {
   useCampaignCreationModal,
 } from "@/features/campaigns/components/campaign-creation-modal";
 import { WalrusReuploadWarningModal } from "@/features/campaigns/components/modals/WalrusReuploadWarningModal";
+import { UnverifyWarningModal } from "@/features/campaigns/components/modals/UnverifyWarningModal";
 import { Card, CardContent } from "@/shared/components/ui/card";
 import { Button } from "@/shared/components/ui/button";
 import {
@@ -261,6 +262,7 @@ export default function EditCampaignPage() {
     socials: 0,
   });
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [showUnverifyWarning, setShowUnverifyWarning] = useState(false);
   const modal = useCampaignCreationModal();
   const { openModal, closeModal } = modal;
   const [wizardStep, setWizardStep] = useState<WizardStep>(WizardStep.FORM);
@@ -1432,9 +1434,30 @@ export default function EditCampaignPage() {
     }
   };
 
-  const handleSubmit = form.handleSubmit(onSubmit, () => {
-    scrollToFirstInvalidField();
-  });
+  const handleSubmitWithWarning = async (event: React.FormEvent) => {
+    event.preventDefault();
+
+    // Validate form first
+    const isValid = await form.trigger();
+    if (!isValid) {
+      scrollToFirstInvalidField();
+      return;
+    }
+
+    // Only show warning for verified campaigns after validation passes
+    if (campaignData.isVerified && hasAnyChanges) {
+      setShowUnverifyWarning(true);
+      return;
+    }
+
+    // If not verified, proceed with submission
+    form.handleSubmit(onSubmit)();
+  };
+
+  const handleConfirmUnverifyAndSubmit = () => {
+    setShowUnverifyWarning(false);
+    form.handleSubmit(onSubmit)();
+  };
 
   const disableSubmit =
     isSubmitting || requireWalrusRegistration || !hasAnyChanges;
@@ -1654,7 +1677,7 @@ export default function EditCampaignPage() {
         <div className="container px-4 flex justify-center">
           <div className="w-full max-w-3xl px-4">
             <Form {...form}>
-              <form className="flex flex-col gap-16" onSubmit={handleSubmit}>
+              <form className="flex flex-col gap-16" onSubmit={handleSubmitWithWarning}>
                 <div className="flex flex-col items-center text-center gap-4">
                   <h1 className="text-5xl font-bold">
                     Edit{" "}
@@ -1981,6 +2004,13 @@ export default function EditCampaignPage() {
                   open={pendingWalrusSection !== null}
                   onConfirm={handleConfirmWalrusEdit}
                   onClose={handleCloseWalrusModal}
+                />
+
+                <UnverifyWarningModal
+                  open={showUnverifyWarning}
+                  onConfirm={handleConfirmUnverifyAndSubmit}
+                  onClose={() => setShowUnverifyWarning(false)}
+                  isSubmitting={isSubmitting}
                 />
               </form>
             </Form>
