@@ -25,6 +25,7 @@ import {
 } from "@/features/campaigns/hooks/useWalrusUpload";
 import { createCampaignTransaction } from "@/features/campaigns/helpers/createCampaignTransaction";
 import { transformNewCampaignFormData } from "@/features/campaigns/utils/transformFormData";
+import { getDefaultSocialLinks } from "@/features/campaigns/utils/socials";
 import { extractCampaignIdFromEffects } from "@/services/campaign-transaction";
 import { getContractConfig } from "@/shared/config/contracts";
 import { getWalrusUrl } from "@/services/walrus";
@@ -92,7 +93,7 @@ const EMPTY_FORM_DEFAULTS: Partial<NewCampaignFormData> = {
   endDate: "",
   targetAmount: "",
   walletAddress: "",
-  socials: [],
+  socials: getDefaultSocialLinks(),
   campaignDetails: "",
   termsAccepted: false,
 };
