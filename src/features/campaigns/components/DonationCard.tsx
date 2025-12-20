@@ -28,7 +28,10 @@ import {
   SelectTrigger,
 } from "@/shared/components/ui/select";
 import { CampaignTimelineBadge, VerificationBadge } from "./CampaignBadges";
-import { formatUsdLocaleFromMicros } from "@/shared/utils/currency";
+import {
+  formatTokenAmount,
+  formatUsdLocaleFromMicros,
+} from "@/shared/utils/currency";
 import { useEnabledTokens } from "@/features/tokens/hooks";
 import { useProfile } from "@/features/profiles/hooks/useProfile";
 import { useDonorBadges } from "@/features/badges/hooks/useDonorBadges";
@@ -38,7 +41,6 @@ import {
   buildFirstTimeDonationTx,
   buildRepeatDonationTx,
   parseCoinInputToRawAmount,
-  formatRawAmount,
   DEFAULT_SLIPPAGE_BPS,
   type DonationBuildResult,
 } from "@/services/donations";
@@ -608,7 +610,7 @@ export function DonationCard({
     if (balanceRaw === null) {
       return "0";
     }
-    return `${formatRawAmount(balanceRaw, selectedToken.decimals, 4)} ${selectedToken.symbol}`;
+    return `${formatTokenAmount(balanceRaw, selectedToken.decimals)} ${selectedToken.symbol}`;
   }, [balanceRaw, isBalanceLoading, isWalletConnected, selectedToken]);
 
   const canDonate = Boolean(
@@ -904,10 +906,9 @@ export function DonationCard({
             : 0n;
         const netRawAmount = grossRawAmount - feeRawAmount;
 
-        const amountHuman = formatRawAmount(
+        const amountHuman = formatTokenAmount(
           netRawAmount,
           selectedToken.decimals,
-          6,
         );
 
         const usdDisplay = amountUsdMicro
@@ -1366,10 +1367,9 @@ export function DonationCard({
                       <div className="flex justify-between text-sm text-black-400">
                         <span>Your donation</span>
                         <span>
-                          {formatRawAmount(
+                          {formatTokenAmount(
                             parsedAmount,
                             selectedToken.decimals,
-                            4,
                           )}{" "}
                           {selectedToken.symbol}
                         </span>
@@ -1377,10 +1377,9 @@ export function DonationCard({
                       <div className="flex justify-between text-sm text-black-400">
                         <span>Platform Fee ({platformBps / 100}%)</span>
                         <span>
-                          {formatRawAmount(
+                          {formatTokenAmount(
                             (parsedAmount * BigInt(platformBps)) / 10000n,
                             selectedToken.decimals,
-                            4,
                           )}{" "}
                           {selectedToken.symbol}
                         </span>
@@ -1390,11 +1389,10 @@ export function DonationCard({
                         <span className="text-black-400">Net Amount</span>
                         <div className="flex items-center gap-1">
                           <span className="text-black-400">
-                            {formatRawAmount(
+                            {formatTokenAmount(
                               parsedAmount -
                                 (parsedAmount * BigInt(platformBps)) / 10000n,
                               selectedToken.decimals,
-                              4,
                             )}{" "}
                             {selectedToken.symbol}
                           </span>

@@ -2,6 +2,15 @@ import { PROFILE_METADATA_REMOVED_VALUE } from "@/features/profiles/constants/me
 import type { CampaignSocialLink } from "../types/campaign";
 
 const SOCIALS_JSON_KEY = "socials_json";
+const DEFAULT_SOCIAL_LINKS: CampaignSocialLink[] = [
+  { platform: "website", url: "" },
+  { platform: "twitter", url: "" },
+  { platform: "instagram", url: "" },
+];
+
+export function getDefaultSocialLinks(): CampaignSocialLink[] {
+  return DEFAULT_SOCIAL_LINKS.map((link) => ({ ...link }));
+}
 
 /**
  * Normalize and filter social links for storage.

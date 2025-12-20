@@ -25,6 +25,7 @@ import {
 } from "@/features/campaigns/hooks/useWalrusUpload";
 import { createCampaignTransaction } from "@/features/campaigns/helpers/createCampaignTransaction";
 import { transformNewCampaignFormData } from "@/features/campaigns/utils/transformFormData";
+import { getDefaultSocialLinks } from "@/features/campaigns/utils/socials";
 import { extractCampaignIdFromEffects } from "@/services/campaign-transaction";
 import { getContractConfig } from "@/shared/config/contracts";
 import { getWalrusUrl } from "@/services/walrus";
@@ -76,6 +77,7 @@ import {
   type NewCampaignFormData,
 } from "@/features/campaigns/schemas/newCampaignSchema";
 import { isUserRejectedError } from "@/shared/utils/errors";
+import { formatTokenAmountFromNumber } from "@/shared/utils/currency";
 import { AlertCircleIcon, WalletMinimal } from "lucide-react";
 
 const AUTO_CALCULATING_LABEL = "Calculating...";
@@ -91,7 +93,7 @@ const EMPTY_FORM_DEFAULTS: Partial<NewCampaignFormData> = {
   endDate: "",
   targetAmount: "",
   walletAddress: "",
-  socials: [],
+  socials: getDefaultSocialLinks(),
   campaignDetails: "",
   termsAccepted: false,
 };
@@ -656,17 +658,19 @@ export default function NewCampaignPage() {
         },
         {
           label: `Storage (${costEstimate.epochs} epochs)`,
-          amount: `${costEstimate.subsidizedStorageCost.toFixed(6)} WAL`,
+          amount: `${formatTokenAmountFromNumber(costEstimate.subsidizedStorageCost)} WAL`,
         },
         {
           label: "Upload cost",
-          amount: `${costEstimate.subsidizedUploadCost.toFixed(6)} WAL`,
+          amount: `${formatTokenAmountFromNumber(costEstimate.subsidizedUploadCost)} WAL`,
         },
         ...(costEstimate.subsidyRate && costEstimate.subsidyRate > 0
           ? [
               {
                 label: `Subsidy discount (${(costEstimate.subsidyRate * 100).toFixed(0)}%)`,
-                amount: `-${(costEstimate.totalCostWal - costEstimate.subsidizedTotalCost).toFixed(6)} WAL`,
+                amount: `${formatTokenAmountFromNumber(
+                  costEstimate.subsidizedTotalCost - costEstimate.totalCostWal,
+                )} WAL`,
               },
             ]
           : []),
@@ -679,7 +683,7 @@ export default function NewCampaignPage() {
       ];
 
   const totalCost = costEstimate
-    ? `${costEstimate.subsidizedTotalCost.toFixed(6)} WAL`
+    ? `${formatTokenAmountFromNumber(costEstimate.subsidizedTotalCost)} WAL`
     : AUTO_CALCULATING_LABEL;
 
   // Unified retry handler for the modal

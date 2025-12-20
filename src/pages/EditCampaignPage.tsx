@@ -47,7 +47,10 @@ import { getContractConfig, CLOCK_OBJECT_ID } from "@/shared/config/contracts";
 import { DEFAULT_NETWORK } from "@/shared/config/networkConfig";
 import { ROUTES } from "@/shared/config/routes";
 import { buildCampaignDetailPath } from "@/shared/utils/routes";
-import { formatUsdLocaleFromMicros } from "@/shared/utils/currency";
+import {
+  formatTokenAmountFromNumber,
+  formatUsdLocaleFromMicros,
+} from "@/shared/utils/currency";
 import {
   CampaignResolutionError,
   CampaignResolutionLoading,
@@ -1586,17 +1589,19 @@ export default function EditCampaignPage() {
         },
         {
           label: `Storage (${costEstimate.epochs} epochs)`,
-          amount: `${costEstimate.subsidizedStorageCost.toFixed(6)} WAL`,
+          amount: `${formatTokenAmountFromNumber(costEstimate.subsidizedStorageCost)} WAL`,
         },
         {
           label: "Upload cost",
-          amount: `${costEstimate.subsidizedUploadCost.toFixed(6)} WAL`,
+          amount: `${formatTokenAmountFromNumber(costEstimate.subsidizedUploadCost)} WAL`,
         },
         ...(costEstimate.subsidyRate && costEstimate.subsidyRate > 0
           ? [
               {
                 label: `Subsidy discount (${(costEstimate.subsidyRate * 100).toFixed(0)}%)`,
-                amount: `-${(costEstimate.totalCostWal - costEstimate.subsidizedTotalCost).toFixed(6)} WAL`,
+                amount: `${formatTokenAmountFromNumber(
+                  costEstimate.subsidizedTotalCost - costEstimate.totalCostWal,
+                )} WAL`,
               },
             ]
           : []),
@@ -1616,7 +1621,7 @@ export default function EditCampaignPage() {
         ];
 
   const totalCostDisplay = costEstimate
-    ? `${costEstimate.subsidizedTotalCost.toFixed(6)} WAL`
+    ? `${formatTokenAmountFromNumber(costEstimate.subsidizedTotalCost)} WAL`
     : storageRegistrationComplete
       ? "Registered"
       : walrusChangesDetected

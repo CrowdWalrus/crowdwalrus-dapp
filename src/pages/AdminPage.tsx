@@ -1,6 +1,7 @@
 import { useState, useMemo, useEffect, useCallback } from "react";
 import { ConnectButton } from "@mysten/dapp-kit";
 import { normalizeSuiAddress } from "@mysten/sui/utils";
+import { useQueryClient } from "@tanstack/react-query";
 import { Tabs, TabsList, TabsTrigger } from "@/shared/components/ui/tabs";
 import { Button } from "@/shared/components/ui/button";
 import {
@@ -19,11 +20,18 @@ import {
 import { useCampaignStats } from "@/features/campaigns/hooks/useCampaignStats";
 import { useAllCampaigns } from "@/features/campaigns/hooks/useAllCampaigns";
 import type { CampaignData } from "@/features/campaigns/hooks/useAllCampaigns";
-import { CampaignCard } from "@/features/admin/components/CampaignCard";
+import {
+  CampaignCard,
+  CampaignVerificationModal,
+  type CampaignVerificationAction,
+} from "@/features/admin/components";
 import { VerifierManagementPanel } from "@/features/admin/components/VerifierManagementPanel";
 import { useDocumentTitle } from "@/shared/hooks/useDocumentTitle";
+import { getCampaignById } from "@/services/indexer-services";
 
 type TabValue = "all" | "verified" | "unverified";
+const VERIFICATION_PROPAGATION_ATTEMPTS = 6;
+const VERIFICATION_PROPAGATION_DELAY_MS = 800;
 
 const normalizeCampaignId = (id: string): string => {
   try {
@@ -288,6 +296,10 @@ function CampaignCardWithActions({
   accountAddress,
   onRefetch,
 }: CampaignCardWithActionsProps) {
+  const queryClient = useQueryClient();
+  const [pendingAction, setPendingAction] =
+    useState<CampaignVerificationAction | null>(null);
+  const [isAwaitingPropagation, setIsAwaitingPropagation] = useState(false);
   const {
     recipientTotalUsdMicro,
     uniqueDonorsCount,
@@ -311,7 +323,6 @@ function CampaignCardWithActions({
     verifyCapId: primaryVerifyCapId,
     accountAddress,
     isVerified,
-    onSuccess: onRefetch,
   });
 
   const { unverifyCampaign, isProcessing: isUnverifying } = useUnverifyCampaign(
@@ -320,22 +331,102 @@ function CampaignCardWithActions({
       verifyCapId: primaryVerifyCapId,
       accountAddress,
       isVerified,
-      onSuccess: onRefetch,
     },
   );
 
-  return (
-    <CampaignCard
-      campaign={campaign}
-      isVerified={isVerified}
-      isProcessing={isVerifying || isUnverifying}
-      onVerify={verifyCampaign}
-      onUnverify={unverifyCampaign}
-      canTakeAction={Boolean(primaryVerifyCapId)}
-      raisedUsdMicro={
-        statsError || isStatsPending ? 0n : recipientTotalUsdMicro
+  const isSubmitting =
+    (pendingAction === "verify"
+      ? isVerifying
+      : pendingAction === "unverify"
+        ? isUnverifying
+        : false) || isAwaitingPropagation;
+
+  const waitForVerificationPropagation = useCallback(
+    async (expectedVerified: boolean) => {
+      for (
+        let attempt = 0;
+        attempt < VERIFICATION_PROPAGATION_ATTEMPTS;
+        attempt += 1
+      ) {
+        try {
+          const detail = await getCampaignById(campaign.id);
+          if (detail?.isVerified === expectedVerified) {
+            return;
+          }
+        } catch (error) {
+          console.warn(
+            `[AdminPage] Refetch failed during verification wait for ${campaign.id}:`,
+            error,
+          );
+        }
+
+        await new Promise((resolve) =>
+          setTimeout(
+            resolve,
+            VERIFICATION_PROPAGATION_DELAY_MS * (attempt + 1),
+          ),
+        );
       }
-      supportersCount={statsError || isStatsPending ? 0 : uniqueDonorsCount}
-    />
+    },
+    [campaign.id],
+  );
+
+  const handleConfirmAction = async () => {
+    if (!pendingAction) return;
+
+    const action = pendingAction;
+    const expectedVerified = action === "verify";
+    const result =
+      action === "verify" ? await verifyCampaign() : await unverifyCampaign();
+
+    const shouldSync =
+      result === "success" ||
+      result === "already_verified" ||
+      result === "already_unverified";
+
+    if (shouldSync) {
+      setIsAwaitingPropagation(true);
+      try {
+        await waitForVerificationPropagation(expectedVerified);
+        await Promise.all([
+          queryClient.invalidateQueries({ queryKey: ["indexer", "campaign"] }),
+          queryClient.invalidateQueries({ queryKey: ["indexer", "campaigns"] }),
+        ]);
+        await onRefetch();
+      } finally {
+        setIsAwaitingPropagation(false);
+      }
+    }
+
+    setPendingAction(null);
+  };
+
+  return (
+    <>
+      <CampaignCard
+        campaign={campaign}
+        isVerified={isVerified}
+        isProcessing={isVerifying || isUnverifying || isAwaitingPropagation}
+        onVerify={() => setPendingAction("verify")}
+        onUnverify={() => setPendingAction("unverify")}
+        canTakeAction={Boolean(primaryVerifyCapId)}
+        raisedUsdMicro={
+          statsError || isStatsPending ? 0n : recipientTotalUsdMicro
+        }
+        supportersCount={statsError || isStatsPending ? 0 : uniqueDonorsCount}
+      />
+      <CampaignVerificationModal
+        open={pendingAction !== null}
+        action={pendingAction ?? "verify"}
+        campaignName={campaign.name}
+        onClose={() => {
+          if (!isSubmitting) {
+            setPendingAction(null);
+          }
+        }}
+        onConfirm={handleConfirmAction}
+        isSubmitting={isSubmitting}
+      />
+    </>
   );
 }

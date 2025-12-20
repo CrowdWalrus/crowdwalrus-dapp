@@ -1,20 +1,25 @@
 export function HomeHeroBackground() {
   return (
     <div className="pointer-events-none absolute inset-0 overflow-hidden">
-      <div className="absolute left-1/2 top-0 h-[980px] w-[1728px] -translate-x-1/2 -translate-y-[100px] overflow-hidden bg-white-50">
-        <div className="absolute left-0 top-[8px] h-[972px] w-[1728px] overflow-hidden bg-white-50">
-          <img
-            src="/assets/images/home/hero/background-wave-noise.svg"
-            alt=""
-            className="absolute inset-[37.96%_-2.29%_-25.65%_0] block h-full w-full max-w-none"
-            draggable={false}
-          />
-          <img
-            src="/assets/images/home/hero/background-waves.svg"
-            alt=""
-            className="absolute inset-[24.07%_-2.55%_-25.65%_0] block h-full w-full max-w-none"
-            draggable={false}
-          />
+      {/* Full-width background waves layer */}
+      <div className="absolute inset-0 -top-[100px] overflow-hidden bg-white-50">
+        <img
+          src="/assets/images/home/hero/background-wave-noise.svg"
+          alt=""
+          className="absolute bottom-0 left-1/2 top-[37%] block h-auto min-h-[63%] w-full min-w-[1728px] -translate-x-1/2 max-w-none object-cover object-top"
+          draggable={false}
+        />
+        <img
+          src="/assets/images/home/hero/background-waves.svg"
+          alt=""
+          className="absolute bottom-0 left-1/2 top-[24%] block h-auto min-h-[76%] w-full min-w-[1728px] -translate-x-1/2 max-w-none object-cover object-top"
+          draggable={false}
+        />
+      </div>
+
+      {/* Fixed-width decorative elements layer - centered */}
+      <div className="absolute left-1/2 top-0 h-[980px] w-[1728px] -translate-x-1/2 -translate-y-[100px] overflow-visible">
+        <div className="absolute left-0 top-[8px] h-[972px] w-[1728px] overflow-visible">
           <img
             src="/assets/images/home/hero/blocks-vectors.svg"
             alt=""

@@ -52,6 +52,7 @@ import {
 } from "@/shared/config/networkConfig";
 import { useWalBalance } from "@/shared/hooks/useWalBalance";
 import {
+  getDefaultSocialLinks,
   sanitizeSocialLinks,
   serializeSocialLinks,
   parseSocialLinksFromMetadata,
@@ -66,6 +67,7 @@ import {
   type ProfileMetadataUpdate,
 } from "@/services/profile";
 import { isUserRejectedError } from "@/shared/utils/errors";
+import { formatTokenAmountFromNumber } from "@/shared/utils/currency";
 import { formatSubdomain } from "@/shared/utils/subdomain";
 import { buildProfileDetailPath } from "@/shared/utils/routes";
 import {
@@ -89,7 +91,7 @@ const DEFAULT_VALUES: CreateProfileFormData = {
   email: "",
   subdomain: "",
   bio: "",
-  socials: [],
+  socials: getDefaultSocialLinks(),
 };
 
 const PROFILE_FORM_KEYS = {
@@ -478,11 +480,11 @@ export default function CreateProfilePage() {
         },
         {
           label: `Storage (${avatarCostEstimate.epochs} epochs)`,
-          amount: `${avatarCostEstimate.subsidizedStorageCost.toFixed(6)} WAL`,
+          amount: `${formatTokenAmountFromNumber(avatarCostEstimate.subsidizedStorageCost)} WAL`,
         },
         {
           label: "Upload cost",
-          amount: `${avatarCostEstimate.subsidizedUploadCost.toFixed(6)} WAL`,
+          amount: `${formatTokenAmountFromNumber(avatarCostEstimate.subsidizedUploadCost)} WAL`,
         },
         ...(avatarCostEstimate.subsidyRate && avatarCostEstimate.subsidyRate > 0
           ? [
@@ -490,10 +492,10 @@ export default function CreateProfilePage() {
                 label: `Subsidy discount (${(
                   avatarCostEstimate.subsidyRate * 100
                 ).toFixed(0)}%)`,
-                amount: `-${(
-                  avatarCostEstimate.totalCostWal -
-                  avatarCostEstimate.subsidizedTotalCost
-                ).toFixed(6)} WAL`,
+                amount: `${formatTokenAmountFromNumber(
+                  avatarCostEstimate.subsidizedTotalCost -
+                    avatarCostEstimate.totalCostWal,
+                )} WAL`,
               },
             ]
           : []),
@@ -520,7 +522,7 @@ export default function CreateProfilePage() {
       ];
 
   const totalCost = avatarCostEstimate
-    ? `${avatarCostEstimate.subsidizedTotalCost.toFixed(6)} WAL`
+    ? `${formatTokenAmountFromNumber(avatarCostEstimate.subsidizedTotalCost)} WAL`
     : hasProfileImage
       ? AUTO_CALCULATING_LABEL
       : STORAGE_PENDING_LABEL;
@@ -574,6 +576,10 @@ export default function CreateProfilePage() {
     const existingSocials = parseSocialLinksFromMetadata(
       profile.metadata ?? {},
     );
+    const initialSocials =
+      existingSocials.length > 0
+        ? existingSocials
+        : getDefaultSocialLinks();
 
     form.reset({
       ...DEFAULT_VALUES,
@@ -581,7 +587,7 @@ export default function CreateProfilePage() {
       email: metadata[PROFILE_FORM_KEYS.email] ?? "",
       bio: metadata[PROFILE_FORM_KEYS.bio] ?? "",
       subdomain: "",
-      socials: existingSocials,
+      socials: initialSocials,
       profileImage: null,
     });
 

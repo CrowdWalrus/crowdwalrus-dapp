@@ -255,33 +255,6 @@ export function parseCoinInputToRawAmount(
   return raw;
 }
 
-export function formatRawAmount(
-  rawAmount: bigint,
-  decimals: number,
-  maximumFractionDigits = 6,
-): string {
-  if (rawAmount === 0n) {
-    return "0";
-  }
-
-  const scale = pow10BigInt(decimals);
-  const whole = rawAmount / scale;
-  const fraction = rawAmount % scale;
-  if (fraction === 0n) {
-    return whole.toString();
-  }
-
-  const fractionStr = fraction
-    .toString()
-    .padStart(decimals, "0")
-    .slice(0, maximumFractionDigits)
-    .replace(/0+$/, "");
-
-  return fractionStr.length > 0
-    ? `${whole.toString()}.${fractionStr}`
-    : whole.toString();
-}
-
 async function prepareDonationCoin({
   tx,
   suiClient,
