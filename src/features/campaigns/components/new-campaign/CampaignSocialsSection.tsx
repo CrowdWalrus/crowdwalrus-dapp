@@ -4,7 +4,7 @@ import {
   Controller,
   type FieldError,
 } from "react-hook-form";
-import type { ReactNode } from "react";
+import { useEffect, type ReactNode } from "react";
 import { Plus, X } from "lucide-react";
 import {
   MAX_SOCIAL_LINKS,
@@ -47,7 +47,7 @@ export function CampaignSocialsSection({
     watch,
     formState: { errors },
   } = useFormContext<SocialFormValues>();
-  const { fields, append, remove } = useFieldArray<SocialFormValues>({
+  const { fields, append, remove, replace } = useFieldArray<SocialFormValues>({
     control,
     name: "socials",
   });
@@ -55,6 +55,22 @@ export function CampaignSocialsSection({
   const socials = watch("socials");
   const socialCount = socials?.length ?? 0;
   const isAtLimit = socialCount >= maxSocials;
+
+  useEffect(() => {
+    // Keep field array in sync with async resets/navigation to avoid blank rows.
+    if (!Array.isArray(socials)) {
+      return;
+    }
+    const normalized = socials.filter(
+      (entry) => entry && entry.platform,
+    );
+    if (
+      normalized.length !== socials.length ||
+      normalized.length !== fields.length
+    ) {
+      replace(normalized);
+    }
+  }, [fields.length, replace, socials]);
 
   const handleAddMore = () => {
     if (disabled || isAtLimit) {
