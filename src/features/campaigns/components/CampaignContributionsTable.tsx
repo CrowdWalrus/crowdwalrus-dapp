@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useState } from "react";
-import { AlertCircle } from "lucide-react";
+import { AlertCircle, ExternalLink } from "lucide-react";
 import { Link } from "react-router-dom";
 
 import {
@@ -21,6 +21,7 @@ import {
 } from "@/shared/components/ui/table";
 import { cn } from "@/shared/lib/utils";
 import { formatUsdLocaleFromMicros } from "@/shared/utils/currency";
+import { buildExplorerTxUrl } from "@/shared/utils/explorer";
 import { canonicalizeCoinType } from "@/shared/utils/sui";
 import {
   formatContributionDate,
@@ -30,6 +31,7 @@ import {
 import { useCampaignDonations } from "@/hooks/indexer/useCampaignDonations";
 import { useEnabledTokens } from "@/features/tokens/hooks";
 import { useProfileHandle } from "@/features/profiles/hooks/useProfileHandle";
+import { DEFAULT_NETWORK } from "@/shared/config/networkConfig";
 
 interface CampaignContributionsTableProps {
   campaignId: string;
@@ -220,6 +222,7 @@ export function CampaignContributionsTable({
           ? BigInt(donation.recipientAmountUsdMicro)
           : totalUsd - platformUsd;
       const netUsd = recipientUsd < 0 ? 0n : recipientUsd;
+      const explorerUrl = buildExplorerTxUrl(donation.txDigest, DEFAULT_NETWORK);
 
       return (
         <TableRow
@@ -248,7 +251,21 @@ export function CampaignContributionsTable({
             {amountDisplay}
           </TableCell>
           <TableCell className="px-4 py-4 text-black-500">
-            ${formatUsdLocaleFromMicros(totalUsd)}
+            <div className="flex items-center gap-2">
+              <span>${formatUsdLocaleFromMicros(totalUsd)}</span>
+              {explorerUrl ? (
+                <a
+                  href={explorerUrl}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="inline-flex items-center text-primary hover:text-primary/80"
+                  aria-label="View transaction in explorer"
+                  title="View transaction in explorer"
+                >
+                  <ExternalLink className="h-4 w-4" aria-hidden="true" />
+                </a>
+              ) : null}
+            </div>
           </TableCell>
           <TableCell className="px-4 py-4 text-black-500 font-medium">
             ${formatUsdLocaleFromMicros(netUsd)}
