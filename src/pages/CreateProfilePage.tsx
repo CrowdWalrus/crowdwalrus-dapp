@@ -52,6 +52,7 @@ import {
 } from "@/shared/config/networkConfig";
 import { useWalBalance } from "@/shared/hooks/useWalBalance";
 import {
+  getDefaultSocialLinks,
   sanitizeSocialLinks,
   serializeSocialLinks,
   parseSocialLinksFromMetadata,
@@ -90,7 +91,7 @@ const DEFAULT_VALUES: CreateProfileFormData = {
   email: "",
   subdomain: "",
   bio: "",
-  socials: [],
+  socials: getDefaultSocialLinks(),
 };
 
 const PROFILE_FORM_KEYS = {
@@ -575,6 +576,10 @@ export default function CreateProfilePage() {
     const existingSocials = parseSocialLinksFromMetadata(
       profile.metadata ?? {},
     );
+    const initialSocials =
+      existingSocials.length > 0
+        ? existingSocials
+        : getDefaultSocialLinks();
 
     form.reset({
       ...DEFAULT_VALUES,
@@ -582,7 +587,7 @@ export default function CreateProfilePage() {
       email: metadata[PROFILE_FORM_KEYS.email] ?? "",
       bio: metadata[PROFILE_FORM_KEYS.bio] ?? "",
       subdomain: "",
-      socials: existingSocials,
+      socials: initialSocials,
       profileImage: null,
     });
 
