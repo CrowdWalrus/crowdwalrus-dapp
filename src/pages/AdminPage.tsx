@@ -19,7 +19,11 @@ import {
 import { useCampaignStats } from "@/features/campaigns/hooks/useCampaignStats";
 import { useAllCampaigns } from "@/features/campaigns/hooks/useAllCampaigns";
 import type { CampaignData } from "@/features/campaigns/hooks/useAllCampaigns";
-import { CampaignCard } from "@/features/admin/components/CampaignCard";
+import {
+  CampaignCard,
+  CampaignVerificationModal,
+  type CampaignVerificationAction,
+} from "@/features/admin/components";
 import { VerifierManagementPanel } from "@/features/admin/components/VerifierManagementPanel";
 import { useDocumentTitle } from "@/shared/hooks/useDocumentTitle";
 
@@ -288,6 +292,8 @@ function CampaignCardWithActions({
   accountAddress,
   onRefetch,
 }: CampaignCardWithActionsProps) {
+  const [pendingAction, setPendingAction] =
+    useState<CampaignVerificationAction | null>(null);
   const {
     recipientTotalUsdMicro,
     uniqueDonorsCount,
@@ -324,18 +330,47 @@ function CampaignCardWithActions({
     },
   );
 
+  const isSubmitting =
+    pendingAction === "verify"
+      ? isVerifying
+      : pendingAction === "unverify"
+        ? isUnverifying
+        : false;
+
+  const handleConfirmAction = async () => {
+    if (!pendingAction) return;
+
+    const action = pendingAction;
+    await (action === "verify" ? verifyCampaign() : unverifyCampaign());
+    setPendingAction(null);
+  };
+
   return (
-    <CampaignCard
-      campaign={campaign}
-      isVerified={isVerified}
-      isProcessing={isVerifying || isUnverifying}
-      onVerify={verifyCampaign}
-      onUnverify={unverifyCampaign}
-      canTakeAction={Boolean(primaryVerifyCapId)}
-      raisedUsdMicro={
-        statsError || isStatsPending ? 0n : recipientTotalUsdMicro
-      }
-      supportersCount={statsError || isStatsPending ? 0 : uniqueDonorsCount}
-    />
+    <>
+      <CampaignCard
+        campaign={campaign}
+        isVerified={isVerified}
+        isProcessing={isVerifying || isUnverifying}
+        onVerify={() => setPendingAction("verify")}
+        onUnverify={() => setPendingAction("unverify")}
+        canTakeAction={Boolean(primaryVerifyCapId)}
+        raisedUsdMicro={
+          statsError || isStatsPending ? 0n : recipientTotalUsdMicro
+        }
+        supportersCount={statsError || isStatsPending ? 0 : uniqueDonorsCount}
+      />
+      <CampaignVerificationModal
+        open={pendingAction !== null}
+        action={pendingAction ?? "verify"}
+        campaignName={campaign.name}
+        onClose={() => {
+          if (!isSubmitting) {
+            setPendingAction(null);
+          }
+        }}
+        onConfirm={handleConfirmAction}
+        isSubmitting={isSubmitting}
+      />
+    </>
   );
 }
