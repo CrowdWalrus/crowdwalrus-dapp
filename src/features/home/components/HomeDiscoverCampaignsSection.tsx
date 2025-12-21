@@ -2,7 +2,7 @@ import { useMemo } from "react";
 import { Link } from "react-router-dom";
 import { ArrowRight, HandHeart } from "lucide-react";
 
-import { useAllCampaigns } from "@/features/campaigns/hooks/useAllCampaigns";
+import { useDiscoverCampaigns } from "@/features/campaigns/hooks/useDiscoverCampaigns";
 import { Button } from "@/shared/components/ui/button";
 import { DEFAULT_NETWORK } from "@/shared/config/networkConfig";
 import { ROUTES } from "@/shared/config/routes";
@@ -10,35 +10,17 @@ import { HomeDiscoverCampaignCardLarge } from "./discover-campaigns/HomeDiscover
 import { HomeDiscoverCampaignCardSmall } from "./discover-campaigns/HomeDiscoverCampaignCardSmall";
 
 export function HomeDiscoverCampaignsSection() {
-  const { campaigns, isPending, error } = useAllCampaigns(DEFAULT_NETWORK, {
-    pageSize: 20,
-    verified: true,
-  });
-
-  const visibleCampaigns = useMemo(
-    () =>
-      campaigns
-        .filter((campaign) => campaign.isVerified && !campaign.isDeleted)
-        .slice(0, 5),
-    [campaigns],
+  const { campaigns, isPending, error } = useDiscoverCampaigns(
+    DEFAULT_NETWORK,
+    {
+      pageSize: 5,
+      fundingMetric: "recipient",
+    },
   );
 
-  const filledCampaigns = useMemo(() => {
-    if (visibleCampaigns.length === 0) {
-      return [];
-    }
+  const visibleCampaigns = useMemo(() => campaigns.slice(0, 5), [campaigns]);
 
-    if (visibleCampaigns.length >= 5) {
-      return visibleCampaigns.slice(0, 5);
-    }
-
-    return Array.from({ length: 5 }, (_, idx) => {
-      const campaign = visibleCampaigns[idx % visibleCampaigns.length];
-      return campaign;
-    });
-  }, [visibleCampaigns]);
-
-  const [primaryCampaign, ...secondaryCampaigns] = filledCampaigns;
+  const [primaryCampaign, ...secondaryCampaigns] = visibleCampaigns;
 
   return (
     <section className="bg-white-50">
