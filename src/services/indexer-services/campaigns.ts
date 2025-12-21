@@ -15,6 +15,14 @@ export interface CampaignListParams {
   verified?: boolean;
 }
 
+export type DiscoverFundingMetric = "recipient" | "total";
+
+export interface DiscoverCampaignListParams {
+  page?: number;
+  pageSize?: number;
+  fundingMetric?: DiscoverFundingMetric;
+}
+
 const MAX_PAGE_SIZE = 100;
 
 function clampPageSize(pageSize?: number) {
@@ -34,6 +42,23 @@ export async function getCampaigns(
       page_size: clampPageSize(pageSize),
     },
   });
+}
+
+/** Fetch paginated discover campaigns ordered by phase and funding amount. */
+export async function getDiscoverCampaigns(
+  params: DiscoverCampaignListParams = {},
+): Promise<PaginatedResponse<CampaignSummary>> {
+  const { page, pageSize, fundingMetric } = params;
+  return indexerRequest<PaginatedResponse<CampaignSummary>>(
+    "/v1/campaigns/discover",
+    {
+      query: {
+        page,
+        page_size: clampPageSize(pageSize),
+        funding_metric: fundingMetric,
+      },
+    },
+  );
 }
 
 /** Fetch full campaign detail by campaign ID **or** subdomain label. */
