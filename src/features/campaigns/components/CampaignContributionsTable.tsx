@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useState } from "react";
-import { AlertCircle } from "lucide-react";
+import { AlertCircle, ExternalLink } from "lucide-react";
 import { Link } from "react-router-dom";
 
 import {
@@ -21,8 +21,8 @@ import {
 } from "@/shared/components/ui/table";
 import { cn } from "@/shared/lib/utils";
 import { formatUsdLocaleFromMicros } from "@/shared/utils/currency";
+import { buildExplorerTxUrl } from "@/shared/utils/explorer";
 import { canonicalizeCoinType } from "@/shared/utils/sui";
-import { buildProfileDetailPath } from "@/shared/utils/routes";
 import {
   formatContributionDate,
   formatTokenAmount,
@@ -30,6 +30,8 @@ import {
 } from "@/features/donations/utils";
 import { useCampaignDonations } from "@/hooks/indexer/useCampaignDonations";
 import { useEnabledTokens } from "@/features/tokens/hooks";
+import { useProfileHandle } from "@/features/profiles/hooks/useProfileHandle";
+import { DEFAULT_NETWORK } from "@/shared/config/networkConfig";
 
 interface CampaignContributionsTableProps {
   campaignId: string;
@@ -44,11 +46,24 @@ function formatContributor(address: string): string {
   return `${value.slice(0, 5)}...${value.slice(-4)}`;
 }
 
-function getContributorProfilePath(address: string | null | undefined): string | null {
-  if (!address) return null;
-  const value = address.trim();
-  if (value.length === 0 || !value.startsWith("0x")) return null;
-  return buildProfileDetailPath(value);
+function ContributorNameCell({ address }: { address: string }) {
+  const trimmed = address.trim();
+  const hasAddress = trimmed.length >= 10 && trimmed.startsWith("0x");
+  const { handle, profilePath } = useProfileHandle(hasAddress ? trimmed : null);
+  const label = handle ?? formatContributor(trimmed);
+
+  if (!profilePath) {
+    return <span>{label}</span>;
+  }
+
+  return (
+    <Link
+      to={profilePath}
+      className="underline-offset-2 hover:text-black-500 hover:underline"
+    >
+      {label}
+    </Link>
+  );
 }
 
 export function CampaignContributionsTable({
@@ -199,8 +214,6 @@ export function CampaignContributionsTable({
       const Icon = tokenInfo.Icon;
       const amountRaw = BigInt(donation.amountRaw ?? 0);
       const amountDisplay = `${formatTokenAmount(amountRaw, tokenInfo.decimals)} ${tokenInfo.label}`;
-      const contributorProfilePath = getContributorProfilePath(donation.donor);
-      const contributorLabel = formatContributor(donation.donor);
 
       const totalUsd = BigInt(donation.amountUsdMicro ?? 0);
       const platformUsd = BigInt(donation.platformAmountUsdMicro ?? 0);
@@ -209,6 +222,7 @@ export function CampaignContributionsTable({
           ? BigInt(donation.recipientAmountUsdMicro)
           : totalUsd - platformUsd;
       const netUsd = recipientUsd < 0 ? 0n : recipientUsd;
+      const explorerUrl = buildExplorerTxUrl(donation.txDigest, DEFAULT_NETWORK);
 
       return (
         <TableRow
@@ -219,16 +233,7 @@ export function CampaignContributionsTable({
             {formatContributionDate(donation.timestampMs)}
           </TableCell>
           <TableCell className="px-4 py-4 text-black-500">
-            {contributorProfilePath ? (
-              <Link
-                to={contributorProfilePath}
-                className="underline-offset-2 hover:text-black-500 hover:underline"
-              >
-                {contributorLabel}
-              </Link>
-            ) : (
-              contributorLabel
-            )}
+            <ContributorNameCell address={donation.donor} />
           </TableCell>
           <TableCell className="px-4 py-4 text-black-500">
             <div className="flex items-center gap-2">
@@ -246,7 +251,21 @@ export function CampaignContributionsTable({
             {amountDisplay}
           </TableCell>
           <TableCell className="px-4 py-4 text-black-500">
-            ${formatUsdLocaleFromMicros(totalUsd)}
+            <div className="flex items-center gap-2">
+              <span>${formatUsdLocaleFromMicros(totalUsd)}</span>
+              {explorerUrl ? (
+                <a
+                  href={explorerUrl}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="inline-flex items-center text-primary hover:text-primary/80"
+                  aria-label="View transaction in explorer"
+                  title="View transaction in explorer"
+                >
+                  <ExternalLink className="h-4 w-4" aria-hidden="true" />
+                </a>
+              ) : null}
+            </div>
           </TableCell>
           <TableCell className="px-4 py-4 text-black-500 font-medium">
             ${formatUsdLocaleFromMicros(netUsd)}

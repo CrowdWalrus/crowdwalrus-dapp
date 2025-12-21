@@ -3,6 +3,7 @@ export * from "./useCampaignUpdates";
 export * from "./useCampaignDonations";
 export * from "./useProfileDonations";
 export * from "./useProfile";
+export * from "./useProfileIdentity";
 export * from "./useTokens";
 export * from "./usePolicies";
 export * from "./useSubdomain";

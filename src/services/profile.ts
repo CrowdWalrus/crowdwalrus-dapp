@@ -1,3 +1,4 @@
+import type { TransactionObjectArgument } from "@mysten/sui/transactions";
 import { Transaction } from "@mysten/sui/transactions";
 
 import {
@@ -13,6 +14,14 @@ const PROFILE_METADATA_MAX_VALUE_LENGTH = 2048;
 export interface ProfileMetadataUpdate {
   key: string;
   value: string;
+}
+
+export interface BuildProfileTransactionInput {
+  senderAddress: string;
+  profileId?: string | null;
+  metadataUpdates?: ProfileMetadataUpdate[];
+  subdomainFullName?: string | null;
+  network?: SupportedNetwork;
 }
 
 /**
@@ -31,6 +40,63 @@ export function createProfile(
       tx.object(CLOCK_OBJECT_ID),
     ],
   });
+
+  return tx;
+}
+
+/**
+ * Build a PTB that conditionally creates a profile, upserts metadata, and/or
+ * registers a SuiNS subdomain, all within a single transaction.
+ */
+export function buildProfileTransaction(
+  input: BuildProfileTransactionInput,
+): Transaction {
+  const {
+    senderAddress,
+    profileId,
+    metadataUpdates = [],
+    subdomainFullName,
+    network = DEFAULT_NETWORK,
+  } = input;
+
+  if (!senderAddress) {
+    throw new Error("Sender address is required to build a profile transaction.");
+  }
+
+  const tx = new Transaction();
+  const config = getContractConfig(network);
+
+  const isCreating = !profileId;
+  const profileArg = isCreating
+    ? tx.moveCall({
+        target: `${config.contracts.packageId}::profiles::create_profile_for_sender`,
+        arguments: [
+          tx.object(config.contracts.profilesRegistryObjectId),
+          tx.object(CLOCK_OBJECT_ID),
+        ],
+      })[0]!
+    : tx.object(profileId);
+
+  appendProfileMetadataUpdates(tx, profileArg, metadataUpdates, network);
+
+  if (subdomainFullName && subdomainFullName.trim().length > 0) {
+    appendProfileSubdomainRegistration(
+      tx,
+      profileArg,
+      subdomainFullName.trim(),
+      network,
+    );
+  }
+
+  if (isCreating) {
+    tx.moveCall({
+      // `Profile` is `key`-only (no `store`), so it cannot be transferred via the
+      // PTB `TransferObjects` command. We finalize creation by calling an entry
+      // helper that transfers the profile to the sender inside Move.
+      target: `${config.contracts.packageId}::profiles::transfer_profile_to_sender`,
+      arguments: [profileArg],
+    });
+  }
 
   return tx;
 }
@@ -57,16 +123,23 @@ export function updateProfileMetadata(
 }
 
 /**
- * Append keyed metadata updates to an existing transaction, allowing the caller
- * to batch multiple `profiles::update_profile_metadata` calls in a single PTB.
+ * Append metadata upserts to an existing transaction using the new
+ * `profiles::upsert_profile_metadata` batch function.
  */
 export function appendProfileMetadataUpdates(
   tx: Transaction,
-  profileId: string,
+  profile: TransactionObjectArgument | string,
   updates: ProfileMetadataUpdate[],
   network: SupportedNetwork = DEFAULT_NETWORK,
 ): Transaction {
+  if (!updates.length) {
+    return tx;
+  }
+
   const config = getContractConfig(network);
+
+  const keys: string[] = [];
+  const values: string[] = [];
 
   updates.forEach(({ key, value }) => {
     const normalizedKey = key.trim();
@@ -74,15 +147,47 @@ export function appendProfileMetadataUpdates(
 
     validateMetadataEntry(normalizedKey, normalizedValue);
 
-    tx.moveCall({
-      target: `${config.contracts.packageId}::profiles::update_profile_metadata`,
-      arguments: [
-        tx.object(profileId),
-        tx.pure.string(normalizedKey),
-        tx.pure.string(normalizedValue),
-        tx.object(CLOCK_OBJECT_ID),
-      ],
-    });
+    keys.push(normalizedKey);
+    values.push(normalizedValue);
+  });
+
+  tx.moveCall({
+    target: `${config.contracts.packageId}::profiles::upsert_profile_metadata`,
+    arguments: [
+      typeof profile === "string" ? tx.object(profile) : profile,
+      tx.pure.vector("string", keys),
+      tx.pure.vector("string", values),
+      tx.object(CLOCK_OBJECT_ID),
+    ],
+  });
+
+  return tx;
+}
+
+/**
+ * Append a SuiNS subdomain registration call for a profile to an existing PTB.
+ */
+export function appendProfileSubdomainRegistration(
+  tx: Transaction,
+  profile: TransactionObjectArgument | string,
+  subdomainFullName: string,
+  network: SupportedNetwork = DEFAULT_NETWORK,
+): Transaction {
+  const config = getContractConfig(network);
+  const normalizedSubdomain = subdomainFullName.trim();
+  if (!normalizedSubdomain) {
+    throw new Error("Subdomain is required to register a profile SuiNS name.");
+  }
+
+  tx.moveCall({
+    target: `${config.contracts.packageId}::crowd_walrus::set_profile_subdomain_public`,
+    arguments: [
+      typeof profile === "string" ? tx.object(profile) : profile,
+      tx.object(config.contracts.suinsManagerObjectId),
+      tx.object(config.contracts.suinsObjectId),
+      tx.pure.string(normalizedSubdomain),
+      tx.object(CLOCK_OBJECT_ID),
+    ],
   });
 
   return tx;

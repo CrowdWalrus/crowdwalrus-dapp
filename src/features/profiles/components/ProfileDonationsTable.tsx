@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useState } from "react";
-import { AlertCircle } from "lucide-react";
+import { AlertCircle, ExternalLink } from "lucide-react";
 import { Link } from "react-router-dom";
 
 import {
@@ -28,8 +28,10 @@ import {
 } from "@/features/donations/utils";
 import { cn } from "@/shared/lib/utils";
 import { formatUsdLocaleFromMicros } from "@/shared/utils/currency";
+import { buildExplorerTxUrl } from "@/shared/utils/explorer";
 import { canonicalizeCoinType } from "@/shared/utils/sui";
 import { buildCampaignDetailPath } from "@/shared/utils/routes";
+import { DEFAULT_NETWORK } from "@/shared/config/networkConfig";
 
 interface ProfileDonationsTableProps {
   ownerAddress: string;
@@ -187,6 +189,10 @@ export function ProfileDonationsTable({
       const amountRaw = BigInt(contribution.amountRaw ?? 0);
       const amountDisplay = `${formatTokenAmount(amountRaw, tokenInfo.decimals)} ${tokenInfo.label}`;
       const totalUsd = BigInt(contribution.amountUsdMicro ?? 0);
+      const explorerUrl = buildExplorerTxUrl(
+        contribution.txDigest,
+        DEFAULT_NETWORK,
+      );
 
       const campaignPath = buildCampaignDetailPath(contribution.campaignId, {
         subdomainName: contribution.campaignSubdomainName,
@@ -226,7 +232,21 @@ export function ProfileDonationsTable({
             {amountDisplay}
           </TableCell>
           <TableCell className="px-4 py-4 text-black-500 font-medium">
-            ${formatUsdLocaleFromMicros(totalUsd)}
+            <div className="flex items-center gap-2">
+              <span>${formatUsdLocaleFromMicros(totalUsd)}</span>
+              {explorerUrl ? (
+                <a
+                  href={explorerUrl}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="inline-flex items-center text-primary hover:text-primary/80"
+                  aria-label="View transaction in explorer"
+                  title="View transaction in explorer"
+                >
+                  <ExternalLink className="h-4 w-4" aria-hidden="true" />
+                </a>
+              ) : null}
+            </div>
           </TableCell>
         </TableRow>
       );

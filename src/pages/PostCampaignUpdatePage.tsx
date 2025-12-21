@@ -65,6 +65,7 @@ import {
 import { getWalrusUrl } from "@/services/walrus";
 import { lexicalToPlainText } from "@/shared/utils/lexical";
 import { isUserRejectedError } from "@/shared/utils/errors";
+import { formatTokenAmountFromNumber } from "@/shared/utils/currency";
 import { buildCampaignDetailPath } from "@/shared/utils/routes";
 import {
   CampaignResolutionError,
@@ -394,11 +395,11 @@ export default function PostCampaignUpdatePage() {
         },
         {
           label: `Storage (${costEstimate.epochs} epochs)`,
-          amount: `${costEstimate.subsidizedStorageCost.toFixed(6)} WAL`,
+          amount: `${formatTokenAmountFromNumber(costEstimate.subsidizedStorageCost)} WAL`,
         },
         {
           label: "Upload cost",
-          amount: `${costEstimate.subsidizedUploadCost.toFixed(6)} WAL`,
+          amount: `${formatTokenAmountFromNumber(costEstimate.subsidizedUploadCost)} WAL`,
         },
       ]
     : [
@@ -407,7 +408,7 @@ export default function PostCampaignUpdatePage() {
       ];
 
   const totalCost = costEstimate
-    ? `${costEstimate.subsidizedTotalCost.toFixed(6)} WAL`
+    ? `${formatTokenAmountFromNumber(costEstimate.subsidizedTotalCost)} WAL`
     : "Calculate first";
 
   const hasInsufficientBalance =

@@ -41,11 +41,17 @@ export function extractSubdomainLabel(
   }
 
   const suffix = `.${normalizedDomain}`;
+  const atSuffix = `@${normalizedDomain}`;
   const lowerSubdomain = normalizedSubdomain.toLowerCase();
   const lowerSuffix = suffix.toLowerCase();
+  const lowerAtSuffix = atSuffix.toLowerCase();
 
   if (lowerSubdomain.endsWith(lowerSuffix)) {
     return normalizedSubdomain.slice(0, normalizedSubdomain.length - suffix.length);
+  }
+
+  if (lowerSubdomain.endsWith(lowerAtSuffix)) {
+    return normalizedSubdomain.slice(0, normalizedSubdomain.length - atSuffix.length);
   }
 
   return normalizedSubdomain;
@@ -61,4 +67,27 @@ export function toCampaignSlug(subdomain: string, domain: string): string {
     return "";
   }
   return label.toLowerCase();
+}
+
+/**
+ * Build a URL-safe slug for profile routes by extracting the label portion from a
+ * SuiNS sub-name, supporting both `label.domain` and `label@domain` shapes.
+ */
+export function toProfileSlug(
+  subdomain: string,
+  domain?: string | null,
+): string {
+  const extracted = domain ? extractSubdomainLabel(subdomain, domain) : subdomain;
+  if (!extracted) {
+    return "";
+  }
+
+  const normalized = extracted.trim();
+  if (!normalized) {
+    return "";
+  }
+
+  const beforeAt = normalized.split("@")[0] ?? normalized;
+  const label = beforeAt.split(".")[0] ?? beforeAt;
+  return label.trim().toLowerCase();
 }

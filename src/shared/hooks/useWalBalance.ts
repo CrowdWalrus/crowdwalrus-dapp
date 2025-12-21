@@ -1,5 +1,6 @@
 import { useCurrentAccount, useSuiClientQuery } from "@mysten/dapp-kit";
 import { useNetworkVariable } from "@/shared/config/networkConfig";
+import { formatTokenAmount } from "@/shared/utils/currency";
 
 /**
  * Hook to fetch the WAL token balance for the current account
@@ -28,27 +29,9 @@ export function useWalBalance() {
   // Format balance with proper decimals (WAL has 9 decimals like SUI)
   const formatWalBalance = (balance: string | undefined): string => {
     if (!balance) return "0 WAL";
-
-    const balanceNum = BigInt(balance);
-    const decimals = 9; // WAL has 9 decimals (1 WAL = 1,000,000,000 FROST)
-    const divisor = BigInt(10 ** decimals);
-
-    const integerPart = balanceNum / divisor;
-    const fractionalPart = balanceNum % divisor;
-
-    // Format with commas and up to 6 decimal places
-    const formattedInteger = integerPart.toLocaleString("en-US");
-    const formattedFractional = fractionalPart
-      .toString()
-      .padStart(decimals, "0")
-      .slice(0, 6)
-      .replace(/0+$/, ""); // Remove trailing zeros
-
-    if (formattedFractional) {
-      return `${formattedInteger}.${formattedFractional} WAL`;
-    }
-
-    return `${formattedInteger} WAL`;
+    const balanceRaw = BigInt(balance);
+    const formatted = formatTokenAmount(balanceRaw, 9);
+    return `${formatted} WAL`;
   };
 
   const formattedBalance = formatWalBalance(walBalanceData?.totalBalance);

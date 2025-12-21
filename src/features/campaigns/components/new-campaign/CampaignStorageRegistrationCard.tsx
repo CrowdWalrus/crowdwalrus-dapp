@@ -18,6 +18,7 @@ import {
   CertificationErrorAlert,
   StorageRegistrationSuccessAlert,
 } from "@/features/campaigns/components/CampaignAlerts";
+import { formatTokenAmountFromNumber } from "@/shared/utils/currency";
 
 export interface StorageCost {
   label: string;
@@ -101,7 +102,7 @@ export function CampaignStorageRegistrationCard({
     ? estimatedCost.subsidizedStorageCost + estimatedCost.subsidizedUploadCost
     : null;
   const walrusStorageFees = walrusFeeValue !== null
-    ? `${walrusFeeValue.toFixed(6)} WAL`
+    ? `${formatTokenAmountFromNumber(walrusFeeValue)} WAL`
     : totalCost;
 
   const totalDays = currentEpochs * epochConfig.epochDurationDays;

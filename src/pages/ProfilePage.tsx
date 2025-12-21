@@ -25,6 +25,7 @@ import { parseSocialLinksFromMetadata } from "@/features/campaigns/utils/socials
 import { useDonorBadges } from "@/features/badges/hooks/useDonorBadges";
 import { useProfile } from "@/features/profiles/hooks/useProfile";
 import { useProfileOwnership } from "@/features/profiles/hooks/useProfileOwnership";
+import { useResolvedProfileAddress } from "@/features/profiles/hooks/useResolvedProfileAddress";
 import { ProfileDonationsTable } from "@/features/profiles/components/ProfileDonationsTable";
 import { PROFILE_METADATA_KEYS } from "@/features/profiles/constants/metadata";
 import { useDocumentTitle } from "@/shared/hooks/useDocumentTitle";
@@ -54,8 +55,16 @@ const formatAddressForDisplay = (address?: string | null) => {
 };
 
 export function ProfilePage() {
-  const { address: addressParam } = useParams<{ address: string }>();
-  const { isOwner } = useProfileOwnership({ profileAddress: addressParam });
+  const { address: rawIdentifier } = useParams<{ address: string }>();
+
+  const {
+    ownerAddress,
+    isLoading: isResolvingIdentifier,
+    notFound: isIdentifierNotFound,
+    error: identifierError,
+  } = useResolvedProfileAddress(rawIdentifier);
+
+  const { isOwner } = useProfileOwnership({ profileAddress: ownerAddress });
   const {
     metadata: metadataMap,
     profile,
@@ -65,12 +74,12 @@ export function ProfilePage() {
     error: profileError,
     refetch: refetchProfile,
   } = useProfile({
-    ownerAddress: addressParam,
+    ownerAddress: ownerAddress,
   });
   const [searchParams, setSearchParams] = useSearchParams();
   const myCampaigns = useMyCampaigns();
   const ownerCampaigns = useOwnerCampaigns({
-    ownerAddress: addressParam,
+    ownerAddress: ownerAddress,
     enabled: !isOwner,
   });
   const activeCampaignData = isOwner
@@ -81,7 +90,7 @@ export function ProfilePage() {
   useDocumentTitle("Profile");
   const campaignDomain = useNetworkVariable("campaignDomain");
 
-  const addressLabel = formatAddressForDisplay(addressParam);
+  const addressLabel = formatAddressForDisplay(rawIdentifier);
 
   const socialLinks = useMemo(
     () => parseSocialLinksFromMetadata(metadataMap),
@@ -89,14 +98,16 @@ export function ProfilePage() {
   );
 
   const { badges: donorBadges } = useDonorBadges({
-    ownerAddress: addressParam,
-    enabled: Boolean(addressParam),
+    ownerAddress,
+    enabled: Boolean(ownerAddress),
   });
 
   const fullName = (metadataMap[PROFILE_METADATA_KEYS.FULL_NAME] ?? "").trim();
   const email = (metadataMap[PROFILE_METADATA_KEYS.EMAIL] ?? "").trim();
   const bio = (metadataMap[PROFILE_METADATA_KEYS.BIO] ?? "").trim();
-  const subdomain = (metadataMap[PROFILE_METADATA_KEYS.SUBDOMAIN] ?? "").trim();
+  const subdomain = (
+    profile?.subdomainName ?? metadataMap[PROFILE_METADATA_KEYS.SUBDOMAIN] ?? ""
+  ).trim();
   const avatarWalrusUrl = (
     metadataMap[PROFILE_METADATA_KEYS.AVATAR_WALRUS_ID] ?? ""
   ).trim();
@@ -171,7 +182,41 @@ export function ProfilePage() {
     profile?.totalUsdMicro,
   ]);
 
-  if (!addressParam) {
+  if (!rawIdentifier) {
+    return <Navigate to={ROUTES.NOT_FOUND} replace />;
+  }
+
+  if (isResolvingIdentifier) {
+    return <ProfilePageSkeleton />;
+  }
+
+  if (identifierError) {
+    const message =
+      identifierError.message ??
+      "Unable to resolve this profile. Please try again.";
+
+    return (
+      <div className="py-10">
+        <div className="container px-4 flex justify-center">
+          <Card className="w-full max-w-2xl border border-red-200 bg-red-50">
+            <CardContent className="flex flex-col items-center gap-4 py-10 text-center">
+              <div className="flex size-16 items-center justify-center rounded-full bg-white text-red-500">
+                <AlertCircle className="size-8" />
+              </div>
+              <div className="space-y-2">
+                <h3 className="text-lg font-semibold text-red-600">
+                  Unable to resolve profile
+                </h3>
+                <p className="text-sm text-red-500">{message}</p>
+              </div>
+            </CardContent>
+          </Card>
+        </div>
+      </div>
+    );
+  }
+
+  if (isIdentifierNotFound || !ownerAddress) {
     return <Navigate to={ROUTES.NOT_FOUND} replace />;
   }
 
@@ -225,13 +270,34 @@ export function ProfilePage() {
   const contributionsTabLabel = isOwner ? "My Contributions" : "Contributions";
   const contributionsCount = profile?.totalDonationsCount ?? 0;
 
-  const contributionsContent = (
-    <ProfileDonationsTable
-      ownerAddress={addressParam}
-      campaignDomain={campaignDomain}
-      title={contributionsTabLabel}
-    />
-  );
+  const contributionsContent =
+    isOwner && !hasProfile ? (
+      <Card className="border-dashed border-black-50 bg-white">
+        <CardContent className="flex flex-col items-center gap-4 py-12 text-center">
+          <div className="flex size-16 items-center justify-center rounded-full bg-white-500 text-black-400">
+            <HandHeart className="size-8" />
+          </div>
+          <div className="space-y-2">
+            <h3 className="text-lg font-semibold text-black-500">
+              Create your profile to view your contributions
+            </h3>
+            <p className="text-sm text-black-300">
+              Once your profile is created, your donation history will appear
+              here.
+            </p>
+          </div>
+          <Button asChild className="h-10 rounded-lg px-6">
+            <Link to={ROUTES.PROFILE_CREATE}>Create your profile</Link>
+          </Button>
+        </CardContent>
+      </Card>
+    ) : (
+      <ProfileDonationsTable
+        ownerAddress={ownerAddress}
+        campaignDomain={campaignDomain}
+        title={contributionsTabLabel}
+      />
+    );
 
   const tabs: ProfileTabConfig[] = [
     {

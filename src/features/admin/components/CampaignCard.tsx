@@ -13,9 +13,9 @@ import { Check, X } from "lucide-react";
 import { formatUsdLocaleFromMicros } from "@/shared/utils/currency";
 import { Link } from "react-router-dom";
 import { useNetworkVariable } from "@/shared/config/networkConfig";
+import { useProfileHandle } from "@/features/profiles/hooks/useProfileHandle";
 import {
   buildCampaignDetailPath,
-  buildProfileDetailPath,
 } from "@/shared/utils/routes";
 
 /**
@@ -76,10 +76,10 @@ export function CampaignCard({
     typeof publisherAddress === "string" &&
     publisherAddress.length >= 10 &&
     publisherAddress.startsWith("0x");
-  const publisherProfilePath = hasPublisherAddress
-    ? buildProfileDetailPath(publisherAddress)
-    : null;
+  const { handle: publisherHandle, profilePath: publisherProfilePath } =
+    useProfileHandle(hasPublisherAddress ? publisherAddress : null);
   const formattedPublisher = formatAddress(publisherAddress);
+  const publisherLabel = publisherHandle ?? formattedPublisher;
 
   return (
     <div className="bg-white-100 border border-black-50 rounded-3xl p-6 flex flex-col gap-6">
@@ -123,19 +123,19 @@ export function CampaignCard({
 
       {/* Publisher and metadata */}
       <div className="flex flex-col gap-4">
-          <div className="flex items-start justify-between">
-            <div className="flex flex-col leading-relaxed">
-              <p className="text-xs text-black-200">Published by</p>
-              {publisherProfilePath ? (
-                <Link
-                  to={publisherProfilePath}
-                  className="text-sm font-medium text-black-500 underline-offset-4 hover:text-black-500 hover:underline"
-                >
-                  {formattedPublisher}
-                </Link>
-              ) : (
-                <p className="text-sm font-medium text-black-500">
-                {formattedPublisher}
+        <div className="flex items-start justify-between">
+          <div className="flex flex-col leading-relaxed">
+            <p className="text-xs text-black-200">Published by</p>
+            {publisherProfilePath ? (
+              <Link
+                to={publisherProfilePath}
+                className="text-sm font-medium text-black-500 underline-offset-4 hover:text-black-500 hover:underline"
+              >
+                {publisherLabel}
+              </Link>
+            ) : (
+              <p className="text-sm font-medium text-black-500">
+                {publisherLabel}
               </p>
             )}
           </div>

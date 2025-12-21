@@ -131,6 +131,7 @@ export interface ProfileDataResponse {
   totalDonationsCount: number;
   badgeLevelsEarned: number;
   metadata: Record<string, unknown>;
+  subdomainName: string | null;
   checkpointSequenceNumber: number;
   txDigest: string;
   fundraisingTotals: {
@@ -152,6 +153,15 @@ export interface ProfileResponse {
   profile: ProfileDataResponse;
   badges: BadgeMintResponse[];
   donations: PaginatedResponse<DonationResponse>;
+}
+
+export interface ProfileIdentityResponse {
+  owner: string;
+  subdomainName: string | null;
+}
+
+export interface ProfileResolutionResponse extends ProfileIdentityResponse {
+  resolvedVia: "owner_address" | "profile_subdomain";
 }
 
 export interface TokenResponse {

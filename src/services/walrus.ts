@@ -20,6 +20,7 @@ import {
   WALRUS_EPOCH_CONFIG,
 } from "@/shared/config/networkConfig";
 import type { SupportedNetwork } from "@/shared/types/network";
+import { formatTokenAmountFromNumber } from "@/shared/utils/currency";
 import { lexicalToPlainText } from "@/shared/utils/lexical";
 import {
   calculateCampaignStorageCost,
@@ -378,7 +379,7 @@ export async function calculateStorageCost(
     subsidizedUploadCost: cost.subsidizedUploadCost,
     subsidizedTotalCost: cost.subsidizedTotalCost,
     subsidyRate: cost.pricing.subsidyRate,
-    estimatedCost: cost.subsidizedTotalCost.toFixed(6), // Legacy field (now shows subsidized cost)
+    estimatedCost: formatTokenAmountFromNumber(cost.subsidizedTotalCost), // Legacy field (now shows subsidized cost)
     breakdown: {
       jsonSize: descriptionSize,
       imagesSize,
@@ -432,7 +433,7 @@ export async function calculateUpdateStorageCost(
     subsidizedUploadCost: cost.subsidizedUploadCost,
     subsidizedTotalCost: cost.subsidizedTotalCost,
     subsidyRate: cost.pricing.subsidyRate,
-    estimatedCost: cost.subsidizedTotalCost.toFixed(6),
+    estimatedCost: formatTokenAmountFromNumber(cost.subsidizedTotalCost),
     breakdown: {
       jsonSize: updateSize,
       imagesSize: 0,
@@ -476,7 +477,7 @@ export async function calculateProfileAvatarStorageCost(
     subsidizedUploadCost: cost.subsidizedUploadCost,
     subsidizedTotalCost: cost.subsidizedTotalCost,
     subsidyRate: cost.pricing.subsidyRate,
-    estimatedCost: cost.subsidizedTotalCost.toFixed(6),
+    estimatedCost: formatTokenAmountFromNumber(cost.subsidizedTotalCost),
     breakdown: {
       jsonSize: 0,
       imagesSize: preparation.size,
@@ -510,7 +511,7 @@ function estimateStorageCostSimple(rawSize: number, epochs: number): string {
   const totalCostFrost = storageCostFrost + uploadCostFrost;
 
   const totalCostWal = totalCostFrost / 1_000_000_000;
-  return totalCostWal.toFixed(6);
+  return formatTokenAmountFromNumber(totalCostWal);
 }
 
 /**

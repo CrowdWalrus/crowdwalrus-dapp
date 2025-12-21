@@ -20,35 +20,7 @@ export function formatContributionDate(timestampMs?: number | null): string {
   return DATE_FORMATTER.format(new Date(timestampMs));
 }
 
-function groupWithCommas(value: bigint): string {
-  const sign = value < 0n ? "-" : "";
-  const digits = (value < 0n ? -value : value).toString();
-  return sign + digits.replace(/\B(?=(\d{3})+(?!\d))/g, ",");
-}
-
-export function formatTokenAmount(rawAmount: bigint, decimals: number): string {
-  if (rawAmount === 0n) return "0";
-  const safeDecimals = Math.max(decimals, 0);
-  const scale = 10n ** BigInt(safeDecimals);
-  const whole = rawAmount / scale;
-  const remainder = rawAmount % scale;
-
-  let roundedFraction = (remainder * 100n + scale / 2n) / scale;
-  let adjustedWhole = whole;
-  if (roundedFraction === 100n) {
-    adjustedWhole += 1n;
-    roundedFraction = 0n;
-  }
-
-  const fractionStr = roundedFraction
-    .toString()
-    .padStart(2, "0")
-    .replace(/0+$/, "");
-
-  return fractionStr
-    ? `${groupWithCommas(adjustedWhole)}.${fractionStr}`
-    : groupWithCommas(adjustedWhole);
-}
+export { formatTokenAmount } from "@/shared/utils/currency";
 
 export function resolveTokenInfo(
   donation: Pick<DonationResponse, "coinTypeCanonical" | "coinSymbol">,

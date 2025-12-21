@@ -144,7 +144,7 @@ function EditableCampaignTimeline({
           automatically.
         </p>
         <div className="flex gap-6 items-start">
-          <div className="flex flex-col gap-2">
+          <div className="flex flex-col gap-2" data-field-error="startDate">
             <Popover open={startDateOpen} onOpenChange={setStartDateOpen}>
               <PopoverTrigger asChild>
                 <button
@@ -179,7 +179,7 @@ function EditableCampaignTimeline({
             )}
           </div>
 
-          <div className="flex flex-col gap-2">
+          <div className="flex flex-col gap-2" data-field-error="endDate">
             <Popover open={endDateOpen} onOpenChange={setEndDateOpen}>
               <PopoverTrigger asChild>
                 <button

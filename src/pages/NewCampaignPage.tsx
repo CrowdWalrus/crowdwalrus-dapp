@@ -1,5 +1,5 @@
 import { Link } from "react-router-dom";
-import { useForm, FormProvider, useWatch } from "react-hook-form";
+import { useForm, FormProvider, useWatch, type Path } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useState, useEffect, useRef } from "react";
 import { useDebounce } from "@/shared/hooks/useDebounce";
@@ -25,6 +25,7 @@ import {
 } from "@/features/campaigns/hooks/useWalrusUpload";
 import { createCampaignTransaction } from "@/features/campaigns/helpers/createCampaignTransaction";
 import { transformNewCampaignFormData } from "@/features/campaigns/utils/transformFormData";
+import { getDefaultSocialLinks } from "@/features/campaigns/utils/socials";
 import { extractCampaignIdFromEffects } from "@/services/campaign-transaction";
 import { getContractConfig } from "@/shared/config/contracts";
 import { getWalrusUrl } from "@/services/walrus";
@@ -76,10 +77,8 @@ import {
   type NewCampaignFormData,
 } from "@/features/campaigns/schemas/newCampaignSchema";
 import { isUserRejectedError } from "@/shared/utils/errors";
-import {
-  AlertCircleIcon,
-  WalletMinimal,
-} from "lucide-react";
+import { formatTokenAmountFromNumber } from "@/shared/utils/currency";
+import { AlertCircleIcon, WalletMinimal } from "lucide-react";
 
 const AUTO_CALCULATING_LABEL = "Calculating...";
 
@@ -94,7 +93,7 @@ const EMPTY_FORM_DEFAULTS: Partial<NewCampaignFormData> = {
   endDate: "",
   targetAmount: "",
   walletAddress: "",
-  socials: [],
+  socials: getDefaultSocialLinks(),
   campaignDetails: "",
   termsAccepted: false,
 };
@@ -139,6 +138,8 @@ export default function NewCampaignPage() {
   const [campaignResult, setCampaignResult] =
     useState<CreateCampaignResult | null>(null);
   const [error, setError] = useState<Error | null>(null);
+  const [shouldEmphasizeRequiredFields, setShouldEmphasizeRequiredFields] =
+    useState(false);
 
   // Storage epochs state
   const [selectedEpochs, setSelectedEpochs] = useState<number>(
@@ -150,6 +151,38 @@ export default function NewCampaignPage() {
     const config = WALRUS_EPOCH_CONFIG[DEFAULT_NETWORK];
     const clampedEpochs = Math.min(Math.max(1, epochs), config.maxEpochs);
     setSelectedEpochs(clampedEpochs);
+  };
+
+  const requiredFieldOrder: (keyof NewCampaignFormData)[] = [
+    "campaignName",
+    "description",
+    "subdomain",
+    "coverImage",
+    "campaignType",
+    "categories",
+    "startDate",
+    "endDate",
+    "targetAmount",
+    "walletAddress",
+    "campaignDetails",
+    "termsAccepted",
+  ];
+
+  const findFocusableDescendant = (element?: HTMLElement | null) => {
+    if (!element) return null;
+
+    const selector =
+      "input, select, textarea, button, [tabindex]:not([tabindex='-1']), a[href]";
+
+    if (
+      element.matches(selector) &&
+      !element.hasAttribute("disabled") &&
+      element.getAttribute("aria-hidden") !== "true"
+    ) {
+      return element;
+    }
+
+    return element.querySelector<HTMLElement>(selector);
   };
 
   // Hooks for each step
@@ -360,14 +393,72 @@ export default function NewCampaignPage() {
     );
   };
 
+  const getFirstInvalidField = () =>
+    requiredFieldOrder.find(
+      (fieldName) => form.getFieldState(fieldName).invalid,
+    );
+
+  const scrollToFirstInvalidField = () => {
+    const firstErrorField = getFirstInvalidField();
+
+    if (!firstErrorField) {
+      return;
+    }
+
+    window.requestAnimationFrame(() => {
+      const targetElement =
+        document.querySelector<HTMLElement>(
+          `[data-field-error="${firstErrorField}"]`,
+        ) ||
+        document.querySelector<HTMLElement>(`[name="${firstErrorField}"]`) ||
+        document.getElementById(firstErrorField);
+
+      if (targetElement) {
+        targetElement.scrollIntoView({
+          behavior: "smooth",
+          block: "center",
+        });
+      }
+
+      const focusTarget = findFocusableDescendant(targetElement);
+
+      if (focusTarget) {
+        focusTarget.focus({ preventScroll: true });
+      } else {
+        form.setFocus(firstErrorField as Path<NewCampaignFormData>, {
+          shouldSelect: true,
+        });
+      }
+    });
+  };
+
   // Handler for Register Storage button - validates form first
   const handleRegisterStorageClick = async () => {
-    const isValid = await form.trigger();
-    if (isValid) {
-      const data = form.getValues();
-      onSubmit(data);
+    const isValid = await form.trigger(undefined, { shouldFocus: false });
+
+    if (!isValid) {
+      setShouldEmphasizeRequiredFields(true);
+      scrollToFirstInvalidField();
+      return;
     }
+
+    setShouldEmphasizeRequiredFields(false);
+
+    const data = form.getValues();
+    onSubmit(data);
   };
+
+  useEffect(() => {
+    if (!shouldEmphasizeRequiredFields) return;
+
+    const subscription = form.watch(() => {
+      if (form.formState.isValid) {
+        setShouldEmphasizeRequiredFields(false);
+      }
+    });
+
+    return () => subscription.unsubscribe();
+  }, [form, shouldEmphasizeRequiredFields]);
 
   // Step 2: User confirms registration - buy Walrus storage
   const handleConfirmRegister = () => {
@@ -567,17 +658,19 @@ export default function NewCampaignPage() {
         },
         {
           label: `Storage (${costEstimate.epochs} epochs)`,
-          amount: `${costEstimate.subsidizedStorageCost.toFixed(6)} WAL`,
+          amount: `${formatTokenAmountFromNumber(costEstimate.subsidizedStorageCost)} WAL`,
         },
         {
           label: "Upload cost",
-          amount: `${costEstimate.subsidizedUploadCost.toFixed(6)} WAL`,
+          amount: `${formatTokenAmountFromNumber(costEstimate.subsidizedUploadCost)} WAL`,
         },
         ...(costEstimate.subsidyRate && costEstimate.subsidyRate > 0
           ? [
               {
                 label: `Subsidy discount (${(costEstimate.subsidyRate * 100).toFixed(0)}%)`,
-                amount: `-${(costEstimate.totalCostWal - costEstimate.subsidizedTotalCost).toFixed(6)} WAL`,
+                amount: `${formatTokenAmountFromNumber(
+                  costEstimate.subsidizedTotalCost - costEstimate.totalCostWal,
+                )} WAL`,
               },
             ]
           : []),
@@ -590,7 +683,7 @@ export default function NewCampaignPage() {
       ];
 
   const totalCost = costEstimate
-    ? `${costEstimate.subsidizedTotalCost.toFixed(6)} WAL`
+    ? `${formatTokenAmountFromNumber(costEstimate.subsidizedTotalCost)} WAL`
     : AUTO_CALCULATING_LABEL;
 
   // Unified retry handler for the modal
@@ -751,12 +844,19 @@ export default function NewCampaignPage() {
                           control={form.control}
                           name="campaignName"
                           render={({ field }) => (
-                            <FormItem className="flex flex-col gap-4">
-                              <FormLabel className="font-medium text-base">
+                            <FormItem
+                              className="flex flex-col gap-4"
+                              data-field-error="campaignName"
+                            >
+                              <FormLabel
+                                className="font-medium text-base"
+                                htmlFor="campaign-name"
+                              >
                                 Title <span className="text-red-300">*</span>
                               </FormLabel>
                               <FormControl>
                                 <Input
+                                  id="campaign-name"
                                   placeholder="Enter your campaign name"
                                   {...field}
                                 />
@@ -771,13 +871,20 @@ export default function NewCampaignPage() {
                           control={form.control}
                           name="description"
                           render={({ field }) => (
-                            <FormItem className="flex flex-col gap-4">
-                              <FormLabel className="font-medium text-base">
+                            <FormItem
+                              className="flex flex-col gap-4"
+                              data-field-error="description"
+                            >
+                              <FormLabel
+                                className="font-medium text-base"
+                                htmlFor="campaign-description"
+                              >
                                 Short description{" "}
                                 <span className="text-red-300">*</span>
                               </FormLabel>
                               <FormControl>
                                 <Textarea
+                                  id="campaign-description"
                                   placeholder="Brief description of your campaign"
                                   rows={4}
                                   {...field}
@@ -830,7 +937,7 @@ export default function NewCampaignPage() {
                         control={form.control}
                         name="socials"
                         render={() => (
-                          <FormItem>
+                          <FormItem data-field-error="socials">
                             <CampaignSocialsSection />
                             <FormMessage />
                           </FormItem>
@@ -844,7 +951,9 @@ export default function NewCampaignPage() {
                     <Separator />
 
                     {/* Terms and Conditions Section */}
-                    <CampaignTermsAndConditionsSection />
+                    <CampaignTermsAndConditionsSection
+                      emphasizeRequiredNotice={shouldEmphasizeRequiredFields}
+                    />
                   </fieldset>
 
                   {/* Storage Registration Section */}

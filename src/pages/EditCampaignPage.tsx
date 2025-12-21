@@ -4,8 +4,10 @@ import {
   useForm,
   useWatch,
   type FieldNamesMarkedBoolean,
+  type Path,
 } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
+import { useQueryClient } from "@tanstack/react-query";
 import {
   useCurrentAccount,
   useSignAndExecuteTransaction,
@@ -45,7 +47,10 @@ import { getContractConfig, CLOCK_OBJECT_ID } from "@/shared/config/contracts";
 import { DEFAULT_NETWORK } from "@/shared/config/networkConfig";
 import { ROUTES } from "@/shared/config/routes";
 import { buildCampaignDetailPath } from "@/shared/utils/routes";
-import { formatUsdLocaleFromMicros } from "@/shared/utils/currency";
+import {
+  formatTokenAmountFromNumber,
+  formatUsdLocaleFromMicros,
+} from "@/shared/utils/currency";
 import {
   CampaignResolutionError,
   CampaignResolutionLoading,
@@ -67,6 +72,7 @@ import {
   useCampaignCreationModal,
 } from "@/features/campaigns/components/campaign-creation-modal";
 import { WalrusReuploadWarningModal } from "@/features/campaigns/components/modals/WalrusReuploadWarningModal";
+import { UnverifyWarningModal } from "@/features/campaigns/components/modals/UnverifyWarningModal";
 import { Card, CardContent } from "@/shared/components/ui/card";
 import { Button } from "@/shared/components/ui/button";
 import {
@@ -115,6 +121,8 @@ const DEFAULT_FORM_VALUES: EditCampaignFormData = {
 
 const SAVE_STATUS_TIMEOUT = 4000;
 const AUTO_CALCULATING_LABEL = "Calculating...";
+const CAMPAIGN_PROPAGATION_ATTEMPTS = 6;
+const CAMPAIGN_PROPAGATION_DELAY_MS = 800;
 
 type SectionKey =
   | "campaignName"
@@ -124,6 +132,15 @@ type SectionKey =
   | "campaignType"
   | "categories"
   | "socials";
+
+const REQUIRED_FIELD_ORDER: (keyof EditCampaignFormData)[] = [
+  "campaignName",
+  "description",
+  "categories",
+  "coverImage",
+  "socials",
+  "campaignDetails",
+];
 
 function parseCategories(category: string | undefined | null): string[] {
   if (!category) {
@@ -248,6 +265,7 @@ export default function EditCampaignPage() {
     socials: 0,
   });
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [showUnverifyWarning, setShowUnverifyWarning] = useState(false);
   const modal = useCampaignCreationModal();
   const { openModal, closeModal } = modal;
   const [wizardStep, setWizardStep] = useState<WizardStep>(WizardStep.FORM);
@@ -288,6 +306,7 @@ export default function EditCampaignPage() {
   const form = useForm<EditCampaignFormData>({
     resolver: zodResolver(buildEditCampaignSchema()),
     mode: "onChange",
+    shouldFocusError: false,
     defaultValues: DEFAULT_FORM_VALUES,
   });
 
@@ -310,6 +329,7 @@ export default function EditCampaignPage() {
     error: campaignError,
     refetch: refetchCampaign,
   } = useCampaign(campaignId, network);
+  const queryClient = useQueryClient();
 
   const campaignDetailPath = useMemo(() => {
     const fallbackId = campaign?.id || campaignId || rawIdentifier;
@@ -608,7 +628,9 @@ export default function EditCampaignPage() {
 
       const sanitizedSocials = sanitizeSocialLinks(values.socials);
       const policyPresetName =
-        values.campaignType || campaign.policyPresetName || DEFAULT_POLICY_PRESET;
+        values.campaignType ||
+        campaign.policyPresetName ||
+        DEFAULT_POLICY_PRESET;
 
       const walrusFormData = {
         name: campaign.name,
@@ -666,6 +688,69 @@ export default function EditCampaignPage() {
     isCampaignLoading ||
     isCapLoading ||
     (!initialized && isWalrusLoading && !isWalrusError);
+
+  const waitForCampaignPropagation = useCallback(
+    async (params: {
+      expectedName?: string;
+      expectedShortDescription?: string;
+      expectedMetadata?: Record<string, string>;
+    }): Promise<void> => {
+      const { expectedName, expectedShortDescription, expectedMetadata } =
+        params;
+
+      for (
+        let attempt = 0;
+        attempt < CAMPAIGN_PROPAGATION_ATTEMPTS;
+        attempt++
+      ) {
+        let detail: Awaited<
+          ReturnType<typeof refetchCampaign>
+        >["data"] = undefined;
+
+        try {
+          const result = await refetchCampaign();
+          detail = result.data;
+        } catch (error) {
+          console.warn(
+            "[EditCampaign] Refetch failed during propagation wait:",
+            error,
+          );
+        }
+
+        if (detail) {
+          const basicsMatch =
+            (expectedName === undefined ||
+              detail.name.trim() === expectedName.trim()) &&
+            (expectedShortDescription === undefined ||
+              detail.shortDescription.trim() ===
+                expectedShortDescription.trim());
+
+          const metadataMatch =
+            !expectedMetadata ||
+            Object.entries(expectedMetadata).every(([key, expectedValue]) => {
+              if (expectedValue === undefined) return true;
+              const current = detail.metadata?.[key];
+              const normalizedCurrent =
+                typeof current === "string"
+                  ? current.trim()
+                  : current === null || current === undefined
+                    ? ""
+                    : String(current).trim();
+              return normalizedCurrent === expectedValue.trim();
+            });
+
+          if (basicsMatch && metadataMatch) {
+            return;
+          }
+        }
+
+        await new Promise((resolve) =>
+          setTimeout(resolve, CAMPAIGN_PROPAGATION_DELAY_MS * (attempt + 1)),
+        );
+      }
+    },
+    [refetchCampaign],
+  );
 
   const identifierDisplay = rawIdentifier || campaignId || "";
 
@@ -890,6 +975,12 @@ export default function EditCampaignPage() {
   const handleRegisterStorage = async () => {
     if (!account) {
       toast.error("Connect your wallet before registering Walrus storage.");
+      return;
+    }
+
+    const isValid = await form.trigger(undefined, { shouldFocus: false });
+    if (!isValid) {
+      scrollToFirstInvalidField();
       return;
     }
 
@@ -1165,7 +1256,7 @@ export default function EditCampaignPage() {
     setPendingWalrusSection(null);
   };
 
-  const handleSubmit = form.handleSubmit(async (values) => {
+  const onSubmit = async (values: EditCampaignFormData) => {
     if (!ownerCapId) {
       toast.error(
         "Missing campaign owner capability. Connect the correct wallet and try again.",
@@ -1215,6 +1306,14 @@ export default function EditCampaignPage() {
         (key) =>
           metadataUpdates[key as keyof typeof metadataUpdates] !== undefined,
       );
+
+      const expectedMetadata: Record<string, string> = {};
+      metadataKeys.forEach((key) => {
+        const value = metadataUpdates[key as keyof typeof metadataUpdates];
+        if (typeof value === "string") {
+          expectedMetadata[key] = value.trim();
+        }
+      });
 
       const hasMetadataPayload = metadataKeys.length > 0;
 
@@ -1308,7 +1407,19 @@ export default function EditCampaignPage() {
       initialValuesRef.current = currentValues;
       form.reset(currentValues);
 
-      await refetchCampaign();
+      await waitForCampaignPropagation({
+        expectedName: basicsUpdates.name,
+        expectedShortDescription: basicsUpdates.short_description,
+        expectedMetadata:
+          Object.keys(expectedMetadata).length > 0
+            ? expectedMetadata
+            : undefined,
+      });
+
+      await Promise.all([
+        queryClient.invalidateQueries({ queryKey: ["indexer", "campaign"] }),
+        queryClient.invalidateQueries({ queryKey: ["indexer", "campaigns"] }),
+      ]);
       toast.success("Campaign updated successfully.");
       setInitialized(false);
       navigate(campaignDetailPath);
@@ -1324,7 +1435,32 @@ export default function EditCampaignPage() {
     } finally {
       setIsSubmitting(false);
     }
-  });
+  };
+
+  const handleSubmitWithWarning = async (event: React.FormEvent) => {
+    event.preventDefault();
+
+    // Validate form first
+    const isValid = await form.trigger();
+    if (!isValid) {
+      scrollToFirstInvalidField();
+      return;
+    }
+
+    // Only show warning for verified campaigns after validation passes
+    if (campaignData.isVerified && hasAnyChanges) {
+      setShowUnverifyWarning(true);
+      return;
+    }
+
+    // If not verified, proceed with submission
+    form.handleSubmit(onSubmit)();
+  };
+
+  const handleConfirmUnverifyAndSubmit = () => {
+    setShowUnverifyWarning(false);
+    form.handleSubmit(onSubmit)();
+  };
 
   const disableSubmit =
     isSubmitting || requireWalrusRegistration || !hasAnyChanges;
@@ -1381,6 +1517,62 @@ export default function EditCampaignPage() {
     BigInt(Math.floor((costEstimate?.subsidizedTotalCost ?? 0) * 10 ** 9)) >
       BigInt(walBalanceRaw || "0");
 
+  const findFocusableDescendant = (element?: HTMLElement | null) => {
+    if (!element) return null;
+
+    const selector =
+      "input, select, textarea, button, [tabindex]:not([tabindex='-1']), a[href]";
+
+    if (
+      element.matches(selector) &&
+      !element.hasAttribute("disabled") &&
+      element.getAttribute("aria-hidden") !== "true"
+    ) {
+      return element;
+    }
+
+    return element.querySelector<HTMLElement>(selector);
+  };
+
+  const getFirstInvalidField = () =>
+    REQUIRED_FIELD_ORDER.find(
+      (fieldName) => form.getFieldState(fieldName).invalid,
+    );
+
+  const scrollToFirstInvalidField = () => {
+    const firstErrorField = getFirstInvalidField();
+
+    if (!firstErrorField) {
+      return;
+    }
+
+    window.requestAnimationFrame(() => {
+      const targetElement =
+        document.querySelector<HTMLElement>(
+          `[data-field-error="${firstErrorField}"]`,
+        ) ||
+        document.querySelector<HTMLElement>(`[name="${firstErrorField}"]`) ||
+        document.getElementById(firstErrorField);
+
+      if (targetElement) {
+        targetElement.scrollIntoView({
+          behavior: "smooth",
+          block: "center",
+        });
+      }
+
+      const focusTarget = findFocusableDescendant(targetElement);
+
+      if (focusTarget) {
+        focusTarget.focus({ preventScroll: true });
+      } else {
+        form.setFocus(firstErrorField as Path<EditCampaignFormData>, {
+          shouldSelect: true,
+        });
+      }
+    });
+  };
+
   const storageCosts: StorageCost[] = costEstimate
     ? [
         {
@@ -1397,17 +1589,19 @@ export default function EditCampaignPage() {
         },
         {
           label: `Storage (${costEstimate.epochs} epochs)`,
-          amount: `${costEstimate.subsidizedStorageCost.toFixed(6)} WAL`,
+          amount: `${formatTokenAmountFromNumber(costEstimate.subsidizedStorageCost)} WAL`,
         },
         {
           label: "Upload cost",
-          amount: `${costEstimate.subsidizedUploadCost.toFixed(6)} WAL`,
+          amount: `${formatTokenAmountFromNumber(costEstimate.subsidizedUploadCost)} WAL`,
         },
         ...(costEstimate.subsidyRate && costEstimate.subsidyRate > 0
           ? [
               {
                 label: `Subsidy discount (${(costEstimate.subsidyRate * 100).toFixed(0)}%)`,
-                amount: `-${(costEstimate.totalCostWal - costEstimate.subsidizedTotalCost).toFixed(6)} WAL`,
+                amount: `${formatTokenAmountFromNumber(
+                  costEstimate.subsidizedTotalCost - costEstimate.totalCostWal,
+                )} WAL`,
               },
             ]
           : []),
@@ -1427,7 +1621,7 @@ export default function EditCampaignPage() {
         ];
 
   const totalCostDisplay = costEstimate
-    ? `${costEstimate.subsidizedTotalCost.toFixed(6)} WAL`
+    ? `${formatTokenAmountFromNumber(costEstimate.subsidizedTotalCost)} WAL`
     : storageRegistrationComplete
       ? "Registered"
       : walrusChangesDetected
@@ -1488,7 +1682,7 @@ export default function EditCampaignPage() {
         <div className="container px-4 flex justify-center">
           <div className="w-full max-w-3xl px-4">
             <Form {...form}>
-              <form className="flex flex-col gap-16" onSubmit={handleSubmit}>
+              <form className="flex flex-col gap-16" onSubmit={handleSubmitWithWarning}>
                 <div className="flex flex-col items-center text-center gap-4">
                   <h1 className="text-5xl font-bold">
                     Edit{" "}
@@ -1539,9 +1733,15 @@ export default function EditCampaignPage() {
                     control={form.control}
                     name="campaignName"
                     render={({ field }) => (
-                      <FormItem className="flex flex-col gap-4">
+                      <FormItem
+                        className="flex flex-col gap-4"
+                        data-field-error="campaignName"
+                      >
                         <div className="flex items-center justify-between">
-                          <FormLabel className="font-medium text-base">
+                          <FormLabel
+                            className="font-medium text-base"
+                            htmlFor="edit-campaign-name"
+                          >
                             Title <span className="text-red-300">*</span>
                           </FormLabel>
                           <div className="flex items-center gap-3">
@@ -1553,6 +1753,7 @@ export default function EditCampaignPage() {
                         </div>
                         <FormControl>
                           <Input
+                            id="edit-campaign-name"
                             placeholder="Enter your campaign name"
                             {...field}
                             disabled={!editingSections.campaignName}
@@ -1567,9 +1768,15 @@ export default function EditCampaignPage() {
                     control={form.control}
                     name="description"
                     render={({ field }) => (
-                      <FormItem className="flex flex-col gap-4">
+                      <FormItem
+                        className="flex flex-col gap-4"
+                        data-field-error="description"
+                      >
                         <div className="flex items-center justify-between">
-                          <FormLabel className="font-medium text-base">
+                          <FormLabel
+                            className="font-medium text-base"
+                            htmlFor="edit-campaign-description"
+                          >
                             Short description{" "}
                             <span className="text-red-300">*</span>
                           </FormLabel>
@@ -1582,6 +1789,7 @@ export default function EditCampaignPage() {
                         </div>
                         <FormControl>
                           <Textarea
+                            id="edit-campaign-description"
                             placeholder="Brief description of your campaign"
                             rows={4}
                             {...field}
@@ -1723,7 +1931,7 @@ export default function EditCampaignPage() {
                     control={form.control}
                     name="socials"
                     render={() => (
-                      <FormItem>
+                      <FormItem data-field-error="socials">
                         <CampaignSocialsSection
                           disabled={!editingSections.socials}
                           labelStatus={
@@ -1801,6 +2009,13 @@ export default function EditCampaignPage() {
                   open={pendingWalrusSection !== null}
                   onConfirm={handleConfirmWalrusEdit}
                   onClose={handleCloseWalrusModal}
+                />
+
+                <UnverifyWarningModal
+                  open={showUnverifyWarning}
+                  onConfirm={handleConfirmUnverifyAndSubmit}
+                  onClose={() => setShowUnverifyWarning(false)}
+                  isSubmitting={isSubmitting}
                 />
               </form>
             </Form>

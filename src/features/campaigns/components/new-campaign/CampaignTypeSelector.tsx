@@ -32,7 +32,10 @@ export function CampaignTypeSelector({
         const isSelectorDisabled = disabled || isLoading || noPresets;
 
         return (
-          <section className="flex flex-col gap-8">
+          <section
+            className="flex flex-col gap-8"
+            data-field-error="campaignType"
+          >
             <div className="flex flex-wrap items-center justify-between gap-3">
               <h2 className="text-2xl font-bold leading-[1.6]">
                 Campaign Type <span className="text-red-300">*</span>

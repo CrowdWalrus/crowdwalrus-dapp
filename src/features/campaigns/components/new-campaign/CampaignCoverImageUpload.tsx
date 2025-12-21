@@ -597,7 +597,7 @@ export function CampaignCoverImageUpload({
         onChangeRef.current = onChange;
 
         return (
-          <div>
+          <div data-field-error="coverImage">
             <div className="flex flex-wrap items-center justify-between gap-3 pb-4">
               <FormLabel
                 htmlFor="cover-image"

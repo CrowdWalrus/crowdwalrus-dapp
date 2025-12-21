@@ -62,7 +62,9 @@ export function useSubnameAvailability(
     gcTime: 5 * 60_000,
   });
 
-  const isChecking = query.isFetching || query.isPending;
+  // `isPending` can be true even when a query is disabled; use `isFetching`
+  // so UI spinners only appear when we're actively querying the chain.
+  const isChecking = shouldCheck && query.isFetching;
 
   let status: SubnameAvailabilityStatus = "idle";
 

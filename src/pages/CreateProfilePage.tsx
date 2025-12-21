@@ -38,8 +38,7 @@ import {
   createProfileSchema,
   type CreateProfileFormData,
 } from "@/features/profiles/schemas/createProfileSchema";
-// TODO: Re-enable suiNS subname registration once Move profile supports subname registration.
-// import { SubnameField } from "@/features/suins/components/SubnameField";
+import { SubnameField } from "@/features/suins/components/SubnameField";
 import {
   CampaignSocialsSection,
   CampaignStorageRegistrationCard,
@@ -53,6 +52,7 @@ import {
 } from "@/shared/config/networkConfig";
 import { useWalBalance } from "@/shared/hooks/useWalBalance";
 import {
+  getDefaultSocialLinks,
   sanitizeSocialLinks,
   serializeSocialLinks,
   parseSocialLinksFromMetadata,
@@ -63,12 +63,11 @@ import {
   PROFILE_METADATA_REMOVED_VALUE,
 } from "@/features/profiles/constants/metadata";
 import {
-  createProfile,
-  updateProfileMetadata,
+  buildProfileTransaction,
   type ProfileMetadataUpdate,
 } from "@/services/profile";
-import type { ProfileResponse } from "@/services/indexer-services";
 import { isUserRejectedError } from "@/shared/utils/errors";
+import { formatTokenAmountFromNumber } from "@/shared/utils/currency";
 import { formatSubdomain } from "@/shared/utils/subdomain";
 import { buildProfileDetailPath } from "@/shared/utils/routes";
 import {
@@ -92,22 +91,21 @@ const DEFAULT_VALUES: CreateProfileFormData = {
   email: "",
   subdomain: "",
   bio: "",
-  socials: [],
+  socials: getDefaultSocialLinks(),
 };
 
 const PROFILE_FORM_KEYS = {
   fullName: PROFILE_METADATA_KEYS.FULL_NAME,
   email: PROFILE_METADATA_KEYS.EMAIL,
   bio: PROFILE_METADATA_KEYS.BIO,
-  subdomain: PROFILE_METADATA_KEYS.SUBDOMAIN,
   socials: PROFILE_METADATA_KEYS.SOCIALS_JSON,
   avatar: PROFILE_METADATA_KEYS.AVATAR_WALRUS_ID,
 };
 
 const PROFILE_REFETCH_ATTEMPTS = 4;
 const PROFILE_REFETCH_DELAY_MS = 1000;
-const AVATAR_PROPAGATION_ATTEMPTS = 6;
-const AVATAR_PROPAGATION_DELAY_MS = 800;
+const METADATA_PROPAGATION_ATTEMPTS = 6;
+const METADATA_PROPAGATION_DELAY_MS = 800;
 const STORAGE_PENDING_LABEL = "Upload an image to calculate";
 const AUTO_CALCULATING_LABEL = "Calculating...";
 
@@ -174,7 +172,6 @@ function buildProfileMetadataUpdates(
   values: CreateProfileFormData,
   currentMetadata: Record<string, string>,
   rawMetadata: Record<string, string>,
-  campaignDomain: string | null,
   avatarWalrusUrl?: string | null,
   removeAvatar = false,
 ) {
@@ -205,18 +202,6 @@ function buildProfileMetadataUpdates(
     rawMetadata,
   );
 
-  const formattedSubdomain = formatProfileSubdomain(
-    values.subdomain,
-    campaignDomain,
-  );
-  addMetadataUpdate(
-    updates,
-    PROFILE_FORM_KEYS.subdomain,
-    formattedSubdomain,
-    currentMetadata,
-    rawMetadata,
-  );
-
   const sanitizedSocials = sanitizeSocialLinks(values.socials);
   const socialsJson = serializeSocialLinks(sanitizedSocials);
   addMetadataUpdate(
@@ -227,17 +212,29 @@ function buildProfileMetadataUpdates(
     rawMetadata,
   );
 
-  const normalizedAvatarUrl = removeAvatar
-    ? ""
-    : avatarWalrusUrl?.trim() ?? "";
+  // Only touch the avatar metadata when the user explicitly changed it
+  // (new upload or removal). Previously we would pass an empty string when
+  // `avatarWalrusUrl` was undefined, which caused the existing avatar to be
+  // cleared whenever any other field was edited.
+  if (removeAvatar) {
+    addMetadataUpdate(
+      updates,
+      PROFILE_FORM_KEYS.avatar,
+      "",
+      currentMetadata,
+      rawMetadata,
+    );
+  } else if (typeof avatarWalrusUrl === "string") {
+    const normalizedAvatarUrl = avatarWalrusUrl.trim();
 
-  addMetadataUpdate(
-    updates,
-    PROFILE_FORM_KEYS.avatar,
-    normalizedAvatarUrl,
-    currentMetadata,
-    rawMetadata,
-  );
+    addMetadataUpdate(
+      updates,
+      PROFILE_FORM_KEYS.avatar,
+      normalizedAvatarUrl,
+      currentMetadata,
+      rawMetadata,
+    );
+  }
 
   return updates;
 }
@@ -284,6 +281,7 @@ export default function CreateProfilePage() {
   const [selectedEpochs, setSelectedEpochs] =
     useState<number>(avatarStorageEpochs);
   const [isSavingProfile, setIsSavingProfile] = useState(false);
+  const [isRedirectingPostSave, setIsRedirectingPostSave] = useState(false);
   const [wizardStep, setWizardStep] = useState<WizardStep>(WizardStep.FORM);
   const walrus = useWalrusUpload();
   const {
@@ -348,6 +346,11 @@ export default function CreateProfilePage() {
     enabled: Boolean(account?.address),
   });
   const lastInitializedProfileIdRef = useRef<string | null>(null);
+  const [optimisticSubdomain, setOptimisticSubdomain] = useState<string | null>(
+    null,
+  );
+  const existingProfileSubdomain =
+    optimisticSubdomain ?? profile?.subdomainName ?? null;
 
   const hasProfileImage = profileImageValue instanceof File;
   const profileImageFile = hasProfileImage ? (profileImageValue as File) : null;
@@ -406,12 +409,17 @@ export default function CreateProfilePage() {
 
   const submitButtonLabel = isSavingProfile
     ? "Saving..."
-    : profileId
-      ? "Save Changes"
-      : "Create Profile";
+    : isRedirectingPostSave
+      ? "Redirecting..."
+      : profileId
+        ? "Save Changes"
+        : "Create Profile";
 
   const isFormReadOnly =
-    isSavingProfile || !isWalletConnected || isProfileFetching;
+    isSavingProfile ||
+    isRedirectingPostSave ||
+    !isWalletConnected ||
+    isProfileFetching;
   const dirtyFields = form.formState.dirtyFields;
   const hasBasicFieldChanges = Boolean(
     dirtyFields.fullName ||
@@ -432,7 +440,12 @@ export default function CreateProfilePage() {
     socialsDirty ||
     Boolean(pendingAvatarWalrusUrl) ||
     avatarMarkedForRemoval;
-  const isSubmitDisabled = isFormReadOnly || !hasPendingChanges;
+  const hasIncompleteWalrusUpload =
+    hasProfileImage &&
+    !avatarMarkedForRemoval &&
+    !hasCompletedStorageRegistration;
+  const isSubmitDisabled =
+    isFormReadOnly || !hasPendingChanges || hasIncompleteWalrusUpload;
   const registrationDisabled =
     !hasProfileImage || isFormReadOnly || isRegistrationPending;
 
@@ -467,11 +480,11 @@ export default function CreateProfilePage() {
         },
         {
           label: `Storage (${avatarCostEstimate.epochs} epochs)`,
-          amount: `${avatarCostEstimate.subsidizedStorageCost.toFixed(6)} WAL`,
+          amount: `${formatTokenAmountFromNumber(avatarCostEstimate.subsidizedStorageCost)} WAL`,
         },
         {
           label: "Upload cost",
-          amount: `${avatarCostEstimate.subsidizedUploadCost.toFixed(6)} WAL`,
+          amount: `${formatTokenAmountFromNumber(avatarCostEstimate.subsidizedUploadCost)} WAL`,
         },
         ...(avatarCostEstimate.subsidyRate && avatarCostEstimate.subsidyRate > 0
           ? [
@@ -479,10 +492,10 @@ export default function CreateProfilePage() {
                 label: `Subsidy discount (${(
                   avatarCostEstimate.subsidyRate * 100
                 ).toFixed(0)}%)`,
-                amount: `-${(
-                  avatarCostEstimate.totalCostWal -
-                  avatarCostEstimate.subsidizedTotalCost
-                ).toFixed(6)} WAL`,
+                amount: `${formatTokenAmountFromNumber(
+                  avatarCostEstimate.subsidizedTotalCost -
+                    avatarCostEstimate.totalCostWal,
+                )} WAL`,
               },
             ]
           : []),
@@ -509,7 +522,7 @@ export default function CreateProfilePage() {
       ];
 
   const totalCost = avatarCostEstimate
-    ? `${avatarCostEstimate.subsidizedTotalCost.toFixed(6)} WAL`
+    ? `${formatTokenAmountFromNumber(avatarCostEstimate.subsidizedTotalCost)} WAL`
     : hasProfileImage
       ? AUTO_CALCULATING_LABEL
       : STORAGE_PENDING_LABEL;
@@ -552,6 +565,7 @@ export default function CreateProfilePage() {
         form.reset(DEFAULT_VALUES);
         lastInitializedProfileIdRef.current = null;
       }
+      setOptimisticSubdomain(null);
       return;
     }
 
@@ -562,17 +576,18 @@ export default function CreateProfilePage() {
     const existingSocials = parseSocialLinksFromMetadata(
       profile.metadata ?? {},
     );
+    const initialSocials =
+      existingSocials.length > 0
+        ? existingSocials
+        : getDefaultSocialLinks();
 
     form.reset({
       ...DEFAULT_VALUES,
       fullName: metadata[PROFILE_FORM_KEYS.fullName] ?? "",
       email: metadata[PROFILE_FORM_KEYS.email] ?? "",
       bio: metadata[PROFILE_FORM_KEYS.bio] ?? "",
-      subdomain: extractSubdomainLabel(
-        metadata[PROFILE_FORM_KEYS.subdomain],
-        campaignDomain,
-      ),
-      socials: existingSocials,
+      subdomain: "",
+      socials: initialSocials,
       profileImage: null,
     });
 
@@ -588,6 +603,31 @@ export default function CreateProfilePage() {
 
     lastInitializedProfileIdRef.current = profileId;
   }, [campaignDomain, form, metadata, modal, profile, profileId]);
+
+  const existingProfileSubdomainLabel = useMemo(
+    () =>
+      existingProfileSubdomain
+        ? extractSubdomainLabel(existingProfileSubdomain, campaignDomain)
+        : "",
+    [campaignDomain, existingProfileSubdomain],
+  );
+
+  useEffect(() => {
+    if (!profileId) {
+      return;
+    }
+
+    const fieldState = form.getFieldState("subdomain");
+    if (fieldState.isDirty) {
+      return;
+    }
+
+    form.setValue("subdomain", existingProfileSubdomainLabel, {
+      shouldDirty: false,
+      shouldTouch: false,
+      shouldValidate: false,
+    });
+  }, [existingProfileSubdomainLabel, form, profileId]);
 
   const epochConfig = WALRUS_EPOCH_CONFIG[DEFAULT_NETWORK];
   const totalStorageDays = selectedEpochs * epochConfig.epochDurationDays;
@@ -654,30 +694,38 @@ export default function CreateProfilePage() {
     return null;
   }, [refetchProfileData]);
 
-  const waitForAvatarPropagation = useCallback(
-    async (
-      targetWalrusUrl: string | null | undefined,
-      expectRemoval = false,
-    ) => {
-      if (!targetWalrusUrl && !expectRemoval) {
-        return false;
+  const waitForMetadataPropagation = useCallback(
+    async (updates: ProfileMetadataUpdate[]) => {
+      if (!updates.length) {
+        return true;
       }
 
-      for (let attempt = 0; attempt < AVATAR_PROPAGATION_ATTEMPTS; attempt++) {
-        const result = await refetchProfileData();
-        const rawValue =
-          result.data?.profile?.metadata?.[PROFILE_FORM_KEYS.avatar];
-        const current = typeof rawValue === "string" ? rawValue.trim() : null;
+      const expectedEntries = updates.map(({ key, value }) => ({
+        key,
+        expected:
+          value === PROFILE_METADATA_REMOVED_VALUE ? "" : value.trim(),
+      }));
 
-        if (
-          (expectRemoval && (!current || current.length === 0)) ||
-          (!expectRemoval && current === targetWalrusUrl)
-        ) {
+      for (
+        let attempt = 0;
+        attempt < METADATA_PROPAGATION_ATTEMPTS;
+        attempt++
+      ) {
+        const result = await refetchProfileData();
+        const current = result.data?.profile?.metadata ?? {};
+
+        const allMatch = expectedEntries.every(({ key, expected }) => {
+          const currentValue =
+            typeof current[key] === "string" ? current[key].trim() : "";
+          return currentValue === expected;
+        });
+
+        if (allMatch) {
           return true;
         }
 
         await new Promise((resolve) =>
-          setTimeout(resolve, AVATAR_PROPAGATION_DELAY_MS * (attempt + 1)),
+          setTimeout(resolve, METADATA_PROPAGATION_DELAY_MS * (attempt + 1)),
         );
       }
 
@@ -943,18 +991,35 @@ export default function CreateProfilePage() {
       values,
       metadata,
       rawMetadata,
-      campaignDomain,
       pendingAvatarWalrusUrl ?? undefined,
       avatarMarkedForRemoval,
     );
 
-    if (updates.length === 0 && hasProfile) {
+    const desiredSubdomainFullName = formatProfileSubdomain(
+      values.subdomain,
+      campaignDomain,
+    );
+    const wantsSubdomain = Boolean(desiredSubdomainFullName);
+    const hasRegisteredSubdomain = Boolean(existingProfileSubdomain);
+    const shouldRegisterSubdomain = wantsSubdomain && !hasRegisteredSubdomain;
+
+    if (
+      hasRegisteredSubdomain &&
+      wantsSubdomain &&
+      desiredSubdomainFullName !== existingProfileSubdomain
+    ) {
+      toast.error("Your nickname is already set and can't be changed.");
+      return;
+    }
+
+    if (updates.length === 0 && !shouldRegisterSubdomain && hasProfile) {
       toast.info("Your profile is already up to date.");
       return;
     }
 
     setIsSavingProfile(true);
     const existedBeforeSubmit = Boolean(profileId);
+    const didRegisterSubdomain = shouldRegisterSubdomain;
 
     try {
       let targetProfileId = profileId ?? null;
@@ -964,13 +1029,22 @@ export default function CreateProfilePage() {
         targetProfileId = latest.data?.profile?.profileId ?? null;
       }
 
-      if (!targetProfileId) {
-        const createTx = createProfile(DEFAULT_NETWORK);
-        await signAndExecuteTransaction({
-          transaction: createTx,
-          chain: `sui:${DEFAULT_NETWORK}`,
-        });
+      const hadProfileBeforeSubmit = Boolean(targetProfileId);
 
+      const tx = buildProfileTransaction({
+        senderAddress: account.address,
+        profileId: targetProfileId,
+        metadataUpdates: updates,
+        subdomainFullName: shouldRegisterSubdomain ? desiredSubdomainFullName : null,
+        network: DEFAULT_NETWORK,
+      });
+
+      await signAndExecuteTransaction({
+        transaction: tx,
+        chain: `sui:${DEFAULT_NETWORK}`,
+      });
+
+      if (!hadProfileBeforeSubmit) {
         targetProfileId = await waitForProfileId();
         if (!targetProfileId) {
           throw new Error(
@@ -979,71 +1053,18 @@ export default function CreateProfilePage() {
         }
       }
 
-      if (updates.length > 0) {
-        const updateTx = updateProfileMetadata(
-          targetProfileId,
-          updates,
-          DEFAULT_NETWORK,
-        );
-        await signAndExecuteTransaction({
-          transaction: updateTx,
-          chain: `sui:${DEFAULT_NETWORK}`,
-        });
+      if (didRegisterSubdomain) {
+        setOptimisticSubdomain(desiredSubdomainFullName);
       }
 
       await refetchProfileData();
 
-      // Poll for the updated avatar to propagate through the indexer so users
-      // land on their profile with the fresh image already available.
-      await waitForAvatarPropagation(
-        pendingAvatarWalrusUrl,
-        avatarMarkedForRemoval,
-      );
-
-      if (pendingAvatarWalrusUrl && !avatarMarkedForRemoval) {
-        queryClient.setQueriesData<ProfileResponse | null>(
-          { queryKey: ["indexer", "profile", account?.address] },
-          (existing) => {
-            if (!existing?.profile) {
-              return existing;
-            }
-
-            return {
-              ...existing,
-              profile: {
-                ...existing.profile,
-                metadata: {
-                  ...existing.profile.metadata,
-                  [PROFILE_FORM_KEYS.avatar]: pendingAvatarWalrusUrl,
-                },
-              },
-            };
-          },
-        );
-      } else if (avatarMarkedForRemoval) {
-        queryClient.setQueriesData<ProfileResponse | null>(
-          { queryKey: ["indexer", "profile", account?.address] },
-          (existing) => {
-            if (!existing?.profile) {
-              return existing;
-            }
-
-            return {
-              ...existing,
-              profile: {
-                ...existing.profile,
-                metadata: {
-                  ...existing.profile.metadata,
-                  [PROFILE_FORM_KEYS.avatar]: "",
-                },
-              },
-            };
-          },
-        );
-      }
+      // Poll until the indexer reflects all metadata updates so the profile page
+      // shows fresh data immediately after redirect.
+      await waitForMetadataPropagation(updates);
 
       // Force downstream profile consumers (e.g., ProfilePage) to fetch fresh
-      // metadata immediately so the new avatar shows without a manual reload.
+      // metadata immediately so the new values show without a manual reload.
       await queryClient.invalidateQueries({ queryKey: ["indexer", "profile"] });
 
       // Clear the local profile image field so future saves aren't blocked by
@@ -1052,14 +1073,15 @@ export default function CreateProfilePage() {
       lastProfileImageRef.current = null;
 
       const actionMessage =
-        updates.length === 0
-          ? "Profile created successfully."
-          : existedBeforeSubmit
-            ? "Profile updated successfully."
+        existedBeforeSubmit || !targetProfileId
+          ? "Profile updated successfully."
+          : updates.length === 0 && !didRegisterSubdomain
+            ? "Profile created successfully."
             : "Profile created and updated successfully.";
 
       toast.success(actionMessage);
       if (account?.address) {
+        setIsRedirectingPostSave(true);
         if (redirectTimeoutRef.current !== null) {
           window.clearTimeout(redirectTimeoutRef.current);
         }
@@ -1157,10 +1179,10 @@ export default function CreateProfilePage() {
                     />
 
                     <div className="grid gap-6 md:grid-cols-2">
-                      <FormField
-                        control={form.control}
-                        name="fullName"
-                        render={({ field }) => (
+                  <FormField
+                    control={form.control}
+                    name="fullName"
+                    render={({ field }) => (
                           <FormItem className="flex flex-col gap-2">
                             <FormLabel className="font-medium text-base">
                               Name
@@ -1198,14 +1220,14 @@ export default function CreateProfilePage() {
                       />
                     </div>
 
-                    {/* TODO: Re-enable suiNS SubnameField once Move profile supports subname registration again. */}
-                    {/*
-                      <SubnameField
-                        label="Setup your nick name"
-                        placeholder="your-name"
-                        disabled={isFormReadOnly}
-                      />
-                    */}
+                    <SubnameField
+                      label="Setup your nick name"
+                      placeholder="your-name"
+                      locked={Boolean(existingProfileSubdomain)}
+                      disabled={
+                        isFormReadOnly || Boolean(existingProfileSubdomain)
+                      }
+                    />
 
                     <FormField
                       control={form.control}

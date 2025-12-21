@@ -105,15 +105,15 @@ const TESTNET_CONFIG: NetworkContractConfig = {
   contracts: {
     // Package ID from deployment
     packageId:
-      "0x5abd06b4c77fca5cdf684f77a2a06c1303218bf85ac27dde3cb07243655a3e9e",
+      "0x428ec1774457c593220968ae69c6c0493397ff0250929d09b5ad0ac51ac50d6e",
 
     // CrowdWalrus shared object from deployment
     crowdWalrusObjectId:
-      "0xc6632fb8fc6b2ceb5dee81292855a5def8a7c4289c8c7aa9908d0d5373e1376b",
+      "0x383653c211c606ac869de3e4756d4ca00e1334df4d3e06d271600de23533b1c5",
 
     // SuiNS Manager shared object from deployment
     suinsManagerObjectId:
-      "0x73d8313a788722f5be2ea362cbb33ee9afac241d2bb88541aa6a93bf08e245ac",
+      "0xd35e7e0af51662cc07dced530c868be4b40a9396d8dcdd3847c50f5a10f061fa",
 
     // SuiNS registry object ID for custom deployment (crowdwalrus-testnet-core-v2)
     suinsObjectId:
@@ -121,19 +121,19 @@ const TESTNET_CONFIG: NetworkContractConfig = {
 
     // PolicyRegistry shared object from Phase 2 deployment
     policyRegistryObjectId:
-      "0xd8f6ef8263676816f298c1f7f311829dd3ee67e26993832e842cb7660859f906",
+      "0x85b6a872bb08b82f6c2da4e32de00cd2910d6262281c57e3a06de51c7427ba27",
 
     // ProfilesRegistry shared object from Phase 2 deployment
     profilesRegistryObjectId:
-      "0x2284d6443cbe5720da6b658237b66176a7c9746d2f8322c8a5cd0310357766b0",
+      "0xe48a80faa1b6fefcae03cb9770ea9b73027f63b492fbe213c3f179b41186d336",
 
     // TokenRegistry shared object from Phase 2 deployment
     tokenRegistryObjectId:
-      "0x92909eb4d9ff776ef04ff37fb5e100426dabc3e2a3bae2e549bde01ebd410ae4",
+      "0xc39c14642b913e5129035ef427cb9b2393cd1ff29c75c957af65b308d89239d7",
 
     // BadgeConfig shared object from Phase 2 deployment
     badgeConfigObjectId:
-      "0x6faec79a14bcd741a97d5a42722c49e6abed148955e87cdce0ad9e505b6c5412",
+      "0x75a2acf943d40bcd3385fbbf0b627cf23cd1278be36c1f6b509638b4d1625e1a",
   },
   walrus: {
     network: "testnet",

@@ -1,6 +1,6 @@
 import { useEffect, useMemo } from "react";
 import { useFormContext, useWatch } from "react-hook-form";
-import { Loader2, Check, AlertCircleIcon, Info } from "lucide-react";
+import { Loader2, Check, AlertCircleIcon, Info, Lock } from "lucide-react";
 
 import { useDebounce } from "@/shared/hooks/useDebounce";
 import { useSubnameAvailability } from "@/features/campaigns/hooks/useSubnameAvailability";
@@ -20,6 +20,8 @@ interface SubnameFieldProps {
   placeholder?: string;
   required?: boolean;
   disabled?: boolean;
+  locked?: boolean;
+  lockedMessage?: string;
 }
 
 export function SubnameField({
@@ -28,16 +30,22 @@ export function SubnameField({
   placeholder = "your-name",
   required = false,
   disabled = false,
+  locked = false,
+  lockedMessage = "This nickname is locked and can't be changed.",
 }: SubnameFieldProps) {
   const form = useFormContext();
   const subdomainValue = useWatch({ control: form.control, name });
+
+  const inputId = `${name}-input`;
 
   const rawSubdomain = (subdomainValue ?? "").trim();
   const debouncedSubdomain = useDebounce(rawSubdomain, 400);
   const hasRawSubdomain = rawSubdomain.length > 0;
   const hasDebouncedSubdomain = debouncedSubdomain.length > 0;
+  const isLocked = locked && hasRawSubdomain;
   const isSubdomainPatternValid =
     hasDebouncedSubdomain && SUBDOMAIN_PATTERN.test(debouncedSubdomain);
+  const shouldCheckAvailability = !disabled && isSubdomainPatternValid;
 
   const {
     status: subnameStatus,
@@ -46,7 +54,7 @@ export function SubnameField({
     isChecking: isCheckingSubname,
     error: subnameError,
   } = useSubnameAvailability(
-    isSubdomainPatternValid ? debouncedSubdomain : null,
+    shouldCheckAvailability ? debouncedSubdomain : null,
   );
 
   const availabilityErrorMessage = subnameError?.message ?? "";
@@ -71,6 +79,11 @@ export function SubnameField({
     rawSubdomain ||
     "this sub-name";
 
+  const lockedFullSubdomain =
+    campaignDomain && hasRawSubdomain && SUBDOMAIN_PATTERN.test(rawSubdomain)
+      ? formatSubdomain(rawSubdomain, campaignDomain)
+      : availabilityDisplayName;
+
   const includesCampaignSuffix =
     !!campaignDomain && rawSubdomain.endsWith(`.${campaignDomain}`);
   const containsDot = rawSubdomain.includes(".");
@@ -81,6 +94,13 @@ export function SubnameField({
   const isManualFieldError = subdomainFieldState.error?.type === "manual";
 
   useEffect(() => {
+    if (isLocked) {
+      if (isManualFieldError) {
+        form.clearErrors(name);
+      }
+      return;
+    }
+
     if (!isSubdomainPatternValid) {
       if (isManualFieldError) {
         form.clearErrors(name);
@@ -118,6 +138,7 @@ export function SubnameField({
     availabilityErrorMessage,
     form,
     fieldErrorMessage,
+    isLocked,
     isManualFieldError,
     isSubdomainPatternValid,
     name,
@@ -125,6 +146,10 @@ export function SubnameField({
   ]);
 
   const helperVariant = useMemo(() => {
+    if (isLocked) {
+      return "success";
+    }
+
     if (!campaignDomain || !hasRawSubdomain) {
       return "default";
     }
@@ -148,6 +173,7 @@ export function SubnameField({
     containsDot,
     hasRawSubdomain,
     includesCampaignSuffix,
+    isLocked,
     subnameStatus,
   ]);
 
@@ -162,6 +188,14 @@ export function SubnameField({
 
   const subdomainHelperText = (() => {
     if (fieldErrorMessage) {
+      return "";
+    }
+
+    if (isLocked) {
+      return `Registered as ${lockedFullSubdomain}. ${lockedMessage}`;
+    }
+
+    if (disabled) {
       return "";
     }
 
@@ -199,8 +233,11 @@ export function SubnameField({
       control={form.control}
       name={name}
       render={({ field }) => (
-        <FormItem className="flex flex-col gap-4">
-          <FormLabel className="font-medium text-base">
+        <FormItem
+          className="flex flex-col gap-4"
+          data-field-error={name}
+        >
+          <FormLabel className="font-medium text-base" htmlFor={inputId}>
             {label} {required && <span className="text-red-300">*</span>}
           </FormLabel>
           <div className="flex flex-col gap-2">
@@ -210,12 +247,16 @@ export function SubnameField({
                 subdomainFieldState.error ? "border-red-500" : "border-input",
               )}
             >
-              {isCheckingSubname && (
+              {isCheckingSubname && shouldCheckAvailability && !isLocked && (
                 <Loader2 className="size-[18px] animate-spin text-black-300" />
+              )}
+              {isLocked && (
+                <Lock className="size-[18px] text-black-300" />
               )}
               <FormControl>
                 <input
                   {...field}
+                  id={inputId}
                   placeholder={placeholder}
                   disabled={disabled}
                   className="flex-1 bg-transparent text-sm outline-none placeholder:text-muted-foreground/50"
@@ -229,7 +270,9 @@ export function SubnameField({
             </div>
             {shouldShowHelperText && (
               <div className="flex items-center gap-1">
-                {subnameStatus === "available" ? (
+                {isLocked ? (
+                  <Check className="size-[18px] text-sgreen-700" />
+                ) : subnameStatus === "available" ? (
                   <Check className="size-[18px] text-sgreen-700" />
                 ) : subnameStatus === "taken" || subnameStatus === "error" ? (
                   <AlertCircleIcon className="size-[18px] text-red-500" />

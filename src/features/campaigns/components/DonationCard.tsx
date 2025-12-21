@@ -28,7 +28,10 @@ import {
   SelectTrigger,
 } from "@/shared/components/ui/select";
 import { CampaignTimelineBadge, VerificationBadge } from "./CampaignBadges";
-import { formatUsdLocaleFromMicros } from "@/shared/utils/currency";
+import {
+  formatTokenAmount,
+  formatUsdLocaleFromMicros,
+} from "@/shared/utils/currency";
 import { useEnabledTokens } from "@/features/tokens/hooks";
 import { useProfile } from "@/features/profiles/hooks/useProfile";
 import { useDonorBadges } from "@/features/badges/hooks/useDonorBadges";
@@ -38,7 +41,6 @@ import {
   buildFirstTimeDonationTx,
   buildRepeatDonationTx,
   parseCoinInputToRawAmount,
-  formatRawAmount,
   DEFAULT_SLIPPAGE_BPS,
   type DonationBuildResult,
 } from "@/services/donations";
@@ -70,6 +72,7 @@ import {
   type BadgeRewardItem,
 } from "./modals/BadgeRewardModal";
 import { ShareModal } from "./modals/ShareModal";
+import { UnverifiedCampaignModal } from "./modals/UnverifiedCampaignModal";
 
 const COMING_SOON_TOKENS: Pick<
   TokenRegistryEntry,
@@ -84,6 +87,8 @@ interface DonationCardProps {
   campaignId: string;
   statsId: string;
   isVerified: boolean;
+  isOwner?: boolean;
+  isOwnerView?: boolean;
   startDateMs: number;
   endDateMs: number;
   campaignName?: string;
@@ -105,6 +110,8 @@ export function DonationCard({
   campaignId,
   statsId,
   isVerified,
+  isOwner = false,
+  isOwnerView = false,
   startDateMs,
   endDateMs,
   campaignName,
@@ -190,6 +197,8 @@ export function DonationCard({
   const [isBuildingDonation, setIsBuildingDonation] = useState(false);
   const [isWalletRequestPending, setIsWalletRequestPending] = useState(false);
   const [isShareModalOpen, setIsShareModalOpen] = useState(false);
+  const [isUnverifiedCampaignModalOpen, setIsUnverifiedCampaignModalOpen] =
+    useState(false);
   const donationFlowRef = useRef(0);
   const priceQuoteRequestRef = useRef(0);
 
@@ -601,7 +610,7 @@ export function DonationCard({
     if (balanceRaw === null) {
       return "0";
     }
-    return `${formatRawAmount(balanceRaw, selectedToken.decimals, 4)} ${selectedToken.symbol}`;
+    return `${formatTokenAmount(balanceRaw, selectedToken.decimals)} ${selectedToken.symbol}`;
   }, [balanceRaw, isBalanceLoading, isWalletConnected, selectedToken]);
 
   const canDonate = Boolean(
@@ -897,10 +906,9 @@ export function DonationCard({
             : 0n;
         const netRawAmount = grossRawAmount - feeRawAmount;
 
-        const amountHuman = formatRawAmount(
+        const amountHuman = formatTokenAmount(
           netRawAmount,
           selectedToken.decimals,
-          6,
         );
 
         const usdDisplay = amountUsdMicro
@@ -1047,7 +1055,22 @@ export function DonationCard({
       <div className="bg-white rounded-2xl sm:rounded-3xl p-6 sm:p-8 lg:p-10 flex flex-col gap-4 sm:gap-5 lg:gap-6 w-full shadow-[0px_0px_16px_0px_rgba(0,0,0,0.16)]">
         {/* Verification Badge */}
         <div className="flex items-start">
-          <VerificationBadge isVerified={isVerified} />
+          {!isVerified && isOwner && isOwnerView ? (
+            <button
+              type="button"
+              onClick={() => setIsUnverifiedCampaignModalOpen(true)}
+              className="inline-flex"
+              aria-haspopup="dialog"
+              aria-label="Learn about campaign verification"
+            >
+              <VerificationBadge
+                isVerified={false}
+                className="cursor-pointer hover:opacity-90"
+              />
+            </button>
+          ) : (
+            <VerificationBadge isVerified={isVerified} />
+          )}
         </div>
 
         {/* Timeline */}
@@ -1344,10 +1367,9 @@ export function DonationCard({
                       <div className="flex justify-between text-sm text-black-400">
                         <span>Your donation</span>
                         <span>
-                          {formatRawAmount(
+                          {formatTokenAmount(
                             parsedAmount,
                             selectedToken.decimals,
-                            4,
                           )}{" "}
                           {selectedToken.symbol}
                         </span>
@@ -1355,10 +1377,9 @@ export function DonationCard({
                       <div className="flex justify-between text-sm text-black-400">
                         <span>Platform Fee ({platformBps / 100}%)</span>
                         <span>
-                          {formatRawAmount(
+                          {formatTokenAmount(
                             (parsedAmount * BigInt(platformBps)) / 10000n,
                             selectedToken.decimals,
-                            4,
                           )}{" "}
                           {selectedToken.symbol}
                         </span>
@@ -1368,11 +1389,10 @@ export function DonationCard({
                         <span className="text-black-400">Net Amount</span>
                         <div className="flex items-center gap-1">
                           <span className="text-black-400">
-                            {formatRawAmount(
+                            {formatTokenAmount(
                               parsedAmount -
                                 (parsedAmount * BigInt(platformBps)) / 10000n,
                               selectedToken.decimals,
-                              4,
                             )}{" "}
                             {selectedToken.symbol}
                           </span>
@@ -1472,6 +1492,10 @@ export function DonationCard({
         campaignName={campaignName}
         subdomainName={subdomainName}
         onClose={() => setIsShareModalOpen(false)}
+      />
+      <UnverifiedCampaignModal
+        open={isUnverifiedCampaignModalOpen}
+        onClose={() => setIsUnverifiedCampaignModalOpen(false)}
       />
 
       <div ref={connectButtonRef} className="hidden">

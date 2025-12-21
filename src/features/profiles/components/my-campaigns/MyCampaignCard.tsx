@@ -15,6 +15,7 @@ import { cn } from "@/shared/lib/utils";
 import { Loader2 } from "lucide-react";
 import { Link } from "react-router-dom";
 import { formatUsdLocaleFromMicros } from "@/shared/utils/currency";
+import { useProfileHandle } from "@/features/profiles/hooks/useProfileHandle";
 
 export type MyCampaignCardActionVariant =
   | "primary"
@@ -92,13 +93,23 @@ export function MyCampaignCard({
     campaign.fundingGoalUsdMicro > 0n
       ? Number((raisedUsdMicro * 100n) / campaign.fundingGoalUsdMicro)
       : 0;
-  const fundingPercentage = Math.min(100, Math.max(0, fundingPercentageRaw));
+  const fundingPercentage = Math.max(0, fundingPercentageRaw);
   const formattedGoal = formatUsdLocaleFromMicros(campaign.fundingGoalUsdMicro);
   const formattedRaised = formatUsdLocaleFromMicros(raisedUsdMicro);
   const resolvedSupportersCount =
     typeof supportersCount === "number" && Number.isFinite(supportersCount)
       ? Math.max(0, supportersCount)
       : CAMPAIGN_PLACEHOLDER_SUPPORTERS;
+
+  const publisherAddress = campaign.creatorAddress?.trim();
+  const hasPublisherAddress =
+    typeof publisherAddress === "string" &&
+    publisherAddress.length >= 10 &&
+    publisherAddress.startsWith("0x");
+  const { handle: publisherHandle, profilePath: publisherProfilePath } =
+    useProfileHandle(hasPublisherAddress ? publisherAddress : null);
+  const formattedPublisher = formatAddress(publisherAddress);
+  const publisherLabel = publisherHandle ?? formattedPublisher;
 
   return (
     <div
@@ -141,9 +152,18 @@ export function MyCampaignCard({
           <div className="flex flex-col gap-2 sm:flex-row sm:items-start sm:justify-between">
             <div className="flex flex-col leading-relaxed">
               <span className="text-xs text-black-200">Published by</span>
-              <span className="text-sm font-medium text-black-500">
-                {formatAddress(campaign.creatorAddress)}
-              </span>
+              {publisherProfilePath ? (
+                <Link
+                  to={publisherProfilePath}
+                  className="text-sm font-medium text-black-500 underline-offset-4 hover:underline"
+                >
+                  {publisherLabel}
+                </Link>
+              ) : (
+                <span className="text-sm font-medium text-black-500">
+                  {publisherLabel}
+                </span>
+              )}
             </div>
 
             <div className="flex flex-wrap items-center gap-2">
