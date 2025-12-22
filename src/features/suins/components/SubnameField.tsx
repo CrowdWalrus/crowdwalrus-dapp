@@ -233,30 +233,63 @@ export function SubnameField({
       control={form.control}
       name={name}
       render={({ field }) => (
-        <FormItem
-          className="flex flex-col gap-4"
-          data-field-error={name}
-        >
-          <FormLabel className="font-medium text-base" htmlFor={inputId}>
+        <FormItem className="flex flex-col gap-4" data-field-error={name}>
+          <FormLabel
+            id={`${inputId}-label`}
+            className="font-medium text-base"
+            htmlFor={inputId}
+          >
             {label} {required && <span className="text-red-300">*</span>}
           </FormLabel>
           <div className="flex flex-col gap-2">
+            {/* Mobile: stacked layout with suffix below */}
+            <div className="flex flex-col gap-1.5 sm:hidden">
+              <div
+                className={cn(
+                  "flex h-10 w-full items-center gap-3 rounded-lg border bg-white-50 px-4 py-[9.5px]",
+                  subdomainFieldState.error ? "border-red-500" : "border-input",
+                )}
+              >
+                {isCheckingSubname && shouldCheckAvailability && !isLocked && (
+                  <Loader2 className="size-[18px] animate-spin text-black-300" />
+                )}
+                {isLocked && <Lock className="size-[18px] text-black-300" />}
+                <FormControl>
+                  <input
+                    {...field}
+                    id={inputId}
+                    placeholder={placeholder}
+                    disabled={disabled}
+                    className="flex-1 bg-transparent text-sm outline-none placeholder:text-muted-foreground/50"
+                  />
+                </FormControl>
+              </div>
+              {campaignDomain && (
+                <span className="text-xs text-black-300 pl-1">
+                  Your full address:{" "}
+                  <span className="font-medium">
+                    {rawSubdomain || placeholder}.{campaignDomain}
+                  </span>
+                </span>
+              )}
+            </div>
+
+            {/* Tablet/Desktop: inline layout */}
             <div
               className={cn(
-                "flex h-10 w-full items-center gap-3 rounded-lg border bg-white-50 px-4 py-[9.5px]",
+                "hidden sm:flex h-10 w-full items-center gap-3 rounded-lg border bg-white-50 px-4 py-[9.5px]",
                 subdomainFieldState.error ? "border-red-500" : "border-input",
               )}
             >
               {isCheckingSubname && shouldCheckAvailability && !isLocked && (
                 <Loader2 className="size-[18px] animate-spin text-black-300" />
               )}
-              {isLocked && (
-                <Lock className="size-[18px] text-black-300" />
-              )}
+              {isLocked && <Lock className="size-[18px] text-black-300" />}
               <FormControl>
                 <input
                   {...field}
-                  id={inputId}
+                  id={`${inputId}-desktop`}
+                  aria-labelledby={`${inputId}-label`}
                   placeholder={placeholder}
                   disabled={disabled}
                   className="flex-1 bg-transparent text-sm outline-none placeholder:text-muted-foreground/50"
