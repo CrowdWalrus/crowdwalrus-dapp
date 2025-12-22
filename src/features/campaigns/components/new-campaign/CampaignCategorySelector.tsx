@@ -53,10 +53,7 @@ export function CampaignCategorySelector({
         const selectedCategories = Array.isArray(value) ? value : [];
 
         return (
-          <div
-            className="flex flex-col gap-8"
-            data-field-error="categories"
-          >
+          <div className="flex flex-col gap-8" data-field-error="categories">
             <div className="flex flex-wrap items-center justify-between gap-3">
               <p className="font-bold text-2xl leading-[1.6]">
                 <span>Select Category </span>
@@ -74,14 +71,14 @@ export function CampaignCategorySelector({
                 Pick a category that best describes your campaign. You can
                 choose multiple options.
               </p>
-              <div className="flex gap-6">
+              <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 sm:gap-6">
                 {CATEGORY_GROUPS.map((group, groupIndex) => (
-                  <div key={groupIndex} className="flex flex-col gap-6">
+                  <div
+                    key={groupIndex}
+                    className="flex flex-col gap-4 sm:gap-6"
+                  >
                     {group.map(({ id, label }) => (
-                      <div
-                        key={id}
-                        className="flex gap-2 h-6 items-center w-60"
-                      >
+                      <div key={id} className="flex gap-2 h-6 items-center">
                         <Checkbox
                           id={id}
                           checked={selectedCategories.includes(id)}
