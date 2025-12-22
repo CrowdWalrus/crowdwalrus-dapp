@@ -775,15 +775,15 @@ export default function NewCampaignPage() {
           </Breadcrumb>
         </div>
 
-        <div className="container px-4 flex justify-center">
+        <div className="container px-4 flex justify-center pt-4">
           <div className="w-full max-w-3xl px-4">
             <Form {...form}>
               <form onSubmit={form.handleSubmit(onSubmit)}>
                 {/* Page Header */}
-                <div className="flex flex-col gap-16">
+                <div className="flex flex-col gap-10 md:gap-16">
                   {/* Wallet Status */}
                   {!currentAccount && (
-                    <div className="sticky top-24 z-20">
+                    <div className="sm:sticky sm:top-20 md:top-24 z-20">
                       <Alert className="border-blue-200 bg-blue-50/80 backdrop-blur-sm shadow-sm">
                         <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
                           <AlertDescription className="flex items-start gap-3 text-blue-900">
@@ -820,10 +820,10 @@ export default function NewCampaignPage() {
 
                   <fieldset
                     disabled={isFormLocked}
-                    className="flex flex-col gap-16"
+                    className="flex flex-col gap-10 md:gap-16"
                   >
-                    <div className="flex flex-col items-center text-center gap-4 mb-16">
-                      <h1 className="text-4xl font-bold mb-4">
+                    <div className="flex flex-col items-center text-center gap-4 mb-8 md:mb-16">
+                      <h1 className="text-2xl sm:text-3xl md:text-4xl font-bold mb-2 md:mb-4">
                         Launch Your Campaign
                       </h1>
                       <p className="text-muted-foreground text-base">
@@ -833,12 +833,12 @@ export default function NewCampaignPage() {
                     </div>
 
                     {/* Campaign Details Section */}
-                    <section className="flex flex-col mb-12 gap-8">
-                      <h2 className="text-2xl font-semibold mb-8">
+                    <section className="flex flex-col mb-8 md:mb-12 gap-6 md:gap-8">
+                      <h2 className="text-xl sm:text-2xl font-semibold mb-4 md:mb-8">
                         Campaign Details
                       </h2>
 
-                      <div className="flex flex-col gap-8">
+                      <div className="flex flex-col gap-6 md:gap-8">
                         {/* Campaign Name */}
                         <FormField
                           control={form.control}
@@ -927,8 +927,8 @@ export default function NewCampaignPage() {
                     <Separator />
 
                     {/* Additional Details Section */}
-                    <section className="flex flex-col gap-8 mb-12">
-                      <h2 className="text-2xl font-semibold">
+                    <section className="flex flex-col gap-6 md:gap-8 mb-8 md:mb-12">
+                      <h2 className="text-xl sm:text-2xl font-semibold">
                         Additional Details
                       </h2>
 
