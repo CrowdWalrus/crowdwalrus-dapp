@@ -383,9 +383,7 @@ export function DonationCard({
         const replacement: BadgeRewardItem = {
           id: badge.objectId,
           level: badge.level,
-          imageUrl: badge.imageUrl,
           objectId: badge.objectId,
-          explorerUrl: buildExplorerObjectUrl(badge.objectId, network),
         };
         const existingIndex = updated.findIndex(
           (item) => item.level === badge.level,
@@ -952,7 +950,6 @@ export function DonationCard({
             (level, index) => ({
               id: `pending-${transactionDigest}-${level}-${index}`,
               level,
-              imageUrl: null,
             }),
           );
           setBadgeAwards(placeholders);
@@ -1484,6 +1481,7 @@ export function DonationCard({
       <BadgeRewardModal
         open={isBadgeModalOpen}
         badges={badgeAwards}
+        profileAddress={currentAccount?.address ?? null}
         onClose={handleBadgeModalClose}
       />
       <ShareModal
@@ -1637,17 +1635,6 @@ function buildExplorerTxUrl(
   }
   const baseUrl = resolveExplorerBaseUrl(network);
   return `${baseUrl}/txblock/${digest}`;
-}
-
-function buildExplorerObjectUrl(
-  objectId: string,
-  network: SupportedNetwork,
-): string | null {
-  if (!objectId) {
-    return null;
-  }
-  const baseUrl = resolveExplorerBaseUrl(network);
-  return `${baseUrl}/object/${objectId}`;
 }
 
 interface PendingDonationContext {

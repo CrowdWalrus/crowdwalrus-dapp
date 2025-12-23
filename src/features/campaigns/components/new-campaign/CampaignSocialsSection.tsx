@@ -106,7 +106,7 @@ export function CampaignSocialsSection({
 
           return (
             <div key={field.id} className="flex flex-col gap-2 w-full">
-              <div className="flex gap-4 items-start w-full">
+              <div className="flex flex-col gap-3 sm:flex-row sm:gap-4 sm:items-start w-full">
                 <Controller
                   control={control}
                   name={`socials.${index}.platform`}
@@ -116,7 +116,7 @@ export function CampaignSocialsSection({
                       onValueChange={controllerField.onChange}
                       disabled={disabled}
                     >
-                      <SelectTrigger className="w-40" disabled={disabled}>
+                      <SelectTrigger className="w-full sm:w-40" disabled={disabled}>
                         <SelectValue />
                       </SelectTrigger>
                       <SelectContent>
@@ -141,33 +141,35 @@ export function CampaignSocialsSection({
                     </Select>
                   )}
                 />
-                <div className="flex-1 flex flex-col gap-2">
-                  <Controller
-                    control={control}
-                    name={`socials.${index}.url`}
-                    render={({ field: controllerField }) => (
-                      <Input
-                        placeholder={config?.placeholder || "https://"}
-                        className="w-full"
-                        {...controllerField}
-                        disabled={disabled}
-                      />
+                <div className="flex-1 flex gap-2 items-start w-full">
+                  <div className="flex-1 flex flex-col gap-2">
+                    <Controller
+                      control={control}
+                      name={`socials.${index}.url`}
+                      render={({ field: controllerField }) => (
+                        <Input
+                          placeholder={config?.placeholder || "https://"}
+                          className="w-full"
+                          {...controllerField}
+                          disabled={disabled}
+                        />
+                      )}
+                    />
+                    {urlError && (
+                      <p className="text-sm font-medium text-destructive">
+                        {urlError.message as string}
+                      </p>
                     )}
-                  />
-                  {urlError && (
-                    <p className="text-sm font-medium text-destructive">
-                      {urlError.message as string}
-                    </p>
-                  )}
+                  </div>
+                  <button
+                    type="button"
+                    onClick={() => !disabled && remove(index)}
+                    className="shrink-0 size-5 flex items-center justify-center text-red-300 hover:text-red-400 transition-colors mt-3 disabled:opacity-50"
+                    disabled={disabled}
+                  >
+                    <X className="size-[15.417px]" />
+                  </button>
                 </div>
-                <button
-                  type="button"
-                  onClick={() => !disabled && remove(index)}
-                  className="shrink-0 size-5 flex items-center justify-center text-red-300 hover:text-red-400 transition-colors mt-3 disabled:opacity-50"
-                  disabled={disabled}
-                >
-                  <X className="size-[15.417px]" />
-                </button>
               </div>
             </div>
           );
@@ -176,7 +178,7 @@ export function CampaignSocialsSection({
         <Button
           variant="outline"
           size="sm"
-          className="w-40"
+          className="w-full sm:w-40"
           onClick={handleAddMore}
           disabled={disabled || isAtLimit}
           type="button"

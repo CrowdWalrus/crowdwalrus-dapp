@@ -304,8 +304,7 @@ export default function CreateProfilePage() {
   const [pendingAvatarWalrusUrl, setPendingAvatarWalrusUrl] = useState<
     string | null
   >(null);
-  const [avatarMarkedForRemoval, setAvatarMarkedForRemoval] =
-    useState(false);
+  const [avatarMarkedForRemoval, setAvatarMarkedForRemoval] = useState(false);
   const [walrusError, setWalrusError] = useState<Error | null>(null);
   const [avatarCostState, setAvatarCostState] = useState<{
     estimate: StorageCostEstimate | null;
@@ -577,9 +576,7 @@ export default function CreateProfilePage() {
       profile.metadata ?? {},
     );
     const initialSocials =
-      existingSocials.length > 0
-        ? existingSocials
-        : getDefaultSocialLinks();
+      existingSocials.length > 0 ? existingSocials : getDefaultSocialLinks();
 
     form.reset({
       ...DEFAULT_VALUES,
@@ -652,7 +649,7 @@ export default function CreateProfilePage() {
     Boolean(storedAvatarWalrusUrl) && !avatarMarkedForRemoval;
   const resolvedAvatarPreview = avatarMarkedForRemoval
     ? null
-    : pendingAvatarWalrusUrl ?? storedAvatarWalrusUrl;
+    : (pendingAvatarWalrusUrl ?? storedAvatarWalrusUrl);
   const walrusBalanceDisplay = isBalanceLoading
     ? "Loading..."
     : formattedBalance;
@@ -702,8 +699,7 @@ export default function CreateProfilePage() {
 
       const expectedEntries = updates.map(({ key, value }) => ({
         key,
-        expected:
-          value === PROFILE_METADATA_REMOVED_VALUE ? "" : value.trim(),
+        expected: value === PROFILE_METADATA_REMOVED_VALUE ? "" : value.trim(),
       }));
 
       for (
@@ -1035,7 +1031,9 @@ export default function CreateProfilePage() {
         senderAddress: account.address,
         profileId: targetProfileId,
         metadataUpdates: updates,
-        subdomainFullName: shouldRegisterSubdomain ? desiredSubdomainFullName : null,
+        subdomainFullName: shouldRegisterSubdomain
+          ? desiredSubdomainFullName
+          : null,
         network: DEFAULT_NETWORK,
       });
 
@@ -1151,7 +1149,7 @@ export default function CreateProfilePage() {
           </Breadcrumb>
         </div>
 
-        <div className="container px-4 flex justify-center">
+        <div className="container pt-4 px-4 flex justify-center">
           <div className="w-full max-w-3xl px-4">
             <Form {...form}>
               <form onSubmit={handleSubmit} className="flex flex-col gap-12">
@@ -1179,10 +1177,10 @@ export default function CreateProfilePage() {
                     />
 
                     <div className="grid gap-6 md:grid-cols-2">
-                  <FormField
-                    control={form.control}
-                    name="fullName"
-                    render={({ field }) => (
+                      <FormField
+                        control={form.control}
+                        name="fullName"
+                        render={({ field }) => (
                           <FormItem className="flex flex-col gap-2">
                             <FormLabel className="font-medium text-base">
                               Name
