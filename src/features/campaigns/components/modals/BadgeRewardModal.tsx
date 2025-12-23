@@ -1,3 +1,5 @@
+import { useState } from "react";
+
 import { Button } from "@/shared/components/ui/button";
 import {
   Dialog,
@@ -5,37 +7,40 @@ import {
   DialogDescription,
   DialogTitle,
 } from "@/shared/components/ui/dialog";
-import { useWalrusImage } from "@/features/campaigns/hooks/useWalrusImage";
+import { ROUTES } from "@/shared/config/routes";
+import { getBadgeImagePath } from "@/shared/utils/badges";
 
 export interface BadgeRewardItem {
   id: string;
   level: number;
-  imageUrl: string | null;
   objectId?: string;
-  explorerUrl?: string | null;
 }
 
 interface BadgeRewardModalProps {
   open: boolean;
   badges: BadgeRewardItem[];
+  profileAddress?: string | null;
   onClose: () => void;
 }
 
 export function BadgeRewardModal({
   open,
   badges,
+  profileAddress,
   onClose,
 }: BadgeRewardModalProps) {
   const safeOpen = open && badges.length > 0;
   const sortedBadges = [...badges].sort((a, b) => a.level - b.level);
-  const explorerTarget = sortedBadges.find((badge) => Boolean(badge.explorerUrl));
   const levelsSummary = formatLevels(sortedBadges.map((badge) => badge.level));
+  const profilePath = profileAddress
+    ? ROUTES.PROFILE_DETAIL.replace(":address", profileAddress)
+    : null;
 
-  const handleViewNft = () => {
-    if (!explorerTarget?.explorerUrl) {
+  const handleViewProfile = () => {
+    if (!profilePath) {
       return;
     }
-    window.open(explorerTarget.explorerUrl, "_blank", "noopener,noreferrer");
+    window.open(profilePath, "_blank", "noopener,noreferrer");
   };
 
   return (
@@ -65,10 +70,10 @@ export function BadgeRewardModal({
             variant="ghost"
             className="flex-1 h-10 rounded-lg border border-black-100 bg-white text-black-500 hover:bg-white-200 disabled:border-black-50 disabled:text-black-200"
             type="button"
-            disabled={!explorerTarget?.explorerUrl}
-            onClick={handleViewNft}
+            disabled={!profilePath}
+            onClick={handleViewProfile}
           >
-            View your NFT{sortedBadges.length > 1 ? "s" : ""}
+            View your profile
           </Button>
           <Button
             className="flex-1 h-10 rounded-lg bg-blue-500 text-white hover:bg-blue-600"
@@ -84,18 +89,10 @@ export function BadgeRewardModal({
 }
 
 function BadgeRewardPreview({ badge }: { badge: BadgeRewardItem }) {
-  const { data: imageUrl, isPending } = useWalrusImage(badge.imageUrl);
+  const [hasError, setHasError] = useState(false);
+  const imageSrc = getBadgeImagePath(badge.level);
 
-  if (isPending) {
-    return (
-      <div
-        className="size-32 animate-pulse rounded-full bg-black-50"
-        aria-label="Loading badge"
-      />
-    );
-  }
-
-  if (!imageUrl) {
+  if (!imageSrc || hasError) {
     return (
       <div className="flex size-32 items-center justify-center rounded-full bg-black-50 text-sm font-semibold text-black-300">
         Level {badge.level}
@@ -105,10 +102,11 @@ function BadgeRewardPreview({ badge }: { badge: BadgeRewardItem }) {
 
   return (
     <img
-      src={imageUrl}
+      src={imageSrc}
       alt={`CrowdWalrus badge level ${badge.level}`}
       className="size-32 rounded-full object-cover"
       loading="lazy"
+      onError={() => setHasError(true)}
     />
   );
 }
