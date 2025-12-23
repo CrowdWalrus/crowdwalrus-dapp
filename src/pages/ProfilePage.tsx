@@ -34,6 +34,7 @@ import { Card, CardContent } from "@/shared/components/ui/card";
 import { ROUTES } from "@/shared/config/routes";
 import { useNetworkVariable } from "@/shared/config/networkConfig";
 import { formatUsdLocaleFromMicros } from "@/shared/utils/currency";
+import { getBadgeImagePath } from "@/shared/utils/badges";
 
 const DESCRIPTION_EMPTY_STATE =
   "It appears that your profile is currently incomplete. Please take a moment to create your profile and share information about yourself.";
@@ -137,7 +138,8 @@ export function ProfilePage() {
     () =>
       donorBadges.map((badge) => ({
         id: badge.objectId,
-        src: badge.imageUrl,
+        level: badge.level,
+        src: getBadgeImagePath(badge.level),
         alt: `CrowdWalrus donor badge level ${badge.level}`,
       })),
     [donorBadges],
