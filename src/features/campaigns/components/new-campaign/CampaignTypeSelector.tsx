@@ -67,7 +67,7 @@ export function CampaignTypeSelector({
                 onChange(nextValue);
               }}
               className={cn(
-                "flex gap-6",
+                "flex flex-col gap-4 sm:flex-row sm:gap-6",
                 isSelectorDisabled && "opacity-60",
               )}
               aria-disabled={isSelectorDisabled}

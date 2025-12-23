@@ -17,7 +17,7 @@ export function Plugins({ readOnly = false }: PluginsProps) {
   return (
     <>
       {/* toolbar plugins */}
-      <div className="flex items-center gap-1 border-b border-border p-2 bg-background">
+      <div className="flex flex-wrap items-center gap-1 border-b border-border p-2 bg-background overflow-x-auto">
         <BlockFormatToolbarPlugin disabled={readOnly} />
         <ToolbarPlugin disabled={readOnly} />
         <LinkToolbarPlugin disabled={readOnly} />

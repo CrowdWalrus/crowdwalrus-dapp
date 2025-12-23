@@ -1,8 +1,9 @@
-import { useWalrusImage } from "@/features/campaigns/hooks/useWalrusImage";
+import { useState } from "react";
 
 interface ProfileBadge {
   id: string;
-  src: string;
+  level: number;
+  src: string | null;
   alt: string;
 }
 
@@ -32,35 +33,23 @@ export function ProfileBadgeShowcase({
 }
 
 function BadgeImage({ badge }: { badge: ProfileBadge }) {
-  const {
-    data: imageObjectUrl,
-    isPending,
-    isError,
-  } = useWalrusImage(badge.src);
+  const [hasError, setHasError] = useState(false);
 
-  if (isPending) {
-    return (
-      <div
-        className="h-20 w-20 animate-pulse rounded-full bg-black-50"
-        aria-hidden
-      />
-    );
-  }
-
-  if (isError || !imageObjectUrl) {
+  if (!badge.src || hasError) {
     return (
       <div className="flex h-20 w-20 items-center justify-center rounded-full bg-black-50 text-xs text-black-300">
-        Badge
+        Level {badge.level}
       </div>
     );
   }
 
   return (
     <img
-      src={imageObjectUrl}
+      src={badge.src}
       alt={badge.alt}
       className="h-20 w-20 rounded-full object-cover"
       loading="lazy"
+      onError={() => setHasError(true)}
     />
   );
 }

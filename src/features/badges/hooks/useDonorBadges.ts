@@ -2,13 +2,14 @@ import { useMemo } from "react";
 
 import { useProfile } from "@/features/profiles/hooks/useProfile";
 import { DEFAULT_NETWORK } from "@/shared/config/networkConfig";
+import { getBadgeImagePath } from "@/shared/utils/badges";
 import type { SupportedNetwork } from "@/shared/types/network";
 
 export interface DonorBadge {
   objectId: string;
   level: number;
   ownerAddress: string;
-  imageUrl: string;
+  imageUrl: string | null;
   issuedAtMs: bigint;
 }
 
@@ -36,9 +37,6 @@ export function useDonorBadges({
 }: UseDonorBadgesOptions = {}): UseDonorBadgesResult {
   const profileQuery = useProfile({ ownerAddress, network, enabled });
 
-  const buildBadgeImagePath = (level: number) =>
-    `/assets/images/badges/level${level}.png`;
-
   const badges = useMemo<DonorBadge[]>(() => {
     if (!profileQuery.data?.badges?.length) {
       return [];
@@ -51,7 +49,7 @@ export function useDonorBadges({
         objectId: `${badge.txDigest ?? badge.profileId}-${badge.level}`,
         level: badge.level,
         ownerAddress: badge.owner,
-        imageUrl: buildBadgeImagePath(badge.level),
+        imageUrl: getBadgeImagePath(badge.level),
         issuedAtMs: BigInt(badge.timestampMs ?? 0),
       }));
 
