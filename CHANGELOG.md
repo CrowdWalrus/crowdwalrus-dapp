@@ -1,5 +1,13 @@
 # Changelog
 
+## [1.1.1](https://github.com/CrowdWalrus/crowdwalrus-dapp/compare/v1.1.0...v1.1.1) (2025-12-23)
+
+
+### Chores
+
+* Update release-please configuration to include component and v… ([49eaf8a](https://github.com/CrowdWalrus/crowdwalrus-dapp/commit/49eaf8aa8f08d7d51bbc1dc72b9f6d8b1a722569))
+* Update release-please configuration to include component and version in tags ([b428a94](https://github.com/CrowdWalrus/crowdwalrus-dapp/commit/b428a9479e7e036819d89e471a46ad49d7da19ad))
+
 ## [1.1.0](https://github.com/CrowdWalrus/crowdwalrus-dapp/compare/crowdwalrus-dapp-v1.0.0...crowdwalrus-dapp-v1.1.0) (2025-12-23)
 
 
