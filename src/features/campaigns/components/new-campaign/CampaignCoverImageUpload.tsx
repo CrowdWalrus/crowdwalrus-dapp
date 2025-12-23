@@ -638,7 +638,7 @@ export function CampaignCoverImageUpload({
               crop before saving.
             </p>
             <div
-              className={`relative w-full h-[360px] rounded-3xl border-2 border-dashed flex items-center justify-center overflow-hidden transition-colors ${
+              className={`relative w-full h-[200px] sm:h-[280px] md:h-[360px] rounded-3xl border-2 border-dashed flex items-center justify-center overflow-hidden transition-colors ${
                 isDragging
                   ? "border-primary bg-primary/10"
                   : "border-border bg-muted/30"

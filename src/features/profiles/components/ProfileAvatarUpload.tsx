@@ -420,8 +420,8 @@ export function ProfileAvatarUpload({
                 }
                 disabled={disabled}
               />
-              <div className="flex w-full flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
-                <div className="flex items-center gap-6">
+              <div className="flex w-full flex-col gap-4">
+                <div className="flex flex-col items-center gap-4 sm:flex-row sm:items-start sm:gap-6">
                   <div className="relative size-[120px] shrink-0 overflow-hidden rounded-3xl bg-black-50">
                     {previewUrl ? (
                       <>
@@ -448,11 +448,11 @@ export function ProfileAvatarUpload({
                       </div>
                     )}
                   </div>
-                  <div className="flex flex-col gap-3">
+                  <div className="flex flex-col items-center gap-3 text-center sm:items-start sm:text-left">
                     <Button
                       type="button"
                       variant="outline"
-                      className="w-fit gap-2 border-black-50"
+                      className="w-full gap-2 border-black-50 sm:w-fit"
                       onClick={handleBrowseClick}
                       disabled={disabled}
                     >
@@ -472,7 +472,7 @@ export function ProfileAvatarUpload({
                         type="button"
                         variant="outline"
                         size="sm"
-                        className="w-fit gap-2"
+                        className="w-full gap-2 sm:w-fit"
                         onClick={() => handleAdjustExisting(currentFile)}
                         disabled={disabled || isPreparingExistingCrop}
                       >

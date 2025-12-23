@@ -143,14 +143,14 @@ function EditableCampaignTimeline({
           date. Before that, it’s Coming Soon; after that, funding closes
           automatically.
         </p>
-        <div className="flex gap-6 items-start">
+        <div className="flex flex-col gap-4 sm:flex-row sm:gap-6 items-start">
           <div className="flex flex-col gap-2" data-field-error="startDate">
             <Popover open={startDateOpen} onOpenChange={setStartDateOpen}>
               <PopoverTrigger asChild>
                 <button
                   type="button"
                   className={cn(
-                    "flex items-center gap-1.5 px-2 py-1.5 border border-neutral-200 rounded-lg bg-white w-[197px] min-h-[32px]",
+                    "flex items-center gap-1.5 px-2 py-1.5 border border-neutral-200 rounded-lg bg-white w-full sm:w-[197px] min-h-[32px]",
                     !startDateObj && "text-neutral-500",
                   )}
                 >
@@ -185,7 +185,7 @@ function EditableCampaignTimeline({
                 <button
                   type="button"
                   className={cn(
-                    "flex items-center gap-1.5 px-2 py-1.5 border border-neutral-200 rounded-lg bg-white w-[197px] min-h-[32px]",
+                    "flex items-center gap-1.5 px-2 py-1.5 border border-neutral-200 rounded-lg bg-white w-full sm:w-[197px] min-h-[32px]",
                     !endDateObj && "text-neutral-500",
                   )}
                 >
