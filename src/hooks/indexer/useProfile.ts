@@ -35,7 +35,7 @@ export function useProfile(
       }
     },
     enabled: Boolean(enabled && address),
-    staleTime: 30_000,
+    staleTime: 5_000,
     gcTime: 5 * 60_000,
   });
 }
