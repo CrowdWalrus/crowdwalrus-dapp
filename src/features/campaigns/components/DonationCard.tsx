@@ -63,6 +63,7 @@ import { buildCampaignDetailPath } from "@/shared/utils/routes";
 import { isSuiCoinType } from "@/shared/utils/sui";
 import { cn } from "@/shared/lib/utils";
 import { getCampaignStatusInfo } from "../utils/campaignStatus";
+import type { PendingCampaignDonation } from "../types/donation";
 import { DonationProcessingModal } from "./modals/DonationProcessingModal";
 import {
   DonationSuccessModal,
@@ -103,7 +104,9 @@ interface DonationCardProps {
   subdomainName?: string | null;
   campaignDomain?: string | null;
   platformBps?: number;
-  onDonationComplete?: () => Promise<void> | void;
+  onDonationComplete?: (
+    payload: PendingCampaignDonation,
+  ) => Promise<void> | void;
   onViewUpdates?: () => void;
 }
 
@@ -1034,8 +1037,19 @@ export function DonationCard({
           }
         }
 
+        const completionPayload: PendingCampaignDonation = {
+          txDigest: transactionDigest,
+          timestampMs: Date.now(),
+          donor: currentAccount?.address ?? "",
+          coinTypeCanonical: selectedToken.coinType,
+          coinSymbol: selectedToken.symbol,
+          amountRaw: grossRawAmount,
+          amountUsdMicro,
+          platformBps: platformFeeBps,
+        };
+
         try {
-          await onDonationComplete?.();
+          await onDonationComplete?.(completionPayload);
         } catch (callbackError) {
           console.warn(
             "[donation] onDonationComplete callback failed",
