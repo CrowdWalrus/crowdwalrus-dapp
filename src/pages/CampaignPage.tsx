@@ -7,6 +7,7 @@
 
 import { useCallback, useEffect, useState } from "react";
 import { Link, useParams, useSearchParams } from "react-router-dom";
+import { useQueryClient } from "@tanstack/react-query";
 import { useCampaign } from "@/features/campaigns/hooks/useCampaign";
 import { useResolvedCampaignId } from "@/features/campaigns/hooks/useResolvedCampaignId";
 import { useWalrusDescription } from "@/features/campaigns/hooks/useWalrusDescription";
@@ -43,6 +44,7 @@ import { ActivateCampaignModal } from "@/features/campaigns/components/modals/Ac
 import { DeleteCampaignModal } from "@/features/campaigns/components/modals/DeleteCampaignModal";
 import { ProcessingState } from "@/features/campaigns/components/campaign-creation-modal/states/ProcessingState";
 import { CampaignContributionsTable } from "@/features/campaigns/components/CampaignContributionsTable";
+import type { PendingCampaignDonation } from "@/features/campaigns/types/donation";
 import {
   CircleCheck,
   OctagonMinus,
@@ -67,6 +69,7 @@ const CAMPAIGN_PLACEHOLDER_IMAGE = "/assets/images/placeholders/campaign.png";
 export function CampaignPage() {
   const { id } = useParams<{ id: string }>();
   const network = DEFAULT_NETWORK;
+  const queryClient = useQueryClient();
   const campaignDomain = useNetworkVariable("campaignDomain") as
     | string
     | undefined;
@@ -175,9 +178,43 @@ export function CampaignPage() {
       },
     });
 
-  const handleDonationComplete = useCallback(async () => {
-    await Promise.allSettled([refetchCampaign(), refetchCampaignStats()]);
-  }, [refetchCampaign, refetchCampaignStats]);
+  const [pendingDonation, setPendingDonation] =
+    useState<PendingCampaignDonation | null>(null);
+
+  const handleDonationComplete = useCallback(
+    async (payload: PendingCampaignDonation) => {
+      if (payload.txDigest) {
+        setPendingDonation(payload);
+      }
+
+      const resolvedCampaignId = campaign?.id ?? campaignId ?? "";
+      const requests: Promise<unknown>[] = [
+        refetchCampaign(),
+        refetchCampaignStats(),
+      ];
+
+      if (resolvedCampaignId) {
+        requests.push(
+          queryClient.invalidateQueries({
+            queryKey: ["indexer", "campaign-donations", resolvedCampaignId],
+          }),
+        );
+      }
+
+      await Promise.allSettled(requests);
+    },
+    [
+      campaign?.id,
+      campaignId,
+      queryClient,
+      refetchCampaign,
+      refetchCampaignStats,
+    ],
+  );
+
+  const handlePendingResolved = useCallback(() => {
+    setPendingDonation(null);
+  }, []);
 
   // State to toggle between owner view and public view
   const [isOwnerView, setIsOwnerView] = useState(true);
@@ -252,6 +289,10 @@ export function CampaignPage() {
       return;
     }
     window.scrollTo({ top: 0, behavior: "smooth" });
+  }, [campaignId]);
+
+  useEffect(() => {
+    setPendingDonation(null);
   }, [campaignId]);
 
   useEffect(() => {
@@ -562,7 +603,11 @@ export function CampaignPage() {
                   value="contributions"
                   className="pt-4 sm:pt-6 lg:pt-8"
                 >
-                  <CampaignContributionsTable campaignId={campaign.id} />
+                  <CampaignContributionsTable
+                    campaignId={campaign.id}
+                    pendingDonation={pendingDonation}
+                    onPendingResolved={handlePendingResolved}
+                  />
                 </TabsContent>
 
                 <TabsContent value="updates" className="pt-4 sm:pt-6 lg:pt-8">

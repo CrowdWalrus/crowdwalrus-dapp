@@ -44,6 +44,7 @@ import {
   DEFAULT_SLIPPAGE_BPS,
   type DonationBuildResult,
 } from "@/services/donations";
+import { resolveProfileIdOnChain } from "@/services/profile";
 import { previewPriceOracleQuote } from "@/services/priceOracle";
 import {
   DEFAULT_NETWORK,
@@ -62,6 +63,7 @@ import { buildCampaignDetailPath } from "@/shared/utils/routes";
 import { isSuiCoinType } from "@/shared/utils/sui";
 import { cn } from "@/shared/lib/utils";
 import { getCampaignStatusInfo } from "../utils/campaignStatus";
+import type { PendingCampaignDonation } from "../types/donation";
 import { DonationProcessingModal } from "./modals/DonationProcessingModal";
 import {
   DonationSuccessModal,
@@ -102,7 +104,9 @@ interface DonationCardProps {
   subdomainName?: string | null;
   campaignDomain?: string | null;
   platformBps?: number;
-  onDonationComplete?: () => Promise<void> | void;
+  onDonationComplete?: (
+    payload: PendingCampaignDonation,
+  ) => Promise<void> | void;
   onViewUpdates?: () => void;
 }
 
@@ -748,9 +752,36 @@ export function DonationCard({
     setIsBuildingDonation(true);
     setIsWalletRequestPending(false);
 
-    const donationFlow: DonationFlow =
-      hasProfile && profileId ? "repeat" : "firstTime";
-    const shouldRefreshProfile = donationFlow === "firstTime";
+    let resolvedProfileId = profileId ?? null;
+    let profileResolvedFromChain = false;
+
+    try {
+      const onChainProfileId = await resolveProfileIdOnChain({
+        suiClient,
+        ownerAddress: currentAccount.address,
+        network,
+      });
+      if (onChainProfileId) {
+        resolvedProfileId = onChainProfileId;
+        profileResolvedFromChain = true;
+      }
+    } catch (error) {
+      console.warn("[donation] on-chain profile lookup failed", error);
+    }
+
+    if (donationFlowRef.current !== flowToken) {
+      return;
+    }
+
+    if (profileResolvedFromChain && !hasProfile) {
+      void refetchProfile();
+    }
+
+    const donationFlow: DonationFlow = resolvedProfileId
+      ? "repeat"
+      : "firstTime";
+    const shouldRefreshProfile =
+      donationFlow === "firstTime" || (profileResolvedFromChain && !hasProfile);
     let buildResult: DonationBuildResult;
     try {
       buildResult =
@@ -764,7 +795,7 @@ export function DonationCard({
               rawAmount,
               network,
               slippageBps: DEFAULT_SLIPPAGE_BPS,
-              profileId: profileId!,
+              profileId: resolvedProfileId!,
             })
           : await buildFirstTimeDonationTx({
               suiClient,
@@ -841,9 +872,12 @@ export function DonationCard({
         shouldRefreshProfile,
       } = context;
 
-      try {
+      const runDonation = async (
+        transaction: Transaction,
+        refreshProfile: boolean,
+      ) => {
         const response = await signAndExecuteWithWallet(
-          buildResult.transaction,
+          transaction,
           {
             showEffects: true,
             showEvents: true,
@@ -966,7 +1000,7 @@ export function DonationCard({
         setContributionAmount("");
         setValidationError(null);
 
-        if (shouldRefreshProfile) {
+        if (refreshProfile) {
           try {
             await refetchProfile();
           } catch (profileRefreshError) {
@@ -1003,8 +1037,19 @@ export function DonationCard({
           }
         }
 
+        const completionPayload: PendingCampaignDonation = {
+          txDigest: transactionDigest,
+          timestampMs: Date.now(),
+          donor: currentAccount?.address ?? "",
+          coinTypeCanonical: selectedToken.coinType,
+          coinSymbol: selectedToken.symbol,
+          amountRaw: grossRawAmount,
+          amountUsdMicro,
+          platformBps: platformFeeBps,
+        };
+
         try {
-          await onDonationComplete?.();
+          await onDonationComplete?.(completionPayload);
         } catch (callbackError) {
           console.warn(
             "[donation] onDonationComplete callback failed",
@@ -1014,19 +1059,85 @@ export function DonationCard({
 
         setPendingDonation(null);
         setIsProcessing(false);
+      };
+
+      try {
+        await runDonation(buildResult.transaction, shouldRefreshProfile);
       } catch (error) {
         if (isUserRejectedError(error)) {
           toast.info("Transaction cancelled. No funds were sent.");
-        } else {
-          const message = formatDonationError(error, {
-            flow: donationFlow,
-          });
-          toast.error(message);
-          console.error("[donation] transaction execution failed", {
-            error,
-            donationFlow,
-          });
+          return;
         }
+
+        const rawMessage =
+          error instanceof Error
+            ? error.message
+            : typeof error === "string"
+              ? error
+              : JSON.stringify(error);
+        const abortCode = extractAbortCode(rawMessage);
+
+        if (abortCode === 6 && donationFlow === "firstTime") {
+          try {
+            const onChainProfileId = await resolveProfileIdOnChain({
+              suiClient,
+              ownerAddress: currentAccount?.address ?? "",
+              network,
+            });
+
+            if (onChainProfileId) {
+              const retryBuildResult = await buildRepeatDonationTx({
+                suiClient,
+                accountAddress: currentAccount?.address ?? "",
+                campaignId,
+                statsId,
+                token: selectedToken,
+                rawAmount,
+                network,
+                slippageBps: DEFAULT_SLIPPAGE_BPS,
+                profileId: onChainProfileId,
+              });
+
+              const retryContext: PendingDonationContext = {
+                buildResult: retryBuildResult,
+                rawAmount,
+                selectedToken,
+                selectedTokenDisplay,
+                donationFlow: "repeat",
+                shouldRefreshProfile: true,
+              };
+
+              setPendingDonation(retryContext);
+              toast.info(
+                "Detected an existing donor profile. Retrying with the repeat-donor flow.",
+              );
+              await runDonation(retryBuildResult.transaction, true);
+              return;
+            }
+          } catch (retryError) {
+            if (isUserRejectedError(retryError)) {
+              toast.info("Transaction cancelled. No funds were sent.");
+              return;
+            }
+            const message = formatDonationError(retryError, {
+              flow: "repeat",
+            });
+            toast.error(message);
+            console.error("[donation] retry execution failed", {
+              error: retryError,
+            });
+            return;
+          }
+        }
+
+        const message = formatDonationError(error, {
+          flow: donationFlow,
+        });
+        toast.error(message);
+        console.error("[donation] transaction execution failed", {
+          error,
+          donationFlow,
+        });
       } finally {
         setIsWalletRequestPending(false);
       }
@@ -1038,6 +1149,9 @@ export function DonationCard({
       badgeEventType,
       donationEventType,
       network,
+      campaignId,
+      statsId,
+      currentAccount?.address,
       ownedBadges,
       refetchDonorBadges,
       refetchProfile,

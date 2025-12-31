@@ -1,5 +1,11 @@
 import { useEffect, useMemo, useState } from "react";
-import { AlertCircle, ExternalLink } from "lucide-react";
+import {
+  AlertCircle,
+  AlertTriangleIcon,
+  Clock,
+  ExternalLink,
+  Loader2,
+} from "lucide-react";
 import { Link } from "react-router-dom";
 
 import {
@@ -32,12 +38,18 @@ import { useCampaignDonations } from "@/hooks/indexer/useCampaignDonations";
 import { useEnabledTokens } from "@/features/tokens/hooks";
 import { useProfileHandle } from "@/features/profiles/hooks/useProfileHandle";
 import { DEFAULT_NETWORK } from "@/shared/config/networkConfig";
+import type { PendingCampaignDonation } from "../types/donation";
 
 interface CampaignContributionsTableProps {
   campaignId: string;
+  pendingDonation?: PendingCampaignDonation | null;
+  onPendingResolved?: () => void;
 }
 
 const PAGE_SIZE = 10;
+const PENDING_TIMEOUT_MS = 2 * 60_000;
+const PENDING_REFETCH_MS = 5000;
+const PENDING_STALE_REFETCH_MS = 30_000;
 
 function formatContributor(address: string): string {
   if (!address) return "—";
@@ -68,12 +80,46 @@ function ContributorNameCell({ address }: { address: string }) {
 
 export function CampaignContributionsTable({
   campaignId,
+  pendingDonation,
+  onPendingResolved,
 }: CampaignContributionsTableProps) {
   const [currentPage, setCurrentPage] = useState(1);
 
   useEffect(() => {
     setCurrentPage(1);
   }, [campaignId]);
+
+  useEffect(() => {
+    if (pendingDonation) {
+      setCurrentPage(1);
+    }
+  }, [pendingDonation]);
+
+  const [isPendingStale, setIsPendingStale] = useState(false);
+
+  useEffect(() => {
+    if (!pendingDonation) {
+      setIsPendingStale(false);
+      return;
+    }
+
+    const elapsedMs = Math.max(
+      0,
+      Date.now() - pendingDonation.timestampMs,
+    );
+    if (elapsedMs >= PENDING_TIMEOUT_MS) {
+      setIsPendingStale(true);
+      return;
+    }
+
+    setIsPendingStale(false);
+    const timeoutId = window.setTimeout(
+      () => setIsPendingStale(true),
+      PENDING_TIMEOUT_MS - elapsedMs,
+    );
+
+    return () => window.clearTimeout(timeoutId);
+  }, [pendingDonation]);
 
   const {
     tokens: enabledTokens,
@@ -100,7 +146,14 @@ export function CampaignContributionsTable({
     hasNextPage,
     error: donationsError,
     refetch,
-  } = useCampaignDonations(campaignId, { pageSize: PAGE_SIZE });
+  } = useCampaignDonations(campaignId, {
+    pageSize: PAGE_SIZE,
+    refetchIntervalMs: pendingDonation
+      ? isPendingStale
+        ? PENDING_STALE_REFETCH_MS
+        : PENDING_REFETCH_MS
+      : false,
+  });
 
   const pages = data?.pages ?? [];
   const lastPage = pages.length > 0 ? pages[pages.length - 1] : undefined;
@@ -113,6 +166,22 @@ export function CampaignContributionsTable({
   const currentPageData =
     pages.find((page) => page.page === currentPage)?.data ?? [];
 
+  const pendingInData = useMemo(() => {
+    if (!pendingDonation) return false;
+    return pages.some((page) =>
+      page.data.some((donation) => donation.txDigest === pendingDonation.txDigest),
+    );
+  }, [pages, pendingDonation]);
+
+  useEffect(() => {
+    if (pendingDonation && pendingInData) {
+      onPendingResolved?.();
+    }
+  }, [pendingDonation, pendingInData, onPendingResolved]);
+
+  const showPendingRow =
+    Boolean(pendingDonation) && currentPage === 1 && !pendingInData;
+
   const isLoadingPage =
     donationsPending ||
     tokensPending ||
@@ -120,7 +189,10 @@ export function CampaignContributionsTable({
       (isFetchingNextPage || (hasNextPage && currentPage > lastLoadedPage)));
 
   const showEmptyState =
-    !isLoadingPage && !donationsError && currentPageData.length === 0;
+    !isLoadingPage &&
+    !donationsError &&
+    currentPageData.length === 0 &&
+    !showPendingRow;
 
   const errorMessage =
     donationsError?.message ??
@@ -143,9 +215,117 @@ export function CampaignContributionsTable({
     setCurrentPage(targetPage);
   }
 
+  function renderPendingRow() {
+    if (!showPendingRow || !pendingDonation) {
+      return null;
+    }
+
+    const tokenInfo = resolveTokenInfo(pendingDonation, tokenRegistry);
+    const Icon = tokenInfo.Icon;
+    const amountRaw = pendingDonation.amountRaw;
+    const amountDisplay = `${formatTokenAmount(amountRaw, tokenInfo.decimals)} ${tokenInfo.label}`;
+
+    const totalUsd = pendingDonation.amountUsdMicro;
+    const platformBps = pendingDonation.platformBps ?? 0;
+    const platformUsd =
+      totalUsd !== null
+        ? (totalUsd * BigInt(platformBps)) / 10000n
+        : null;
+    const netUsd =
+      totalUsd !== null && platformUsd !== null ? totalUsd - platformUsd : null;
+    const netUsdSafe = netUsd !== null && netUsd >= 0n ? netUsd : 0n;
+    const explorerUrl = buildExplorerTxUrl(
+      pendingDonation.txDigest,
+      DEFAULT_NETWORK,
+    );
+
+    return (
+      <TableRow className="border-b border-white-600 last:border-b-0 bg-white-100/60 hover:bg-transparent">
+        <TableCell className="px-4 py-4 text-black-500">
+          <div className="flex items-center gap-2">
+            {isPendingStale ? (
+              <AlertTriangleIcon
+                className="h-4 w-4 text-orange-500"
+                aria-label="Pending contribution delayed"
+              />
+            ) : (
+              <Clock
+                className="h-4 w-4 animate-pulse text-black-300"
+                aria-label="Pending contribution"
+              />
+            )}
+            <span>{formatContributionDate(pendingDonation.timestampMs)}</span>
+          </div>
+        </TableCell>
+        <TableCell className="px-4 py-4 text-black-500">
+          <ContributorNameCell address={pendingDonation.donor} />
+        </TableCell>
+        <TableCell className="px-4 py-4 text-black-500">
+          <div className="flex items-center gap-2">
+            {Icon ? (
+              <Icon className="h-6 w-6" aria-hidden />
+            ) : (
+              <span className="flex h-6 w-6 items-center justify-center rounded-full bg-white-400 text-xs font-semibold text-black-400">
+                {tokenInfo.label.slice(0, 1).toUpperCase()}
+              </span>
+            )}
+            <span className="whitespace-nowrap">{tokenInfo.label}</span>
+          </div>
+        </TableCell>
+        <TableCell className="px-4 py-4 text-black-500">
+          {amountDisplay}
+        </TableCell>
+        <TableCell className="px-4 py-4 text-black-500">
+          <div className="flex items-center gap-2">
+            {totalUsd !== null ? (
+              <span>${formatUsdLocaleFromMicros(totalUsd)}</span>
+            ) : isPendingStale ? (
+              <AlertTriangleIcon
+                className="h-4 w-4 text-orange-500"
+                aria-label="Pending value delayed"
+              />
+            ) : (
+              <Loader2
+                className="h-4 w-4 animate-spin text-black-300"
+                aria-label="Pending value"
+              />
+            )}
+            {explorerUrl ? (
+              <a
+                href={explorerUrl}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="inline-flex items-center text-primary hover:text-primary/80"
+                aria-label="View transaction in explorer"
+                title="View transaction in explorer"
+              >
+                <ExternalLink className="h-4 w-4" aria-hidden="true" />
+              </a>
+            ) : null}
+          </div>
+        </TableCell>
+        <TableCell className="px-4 py-4 text-black-500 font-medium">
+          {totalUsd !== null ? (
+            `$${formatUsdLocaleFromMicros(netUsdSafe)}`
+          ) : isPendingStale ? (
+            <AlertTriangleIcon
+              className="h-4 w-4 text-orange-500"
+              aria-label="Pending value delayed"
+            />
+          ) : (
+            <Loader2
+              className="h-4 w-4 animate-spin text-black-300"
+              aria-label="Pending value"
+            />
+          )}
+        </TableCell>
+      </TableRow>
+    );
+  }
+
   function renderRows() {
     if (isLoadingPage) {
-      return Array.from({ length: PAGE_SIZE }).map((_, index) => (
+      const skeletonRows = Array.from({ length: PAGE_SIZE }).map((_, index) => (
         <TableRow
           key={`skeleton-${index}`}
           className="border-b border-white-600 last:border-b-0 hover:bg-transparent"
@@ -173,6 +353,13 @@ export function CampaignContributionsTable({
           </TableCell>
         </TableRow>
       ));
+
+      return (
+        <>
+          {renderPendingRow()}
+          {skeletonRows}
+        </>
+      );
     }
 
     if (donationsError) {
@@ -209,70 +396,78 @@ export function CampaignContributionsTable({
       );
     }
 
-    return currentPageData.map((donation) => {
-      const tokenInfo = resolveTokenInfo(donation, tokenRegistry);
-      const Icon = tokenInfo.Icon;
-      const amountRaw = BigInt(donation.amountRaw ?? 0);
-      const amountDisplay = `${formatTokenAmount(amountRaw, tokenInfo.decimals)} ${tokenInfo.label}`;
+    return (
+      <>
+        {renderPendingRow()}
+        {currentPageData.map((donation) => {
+          const tokenInfo = resolveTokenInfo(donation, tokenRegistry);
+          const Icon = tokenInfo.Icon;
+          const amountRaw = BigInt(donation.amountRaw ?? 0);
+          const amountDisplay = `${formatTokenAmount(amountRaw, tokenInfo.decimals)} ${tokenInfo.label}`;
 
-      const totalUsd = BigInt(donation.amountUsdMicro ?? 0);
-      const platformUsd = BigInt(donation.platformAmountUsdMicro ?? 0);
-      const recipientUsd =
-        donation.recipientAmountUsdMicro !== undefined
-          ? BigInt(donation.recipientAmountUsdMicro)
-          : totalUsd - platformUsd;
-      const netUsd = recipientUsd < 0 ? 0n : recipientUsd;
-      const explorerUrl = buildExplorerTxUrl(donation.txDigest, DEFAULT_NETWORK);
+          const totalUsd = BigInt(donation.amountUsdMicro ?? 0);
+          const platformUsd = BigInt(donation.platformAmountUsdMicro ?? 0);
+          const recipientUsd =
+            donation.recipientAmountUsdMicro !== undefined
+              ? BigInt(donation.recipientAmountUsdMicro)
+              : totalUsd - platformUsd;
+          const netUsd = recipientUsd < 0 ? 0n : recipientUsd;
+          const explorerUrl = buildExplorerTxUrl(
+            donation.txDigest,
+            DEFAULT_NETWORK,
+          );
 
-      return (
-        <TableRow
-          key={`${donation.txDigest}-${donation.id}`}
-          className="border-b border-white-600 last:border-b-0 hover:bg-transparent"
-        >
-          <TableCell className="px-4 py-4 text-black-500">
-            {formatContributionDate(donation.timestampMs)}
-          </TableCell>
-          <TableCell className="px-4 py-4 text-black-500">
-            <ContributorNameCell address={donation.donor} />
-          </TableCell>
-          <TableCell className="px-4 py-4 text-black-500">
-            <div className="flex items-center gap-2">
-              {Icon ? (
-                <Icon className="h-6 w-6" aria-hidden />
-              ) : (
-                <span className="flex h-6 w-6 items-center justify-center rounded-full bg-white-400 text-xs font-semibold text-black-400">
-                  {tokenInfo.label.slice(0, 1).toUpperCase()}
-                </span>
-              )}
-              <span className="whitespace-nowrap">{tokenInfo.label}</span>
-            </div>
-          </TableCell>
-          <TableCell className="px-4 py-4 text-black-500">
-            {amountDisplay}
-          </TableCell>
-          <TableCell className="px-4 py-4 text-black-500">
-            <div className="flex items-center gap-2">
-              <span>${formatUsdLocaleFromMicros(totalUsd)}</span>
-              {explorerUrl ? (
-                <a
-                  href={explorerUrl}
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  className="inline-flex items-center text-primary hover:text-primary/80"
-                  aria-label="View transaction in explorer"
-                  title="View transaction in explorer"
-                >
-                  <ExternalLink className="h-4 w-4" aria-hidden="true" />
-                </a>
-              ) : null}
-            </div>
-          </TableCell>
-          <TableCell className="px-4 py-4 text-black-500 font-medium">
-            ${formatUsdLocaleFromMicros(netUsd)}
-          </TableCell>
-        </TableRow>
-      );
-    });
+          return (
+            <TableRow
+              key={`${donation.txDigest}-${donation.id}`}
+              className="border-b border-white-600 last:border-b-0 hover:bg-transparent"
+            >
+              <TableCell className="px-4 py-4 text-black-500">
+                {formatContributionDate(donation.timestampMs)}
+              </TableCell>
+              <TableCell className="px-4 py-4 text-black-500">
+                <ContributorNameCell address={donation.donor} />
+              </TableCell>
+              <TableCell className="px-4 py-4 text-black-500">
+                <div className="flex items-center gap-2">
+                  {Icon ? (
+                    <Icon className="h-6 w-6" aria-hidden />
+                  ) : (
+                    <span className="flex h-6 w-6 items-center justify-center rounded-full bg-white-400 text-xs font-semibold text-black-400">
+                      {tokenInfo.label.slice(0, 1).toUpperCase()}
+                    </span>
+                  )}
+                  <span className="whitespace-nowrap">{tokenInfo.label}</span>
+                </div>
+              </TableCell>
+              <TableCell className="px-4 py-4 text-black-500">
+                {amountDisplay}
+              </TableCell>
+              <TableCell className="px-4 py-4 text-black-500">
+                <div className="flex items-center gap-2">
+                  <span>${formatUsdLocaleFromMicros(totalUsd)}</span>
+                  {explorerUrl ? (
+                    <a
+                      href={explorerUrl}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="inline-flex items-center text-primary hover:text-primary/80"
+                      aria-label="View transaction in explorer"
+                      title="View transaction in explorer"
+                    >
+                      <ExternalLink className="h-4 w-4" aria-hidden="true" />
+                    </a>
+                  ) : null}
+                </div>
+              </TableCell>
+              <TableCell className="px-4 py-4 text-black-500 font-medium">
+                ${formatUsdLocaleFromMicros(netUsd)}
+              </TableCell>
+            </TableRow>
+          );
+        })}
+      </>
+    );
   }
 
   const canGoPrev = currentPage > 1;
@@ -284,9 +479,23 @@ export function CampaignContributionsTable({
   return (
     <div className="flex flex-col gap-4 sm:gap-6">
       <div>
-        <h3 className="text-2xl sm:text-[26px] font-bold leading-tight text-black-500">
-          Contributors
-        </h3>
+        <div className="flex items-center gap-2">
+          <h3 className="text-2xl sm:text-[26px] font-bold leading-tight text-black-500">
+            Contributors
+          </h3>
+          {showPendingRow &&
+            (isPendingStale ? (
+              <AlertTriangleIcon
+                className="h-4 w-4 text-orange-500"
+                aria-label="Pending contribution delayed"
+              />
+            ) : (
+              <Loader2
+                className="h-4 w-4 animate-spin text-black-300"
+                aria-label="Syncing contributions"
+              />
+            ))}
+        </div>
         {errorMessage &&
           !donationsError &&
           !donationsPending &&
