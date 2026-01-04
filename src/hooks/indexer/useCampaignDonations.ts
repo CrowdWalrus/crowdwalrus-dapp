@@ -13,6 +13,7 @@ import {
 export interface UseCampaignDonationsOptions {
   pageSize?: number;
   enabled?: boolean;
+  refetchIntervalMs?: number | false;
 }
 
 /** Infinite-query for campaign donation pages. */
@@ -20,7 +21,7 @@ export function useCampaignDonations(
   campaignId: string | null,
   options: UseCampaignDonationsOptions = {},
 ): UseInfiniteQueryResult<InfiniteData<PaginatedResponse<DonationResponse>>, Error> {
-  const { pageSize = 20, enabled = true } = options;
+  const { pageSize = 20, enabled = true, refetchIntervalMs } = options;
 
   return useInfiniteQuery<PaginatedResponse<DonationResponse>, Error>({
     queryKey: ["indexer", "campaign-donations", campaignId, pageSize],
@@ -40,6 +41,7 @@ export function useCampaignDonations(
       lastPage.hasMore ? lastPage.page + 1 : undefined,
     initialPageParam: 1,
     enabled: Boolean(enabled && campaignId),
+    refetchInterval: refetchIntervalMs,
     staleTime: 30_000,
     gcTime: 5 * 60_000,
   });
