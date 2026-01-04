@@ -1,5 +1,14 @@
 # Changelog
 
+## [1.1.2](https://github.com/CrowdWalrus/crowdwalrus-dapp/compare/v1.1.1...v1.1.2) (2026-01-04)
+
+
+### Bug Fixes
+
+* **campaigns:** sync contributions table after donations with pending row + stale polling ([7735aa8](https://github.com/CrowdWalrus/crowdwalrus-dapp/commit/7735aa85c777b3a037721d2f5b6e54a5f9399dbc))
+* harden donation flow with on-chain profile lookup and retry ([eedf25d](https://github.com/CrowdWalrus/crowdwalrus-dapp/commit/eedf25db46cb0866c57d7257cbf0d57a0351539e))
+* harden donation flow with on-chain profile lookup and retry ([f8c3e76](https://github.com/CrowdWalrus/crowdwalrus-dapp/commit/f8c3e7657278bc4d6809828490524d14045ce748))
+
 ## [1.1.1](https://github.com/CrowdWalrus/crowdwalrus-dapp/compare/v1.1.0...v1.1.1) (2025-12-23)
 
 
