@@ -1,5 +1,7 @@
-import type { TransactionObjectArgument } from "@mysten/sui/transactions";
+import type { SuiClient } from "@mysten/sui/client";
 import { Transaction } from "@mysten/sui/transactions";
+import type { TransactionObjectArgument } from "@mysten/sui/transactions";
+import { normalizeSuiAddress } from "@mysten/sui/utils";
 
 import {
   CLOCK_OBJECT_ID,
@@ -22,6 +24,149 @@ export interface BuildProfileTransactionInput {
   metadataUpdates?: ProfileMetadataUpdate[];
   subdomainFullName?: string | null;
   network?: SupportedNetwork;
+}
+
+type MoveObjectContent = {
+  dataType: string;
+  fields?: Record<string, unknown>;
+};
+
+function isMoveObject(content: unknown): content is MoveObjectContent {
+  return Boolean(
+    content &&
+      typeof content === "object" &&
+      "dataType" in (content as Record<string, unknown>) &&
+      (content as Record<string, unknown>).dataType === "moveObject",
+  );
+}
+
+function normalizeAddressSafe(value: string): string {
+  if (!value) return value;
+  try {
+    return normalizeSuiAddress(value);
+  } catch {
+    return value;
+  }
+}
+
+function bytesToHex(value: unknown): string | null {
+  if (!value) return null;
+  if (typeof value === "string") {
+    return value.startsWith("0x") ? value : `0x${value}`;
+  }
+  if (Array.isArray(value) && value.every((byte) => typeof byte === "number")) {
+    return `0x${value.map((byte) => byte.toString(16).padStart(2, "0")).join("")}`;
+  }
+  return null;
+}
+
+function extractObjectId(value: unknown): string | null {
+  if (!value) return null;
+  if (typeof value === "string") {
+    return normalizeAddressSafe(value);
+  }
+  if (typeof value !== "object") return null;
+
+  const record = value as Record<string, unknown>;
+
+  if (typeof record.id === "string") {
+    return normalizeAddressSafe(record.id);
+  }
+
+  if (record.id && typeof record.id === "object") {
+    const nested = record.id as Record<string, unknown>;
+    if (typeof nested.id === "string") {
+      return normalizeAddressSafe(nested.id);
+    }
+    const bytesHex = bytesToHex(nested.bytes);
+    if (bytesHex) return normalizeAddressSafe(bytesHex);
+  }
+
+  if (record.fields && typeof record.fields === "object") {
+    const fields = record.fields as Record<string, unknown>;
+    if (typeof fields.id === "string") {
+      return normalizeAddressSafe(fields.id);
+    }
+    if (fields.id && typeof fields.id === "object") {
+      const nested = fields.id as Record<string, unknown>;
+      if (typeof nested.id === "string") {
+        return normalizeAddressSafe(nested.id);
+      }
+      const bytesHex = bytesToHex(nested.bytes);
+      if (bytesHex) return normalizeAddressSafe(bytesHex);
+    }
+    const bytesHex = bytesToHex(fields.bytes);
+    if (bytesHex) return normalizeAddressSafe(bytesHex);
+  }
+
+  return null;
+}
+
+function isDynamicFieldNotFoundError(error: unknown): boolean {
+  if (!error) return false;
+  const message =
+    error instanceof Error
+      ? error.message
+      : typeof error === "string"
+        ? error
+        : JSON.stringify(error);
+  const lowered = message.toLowerCase();
+  return (
+    lowered.includes("dynamic field") &&
+    (lowered.includes("not found") || lowered.includes("does not exist"))
+  );
+}
+
+export async function resolveProfileIdOnChain({
+  suiClient,
+  ownerAddress,
+  network = DEFAULT_NETWORK,
+}: {
+  suiClient: SuiClient;
+  ownerAddress: string;
+  network?: SupportedNetwork;
+}): Promise<string | null> {
+  if (!ownerAddress) {
+    return null;
+  }
+
+  const config = getContractConfig(network);
+  const registryId = config.contracts.profilesRegistryObjectId;
+  const packageId = config.contracts.packageId;
+
+  if (!registryId?.startsWith("0x") || !packageId?.startsWith("0x")) {
+    return null;
+  }
+
+  // RegistryKey is a struct with a single `owner: address` field used as the dynamic field key.
+  const name = {
+    type: `${normalizeAddressSafe(packageId)}::profiles::RegistryKey`,
+    value: {
+      owner: normalizeAddressSafe(ownerAddress),
+    },
+  };
+
+  try {
+    const fieldObject = await suiClient.getDynamicFieldObject({
+      parentId: registryId,
+      name,
+    });
+    const content = fieldObject.data?.content;
+    if (!isMoveObject(content)) {
+      return null;
+    }
+    const value = content.fields?.value;
+    return extractObjectId(value);
+  } catch (error) {
+    if (isDynamicFieldNotFoundError(error)) {
+      return null;
+    }
+    console.warn(
+      "[profile] failed to resolve profile id from on-chain registry",
+      error,
+    );
+    return null;
+  }
 }
 
 /**
