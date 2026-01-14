@@ -356,8 +356,17 @@ export async function calculateStorageCost(
     fileSizes.find((f) => f.identifier === "cover.jpg")?.bytes.length || 0;
   const rawSize = descriptionSize + imagesSize;
 
-  const storageEpochs =
-    epochs || WALRUS_EPOCH_CONFIG[network === "devnet" ? "devnet" : network].defaultEpochs;
+  const networkKey = network === "devnet" ? "devnet" : network;
+  const epochConfig = WALRUS_EPOCH_CONFIG[networkKey];
+  const minEpochs = epochConfig.minEpochs ?? 1;
+  const requestedEpochs =
+    typeof epochs === "number" && Number.isFinite(epochs)
+      ? epochs
+      : epochConfig.defaultEpochs;
+  const storageEpochs = Math.min(
+    Math.max(requestedEpochs, minEpochs),
+    epochConfig.maxEpochs,
+  );
 
   // Query real Walrus pricing and calculate accurate costs
   const cost: CampaignStorageCost = await calculateCampaignStorageCost(
@@ -411,8 +420,17 @@ export async function calculateUpdateStorageCost(
     return total + current.bytes.length;
   }, 0);
 
-  const storageEpochs =
-    epochs || WALRUS_EPOCH_CONFIG[network === "devnet" ? "devnet" : network].defaultEpochs;
+  const networkKey = network === "devnet" ? "devnet" : network;
+  const epochConfig = WALRUS_EPOCH_CONFIG[networkKey];
+  const minEpochs = epochConfig.minEpochs ?? 1;
+  const requestedEpochs =
+    typeof epochs === "number" && Number.isFinite(epochs)
+      ? epochs
+      : epochConfig.defaultEpochs;
+  const storageEpochs = Math.min(
+    Math.max(requestedEpochs, minEpochs),
+    epochConfig.maxEpochs,
+  );
 
   const cost: CampaignStorageCost = await calculateCampaignStorageCost(
     suiClient,
@@ -455,8 +473,12 @@ export async function calculateProfileAvatarStorageCost(
   const preparation = await prepareProfileAvatarFile(file);
 
   const resolvedNetwork = network === "devnet" ? "devnet" : network;
-  const storageEpochs =
-    epochs ?? PROFILE_AVATAR_STORAGE_DEFAULT_EPOCHS[resolvedNetwork];
+  const minimumEpochs = PROFILE_AVATAR_STORAGE_DEFAULT_EPOCHS[resolvedNetwork];
+  const requestedEpochs =
+    typeof epochs === "number" && Number.isFinite(epochs)
+      ? epochs
+      : minimumEpochs;
+  const storageEpochs = Math.max(minimumEpochs, requestedEpochs);
 
   const cost: CampaignStorageCost = await calculateCampaignStorageCost(
     suiClient,
