@@ -97,6 +97,7 @@ export default function PostCampaignUpdatePage() {
   const epochConfig = WALRUS_EPOCH_CONFIG[network];
   const epochDurationDays = Number(epochConfig.epochDurationDays);
   const defaultEpochs = Number(epochConfig.defaultEpochs);
+  const minEpochs = Number(epochConfig.minEpochs ?? 1);
   const maxEpochs = Number(epochConfig.maxEpochs);
   const config = getContractConfig(network);
 
@@ -217,20 +218,18 @@ export default function PostCampaignUpdatePage() {
 
   const autoEpochs = useMemo(() => {
     if (!desiredEpochs) {
-      return defaultEpochs;
+      return Math.max(defaultEpochs, minEpochs);
     }
 
-    const clamped = Math.min(Math.max(desiredEpochs, 1), maxEpochs);
+    const clamped = Math.min(Math.max(desiredEpochs, minEpochs), maxEpochs);
     return clamped;
-  }, [desiredEpochs, defaultEpochs, maxEpochs]);
+  }, [desiredEpochs, defaultEpochs, maxEpochs, minEpochs]);
 
-  const [selectedEpochs, setSelectedEpochs] = useState<number>(
-    autoEpochs ?? defaultEpochs,
-  );
+  const [selectedEpochs, setSelectedEpochs] = useState<number>(autoEpochs);
 
   useEffect(() => {
-    setSelectedEpochs(autoEpochs ?? defaultEpochs);
-  }, [autoEpochs, defaultEpochs]);
+    setSelectedEpochs(autoEpochs);
+  }, [autoEpochs]);
 
   useEffect(() => {
     const content = debouncedUpdateContent?.trim() ?? "";

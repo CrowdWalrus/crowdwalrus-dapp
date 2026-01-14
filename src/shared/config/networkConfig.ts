@@ -29,16 +29,19 @@ export const WAL_COIN_TYPE = {
 export const WALRUS_EPOCH_CONFIG = {
   testnet: {
     epochDurationDays: 1, // 1 day per epoch on testnet
+    minEpochs: 1,
     defaultEpochs: 3, // Default: 3 days for testing
     maxEpochs: 30, // Walrus testnet currently caps reservations at ~30 days
   },
   mainnet: {
     epochDurationDays: 14, // 14 days (2 weeks) per epoch on mainnet
+    minEpochs: 27, // Minimum: ~1 year (27 epochs × 14 days = 378 days)
     defaultEpochs: 27, // Default: ~1 year (27 epochs × 14 days = 378 days)
-    maxEpochs: 53, // Max: ~2 years (53 epochs × 14 days = 742 days)
+    maxEpochs: 78, // Max: ~3 years (78 epochs × 14 days = 1092 days)
   },
   devnet: {
     epochDurationDays: 1, // Same as testnet
+    minEpochs: 1,
     defaultEpochs: 3,
     maxEpochs: 365,
   },
@@ -46,7 +49,7 @@ export const WALRUS_EPOCH_CONFIG = {
 
 export const PROFILE_AVATAR_STORAGE_DEFAULT_EPOCHS = {
   testnet: 20, // 20 days on Walrus testnet
-  mainnet: 13, // 13 epochs × 14 days ≈ 6 months
+  mainnet: WALRUS_EPOCH_CONFIG.mainnet.defaultEpochs, // Match campaign default: 27 epochs × 14 days = 378 days
   devnet: 20,
 } as const;
 
@@ -66,9 +69,9 @@ export const STORAGE_DURATION_OPTIONS = {
     { label: "30 days", epochs: 30, days: 30 },
   ] as StorageDurationOption[],
   mainnet: [
-    { label: "6 months", epochs: 13, days: 182 }, // 13 epochs × 14 days = 182 days
     { label: "1 year", epochs: 27, days: 378 }, // 27 epochs × 14 days = 378 days
     { label: "2 years", epochs: 53, days: 742 }, // 53 epochs × 14 days = 742 days
+    { label: "3 years", epochs: 78, days: 1092 }, // 78 epochs × 14 days = 1092 days
   ] as StorageDurationOption[],
   devnet: [
     { label: "3 days", epochs: 3, days: 3 },

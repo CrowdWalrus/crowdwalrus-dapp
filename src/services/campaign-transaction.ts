@@ -55,7 +55,16 @@ export function buildCreateCampaignTransaction(
 
   // Use provided epochs or fall back to network default
   const networkKey = (network === "devnet" ? "devnet" : network) as keyof typeof WALRUS_EPOCH_CONFIG;
-  const epochs = storageEpochs ?? WALRUS_EPOCH_CONFIG[networkKey].defaultEpochs;
+  const epochConfig = WALRUS_EPOCH_CONFIG[networkKey];
+  const minEpochs = epochConfig.minEpochs ?? 1;
+  const requestedEpochs =
+    typeof storageEpochs === "number" && Number.isFinite(storageEpochs)
+      ? storageEpochs
+      : epochConfig.defaultEpochs;
+  const epochs = Math.min(
+    Math.max(requestedEpochs, minEpochs),
+    epochConfig.maxEpochs,
+  );
 
   // Prepare metadata for VecMap<String, String>
   const { keys, values } = prepareMetadataVectors(

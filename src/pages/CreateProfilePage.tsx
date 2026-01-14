@@ -534,7 +534,11 @@ export default function CreateProfilePage() {
 
   const handleEpochsChange = (epochs: number) => {
     const config = WALRUS_EPOCH_CONFIG[DEFAULT_NETWORK];
-    const clampedEpochs = Math.min(Math.max(1, epochs), config.maxEpochs);
+    const minEpochs = avatarStorageEpochs;
+    const clampedEpochs = Math.min(
+      Math.max(minEpochs, epochs),
+      config.maxEpochs,
+    );
     setSelectedEpochs(clampedEpochs);
   };
 
