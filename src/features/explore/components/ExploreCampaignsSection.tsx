@@ -7,6 +7,7 @@
 import { useMemo, useState } from "react";
 import { Button } from "@/shared/components/ui/button";
 import { Separator } from "@/shared/components/ui/separator";
+import { DEFAULT_NETWORK } from "@/shared/config/networkConfig";
 import {
   Tabs,
   TabsContent,
@@ -44,7 +45,14 @@ export function ExploreCampaignsSection() {
     },
   );
 
-  const { campaigns, isPending, error } = useAllCampaigns();
+  const {
+    campaigns,
+    isPending,
+    error,
+    fetchNextPage,
+    hasNextPage,
+    isFetchingNextPage,
+  } = useAllCampaigns(DEFAULT_NETWORK, { verified: true });
 
   const verifiedCampaigns = useMemo(
     () => campaigns.filter((campaign) => campaign.isVerified),
@@ -72,6 +80,10 @@ export function ExploreCampaignsSection() {
       ...prev,
       [filter]: prev[filter] + 6,
     }));
+
+    if (hasNextPage && !isFetchingNextPage) {
+      void fetchNextPage();
+    }
   };
 
   return (
@@ -116,7 +128,8 @@ export function ExploreCampaignsSection() {
                 0,
                 displayCount,
               );
-              const hasMore = filteredCampaigns.length > displayCount;
+              const hasMore =
+                filteredCampaigns.length > displayCount || Boolean(hasNextPage);
 
               return (
                 <TabsContent key={tab.id} value={tab.id} className="mt-20">
@@ -155,8 +168,11 @@ export function ExploreCampaignsSection() {
                         <Button
                           onClick={() => handleShowMore(tab.id)}
                           className="flex items-center gap-2 bg-blue-50 text-blue-500 hover:bg-blue-100 px-6"
+                          disabled={isFetchingNextPage}
                         >
-                          <span>Show more</span>
+                          <span>
+                            {isFetchingNextPage ? "Loading more..." : "Show more"}
+                          </span>
                           <ChevronDown className="w-3.5 h-3.5" />
                         </Button>
                       </div>
