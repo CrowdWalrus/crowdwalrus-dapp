@@ -1,5 +1,17 @@
 # Changelog
 
+## [1.1.3](https://github.com/CrowdWalrus/crowdwalrus-dapp/compare/v1.1.2...v1.1.3) (2026-01-14)
+
+
+### Bug Fixes
+
+* show verified campaigns in explore pagination ([7bdf2d3](https://github.com/CrowdWalrus/crowdwalrus-dapp/commit/7bdf2d3c3ef2ca820c951a3ad920fa8ea9b6c60c))
+
+
+### Refactors
+
+* **campaigns:** enhance epoch handling with min/max clamping across various components ([488e500](https://github.com/CrowdWalrus/crowdwalrus-dapp/commit/488e50092dca295567691022003c93486b265ded))
+
 ## [1.1.2](https://github.com/CrowdWalrus/crowdwalrus-dapp/compare/v1.1.1...v1.1.2) (2026-01-04)
 
 
