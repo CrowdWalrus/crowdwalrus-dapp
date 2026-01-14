@@ -149,7 +149,11 @@ export default function NewCampaignPage() {
   // Handler with epoch clamping validation
   const handleEpochsChange = (epochs: number) => {
     const config = WALRUS_EPOCH_CONFIG[DEFAULT_NETWORK];
-    const clampedEpochs = Math.min(Math.max(1, epochs), config.maxEpochs);
+    const minEpochs = config.minEpochs ?? 1;
+    const clampedEpochs = Math.min(
+      Math.max(minEpochs, epochs),
+      config.maxEpochs,
+    );
     setSelectedEpochs(clampedEpochs);
   };
 

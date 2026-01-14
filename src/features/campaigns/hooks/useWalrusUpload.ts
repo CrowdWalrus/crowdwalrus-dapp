@@ -114,8 +114,16 @@ export function useWalrusUpload() {
     }) => {
       const resolvedNetwork = network ?? DEFAULT_NETWORK;
       const networkKey: keyof typeof WALRUS_EPOCH_CONFIG = resolvedNetwork;
-      const epochs =
-        storageEpochs ?? WALRUS_EPOCH_CONFIG[networkKey].defaultEpochs;
+      const epochConfig = WALRUS_EPOCH_CONFIG[networkKey];
+      const minEpochs = epochConfig.minEpochs ?? 1;
+      const requestedEpochs =
+        typeof storageEpochs === "number" && Number.isFinite(storageEpochs)
+          ? storageEpochs
+          : epochConfig.defaultEpochs;
+      const epochs = Math.min(
+        Math.max(requestedEpochs, minEpochs),
+        epochConfig.maxEpochs,
+      );
 
       let files: WalrusFile[];
       let context: WalrusFlowContext | undefined;

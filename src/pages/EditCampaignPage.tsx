@@ -44,7 +44,7 @@ import {
   extractMoveAbortCode,
 } from "@/features/campaigns/utils/errorMapping";
 import { getContractConfig, CLOCK_OBJECT_ID } from "@/shared/config/contracts";
-import { DEFAULT_NETWORK } from "@/shared/config/networkConfig";
+import { DEFAULT_NETWORK, WALRUS_EPOCH_CONFIG } from "@/shared/config/networkConfig";
 import { ROUTES } from "@/shared/config/routes";
 import { buildCampaignDetailPath } from "@/shared/utils/routes";
 import {
@@ -453,11 +453,18 @@ export default function EditCampaignPage() {
   const watchCampaignDetails = form.watch("campaignDetails");
   const watchCoverImage = form.watch("coverImage");
   const watchStorageEpochs = form.watch("storageEpochs");
-  const selectedEpochs =
+  const epochConfig = WALRUS_EPOCH_CONFIG[network];
+  const minEpochs = epochConfig.minEpochs ?? 1;
+  const maxEpochs = epochConfig.maxEpochs;
+  const rawSelectedEpochs =
     watchStorageEpochs ??
     (campaign?.walrusStorageEpochs
       ? Number(campaign.walrusStorageEpochs)
       : undefined);
+  const selectedEpochs =
+    typeof rawSelectedEpochs === "number"
+      ? Math.min(Math.max(rawSelectedEpochs, minEpochs), maxEpochs)
+      : undefined;
   const coverImagePreviewUrl =
     walrusCoverImageUrl ?? campaign?.coverImageUrl ?? null;
 
@@ -592,12 +599,11 @@ export default function EditCampaignPage() {
 
     const epochsToUse =
       typeof debouncedWalrusSnapshot.storageEpochs === "number"
-        ? debouncedWalrusSnapshot.storageEpochs
-        : typeof selectedEpochs === "number"
-          ? selectedEpochs
-          : campaign.walrusStorageEpochs
-            ? Number(campaign.walrusStorageEpochs)
-            : undefined;
+        ? Math.min(
+            Math.max(debouncedWalrusSnapshot.storageEpochs, minEpochs),
+            maxEpochs,
+          )
+        : selectedEpochs;
 
     if (!epochsToUse || epochsToUse <= 0) {
       return;
