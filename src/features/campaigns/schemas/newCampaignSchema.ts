@@ -7,6 +7,7 @@ import {
   MIN_FUNDING_TARGET,
 } from "@/features/campaigns/constants/funding";
 import { MAX_SOCIAL_LINKS } from "@/features/campaigns/constants/socialPlatforms";
+import { DESCRIPTION_MAX_LENGTH } from "@/features/campaigns/constants/validation";
 import { SUBDOMAIN_PATTERN } from "@/shared/utils/subdomain";
 
 const isValidHttpUrl = (value: string) => {
@@ -49,7 +50,11 @@ export const newCampaignSchema = z
     description: z
       .string()
       .min(1, "Description is required")
-      .min(10, "Description must be at least 10 characters"),
+      .min(10, "Description must be at least 10 characters")
+      .max(
+        DESCRIPTION_MAX_LENGTH,
+        `Description must be ${DESCRIPTION_MAX_LENGTH} characters or less`,
+      ),
     subdomain: z
       .string()
       .min(1, "Sub-name is required")

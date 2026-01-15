@@ -13,6 +13,7 @@ export interface CampaignListParams {
   page?: number;
   pageSize?: number;
   verified?: boolean;
+  ownerAddress?: string;
 }
 
 export type DiscoverFundingMetric = "recipient" | "total";
@@ -34,12 +35,13 @@ function clampPageSize(pageSize?: number) {
 export async function getCampaigns(
   params: CampaignListParams = {},
 ): Promise<PaginatedResponse<CampaignSummary>> {
-  const { page, pageSize, verified } = params;
+  const { page, pageSize, verified, ownerAddress } = params;
   const path = verified ? "/v1/campaigns/verified" : "/v1/campaigns";
   return indexerRequest<PaginatedResponse<CampaignSummary>>(path, {
     query: {
       page,
       page_size: clampPageSize(pageSize),
+      owner_address: ownerAddress,
     },
   });
 }

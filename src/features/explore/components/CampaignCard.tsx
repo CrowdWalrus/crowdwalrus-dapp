@@ -18,10 +18,8 @@ import {
 } from "@/features/campaigns/components/CampaignBadges";
 import { getCampaignStatusInfo } from "@/features/campaigns/utils/campaignStatus";
 import { useNetworkVariable } from "@/shared/config/networkConfig";
-import { useProfileHandle } from "@/features/profiles/hooks/useProfileHandle";
-import {
-  buildCampaignDetailPath,
-} from "@/shared/utils/routes";
+import { buildCampaignDetailPath } from "@/shared/utils/routes";
+import { resolveProfileLink } from "@/shared/utils/profile";
 import { formatUsdLocaleFromMicros } from "@/shared/utils/currency";
 
 interface CampaignCardProps {
@@ -93,7 +91,11 @@ export function CampaignCard({
     publisherAddress.length >= 10 &&
     publisherAddress.startsWith("0x");
   const { handle: publisherHandle, profilePath: publisherProfilePath } =
-    useProfileHandle(hasPublisherAddress ? publisherAddress : null);
+    resolveProfileLink({
+      address: hasPublisherAddress ? publisherAddress : null,
+      subdomainName: campaign.ownerProfileSubdomainName ?? null,
+      campaignDomain: campaignDomain ?? null,
+    });
   const formattedPublisher = formatAddress(publisherAddress);
   const publisherLabel = publisherHandle ?? formattedPublisher;
 

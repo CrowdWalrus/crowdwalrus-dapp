@@ -1,4 +1,3 @@
-import { useMemo } from "react";
 import { useCurrentAccount } from "@mysten/dapp-kit";
 import { normalizeSuiAddress } from "@mysten/sui/utils";
 import type { SupportedNetwork } from "@/shared/types/network";
@@ -12,41 +11,30 @@ export function useMyCampaigns(network: SupportedNetwork = DEFAULT_NETWORK) {
     : null;
 
   const {
-    campaigns: allCampaigns,
-    isPending,
-    error,
-    refetch,
-    hasNoCampaigns: hasNoAllCampaigns,
-  } = useAllCampaigns(network);
-
-  const campaigns = useMemo(() => {
-    if (!normalizedAccountAddress) {
-      return [];
-    }
-
-    return allCampaigns.filter((campaign) => {
-      if (!campaign.creatorAddress) {
-        return false;
-      }
-      return (
-        normalizeSuiAddress(campaign.creatorAddress) ===
-        normalizedAccountAddress
-      );
-    });
-  }, [allCampaigns, normalizedAccountAddress]);
-
-  const hasNoCampaigns =
-    normalizedAccountAddress !== null
-      ? !isPending && campaigns.length === 0
-      : false;
-
-  return {
     campaigns,
     isPending,
     error,
     refetch,
+    hasNoCampaigns,
+    fetchNextPage,
+    hasNextPage,
+    isFetchingNextPage,
+  } = useAllCampaigns(network, {
+    ownerAddress: normalizedAccountAddress,
+    enabled: normalizedAccountAddress !== null,
+  });
+
+  return {
+    campaigns,
+    isPending: normalizedAccountAddress !== null ? isPending : false,
+    error,
+    refetch,
     accountAddress: account?.address ?? null,
-    hasNoCampaigns: hasNoCampaigns || hasNoAllCampaigns,
+    hasNoCampaigns:
+      normalizedAccountAddress !== null ? hasNoCampaigns : false,
     isConnected: normalizedAccountAddress !== null,
+    fetchNextPage,
+    hasNextPage,
+    isFetchingNextPage,
   };
 }

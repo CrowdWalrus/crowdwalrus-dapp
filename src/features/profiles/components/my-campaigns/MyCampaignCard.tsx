@@ -15,7 +15,8 @@ import { cn } from "@/shared/lib/utils";
 import { Loader2 } from "lucide-react";
 import { Link } from "react-router-dom";
 import { formatUsdLocaleFromMicros } from "@/shared/utils/currency";
-import { useProfileHandle } from "@/features/profiles/hooks/useProfileHandle";
+import { resolveProfileLink } from "@/shared/utils/profile";
+import { useNetworkVariable } from "@/shared/config/networkConfig";
 
 export type MyCampaignCardActionVariant =
   | "primary"
@@ -101,13 +102,20 @@ export function MyCampaignCard({
       ? Math.max(0, supportersCount)
       : CAMPAIGN_PLACEHOLDER_SUPPORTERS;
 
+  const campaignDomain = useNetworkVariable("campaignDomain") as
+    | string
+    | undefined;
   const publisherAddress = campaign.creatorAddress?.trim();
   const hasPublisherAddress =
     typeof publisherAddress === "string" &&
     publisherAddress.length >= 10 &&
     publisherAddress.startsWith("0x");
   const { handle: publisherHandle, profilePath: publisherProfilePath } =
-    useProfileHandle(hasPublisherAddress ? publisherAddress : null);
+    resolveProfileLink({
+      address: hasPublisherAddress ? publisherAddress : null,
+      subdomainName: campaign.ownerProfileSubdomainName ?? null,
+      campaignDomain: campaignDomain ?? null,
+    });
   const formattedPublisher = formatAddress(publisherAddress);
   const publisherLabel = publisherHandle ?? formattedPublisher;
 

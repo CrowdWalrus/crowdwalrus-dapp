@@ -11,6 +11,7 @@ import type {
   CampaignMetadata,
   MetadataPatch,
 } from "@/features/campaigns/types/campaign";
+import { DESCRIPTION_MAX_LENGTH } from "@/features/campaigns/constants/validation";
 import {
   serializeSocialLinks,
   sanitizeSocialLinks,
@@ -563,8 +564,10 @@ export function validateCampaignFormData(formData: CampaignFormData): void {
   ) {
     throw new Error("Short description is required");
   }
-  if (formData.short_description.length > 280) {
-    throw new Error("Short description must be 280 characters or less");
+  if (formData.short_description.length > DESCRIPTION_MAX_LENGTH) {
+    throw new Error(
+      `Short description must be ${DESCRIPTION_MAX_LENGTH} characters or less`,
+    );
   }
 
   // Subdomain validation

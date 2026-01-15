@@ -8,9 +8,11 @@ export interface PaginatedResponse<T> {
 export interface CampaignSummary {
   campaignId: string;
   ownerAddress: string | null;
+  ownerProfileSubdomainName?: string | null;
   name: string;
   shortDescription: string;
   subdomainName: string;
+  metadata?: Record<string, unknown>;
   fundingGoalUsdMicro: number;
   startDateMs: number;
   endDateMs: number;
@@ -53,6 +55,7 @@ export interface CampaignCoinStatsResponse {
 export interface CampaignDetail {
   campaignId: string;
   ownerAddress: string | null;
+  ownerProfileSubdomainName?: string | null;
   adminId: string;
   name: string;
   shortDescription: string;
@@ -93,6 +96,7 @@ export interface DonationResponse {
   id: number;
   campaignId: string;
   donor: string;
+  donorProfileSubdomainName?: string | null;
   coinTypeCanonical: string;
   coinSymbol: string;
   amountRaw: number;
