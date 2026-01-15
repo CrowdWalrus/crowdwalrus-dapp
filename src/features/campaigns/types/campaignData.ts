@@ -13,6 +13,7 @@ export interface CampaignData {
   id: string;
   adminId: string;
   creatorAddress: string;
+  ownerProfileSubdomainName?: string | null;
   statsId: string;
   name: string;
   shortDescription: string;

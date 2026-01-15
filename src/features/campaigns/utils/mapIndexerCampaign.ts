@@ -114,6 +114,10 @@ export function mapIndexerCampaignToData(
     id: detail?.campaignId ?? summary?.campaignId ?? "",
     adminId: detail?.adminId ?? "",
     creatorAddress: detail?.ownerAddress ?? summary?.ownerAddress ?? "",
+    ownerProfileSubdomainName:
+      detail?.ownerProfileSubdomainName ??
+      summary?.ownerProfileSubdomainName ??
+      null,
     statsId: detail?.statsId ?? "",
     name: detail?.name ?? summary?.name ?? "",
     shortDescription: detail?.shortDescription ?? summary?.shortDescription ?? "",
