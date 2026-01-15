@@ -76,6 +76,10 @@ import {
   newCampaignSchema,
   type NewCampaignFormData,
 } from "@/features/campaigns/schemas/newCampaignSchema";
+import {
+  DESCRIPTION_MAX_LENGTH,
+  DESCRIPTION_WARNING_THRESHOLD,
+} from "@/features/campaigns/constants/validation";
 import { isUserRejectedError } from "@/shared/utils/errors";
 import { formatTokenAmountFromNumber } from "@/shared/utils/currency";
 import { AlertCircleIcon, WalletMinimal } from "lucide-react";
@@ -238,10 +242,14 @@ export default function NewCampaignPage() {
 
   // Watch form values for auto-estimation
   const coverImage = useWatch({ control: form.control, name: "coverImage" });
+  const description = useWatch({ control: form.control, name: "description" });
   const campaignDetails = useWatch({
     control: form.control,
     name: "campaignDetails",
   });
+  const descriptionLength = (description ?? "").length;
+  const isDescriptionNearLimit =
+    DESCRIPTION_MAX_LENGTH - descriptionLength <= DESCRIPTION_WARNING_THRESHOLD;
 
   // Debounce the watched values (3 seconds)
   const debouncedCoverImage = useDebounce(coverImage, 1000);
@@ -874,7 +882,7 @@ export default function NewCampaignPage() {
                         <FormField
                           control={form.control}
                           name="description"
-                          render={({ field }) => (
+                          render={({ field, fieldState }) => (
                             <FormItem
                               className="flex flex-col gap-4"
                               data-field-error="description"
@@ -891,10 +899,30 @@ export default function NewCampaignPage() {
                                   id="campaign-description"
                                   placeholder="Brief description of your campaign"
                                   rows={4}
+                                  maxLength={DESCRIPTION_MAX_LENGTH}
                                   {...field}
                                 />
                               </FormControl>
-                              <FormMessage />
+                              <div
+                                className={`flex items-center text-xs ${
+                                  fieldState.error
+                                    ? "justify-between"
+                                    : "justify-end"
+                                }`}
+                              >
+                                <FormMessage className="text-xs" />
+                                <span
+                                  className={
+                                    fieldState.error
+                                      ? "text-destructive"
+                                      : isDescriptionNearLimit
+                                        ? "text-amber-600"
+                                        : "text-muted-foreground"
+                                  }
+                                >
+                                  {descriptionLength}/{DESCRIPTION_MAX_LENGTH}
+                                </span>
+                              </div>
                             </FormItem>
                           )}
                         />

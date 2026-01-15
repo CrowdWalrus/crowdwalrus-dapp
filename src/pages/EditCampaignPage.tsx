@@ -59,6 +59,10 @@ import {
 } from "@/features/campaigns/components/CampaignResolutionStates";
 import { DEFAULT_POLICY_PRESET } from "@/features/campaigns/constants/policies";
 import {
+  DESCRIPTION_MAX_LENGTH,
+  DESCRIPTION_WARNING_THRESHOLD,
+} from "@/features/campaigns/constants/validation";
+import {
   CampaignCoverImageUpload,
   CampaignDetailsEditor,
   CampaignTypeSelector,
@@ -322,6 +326,9 @@ export default function EditCampaignPage() {
         ...watchedValues,
       } as EditCampaignFormData)
     : form.getValues();
+  const descriptionLength = (currentFormValues.description ?? "").length;
+  const isDescriptionNearLimit =
+    DESCRIPTION_MAX_LENGTH - descriptionLength <= DESCRIPTION_WARNING_THRESHOLD;
 
   const {
     campaign,
@@ -1773,7 +1780,7 @@ export default function EditCampaignPage() {
                   <FormField
                     control={form.control}
                     name="description"
-                    render={({ field }) => (
+                    render={({ field, fieldState }) => (
                       <FormItem
                         className="flex flex-col gap-4"
                         data-field-error="description"
@@ -1798,11 +1805,31 @@ export default function EditCampaignPage() {
                             id="edit-campaign-description"
                             placeholder="Brief description of your campaign"
                             rows={4}
+                            maxLength={DESCRIPTION_MAX_LENGTH}
                             {...field}
                             disabled={!editingSections.description}
                           />
                         </FormControl>
-                        <FormMessage />
+                        <div
+                          className={`flex items-center text-xs ${
+                            fieldState.error
+                              ? "justify-between"
+                              : "justify-end"
+                          }`}
+                        >
+                          <FormMessage className="text-xs" />
+                          <span
+                            className={
+                              fieldState.error
+                                ? "text-destructive"
+                                : isDescriptionNearLimit
+                                  ? "text-amber-600"
+                                  : "text-muted-foreground"
+                            }
+                          >
+                            {descriptionLength}/{DESCRIPTION_MAX_LENGTH}
+                          </span>
+                        </div>
                       </FormItem>
                     )}
                   />
