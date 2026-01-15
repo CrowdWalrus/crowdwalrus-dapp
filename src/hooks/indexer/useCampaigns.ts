@@ -24,6 +24,7 @@ export interface UseCampaignsOptions {
   verified?: boolean;
   hydrateDetails?: boolean;
   enabled?: boolean;
+  ownerAddress?: string | null;
 }
 
 const DEFAULT_PAGE_SIZE = 20;
@@ -39,13 +40,14 @@ export function useCampaigns(
     verified = false,
     hydrateDetails = true,
     enabled = true,
+    ownerAddress = null,
   } = options;
 
   return useInfiniteQuery<CampaignsPage, Error>({
     queryKey: [
       "indexer",
       "campaigns",
-      { pageSize, verified, hydrateDetails },
+      { pageSize, verified, hydrateDetails, ownerAddress },
     ],
     queryFn: async ({ pageParam }) => {
       const page = typeof pageParam === "number" ? pageParam : 1;
@@ -53,6 +55,7 @@ export function useCampaigns(
         page,
         pageSize,
         verified,
+        ownerAddress: ownerAddress ?? undefined,
       });
 
       if (!hydrateDetails) {

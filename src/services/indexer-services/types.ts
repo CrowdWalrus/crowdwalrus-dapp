@@ -11,6 +11,7 @@ export interface CampaignSummary {
   name: string;
   shortDescription: string;
   subdomainName: string;
+  metadata?: Record<string, unknown>;
   fundingGoalUsdMicro: number;
   startDateMs: number;
   endDateMs: number;

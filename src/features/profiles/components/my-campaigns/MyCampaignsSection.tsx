@@ -1,6 +1,6 @@
 import { useCallback, useMemo } from "react";
 import { Link } from "react-router-dom";
-import { AlertCircle, SendHorizontal, Wallet } from "lucide-react";
+import { AlertCircle, ChevronDown, SendHorizontal, Wallet } from "lucide-react";
 
 import { MyCampaignCardContainer } from "./MyCampaignCardContainer";
 import type { CampaignData } from "@/features/campaigns/hooks/useAllCampaigns";
@@ -19,6 +19,9 @@ interface CampaignDataSource {
   refetch: () => void | Promise<void>;
   hasNoCampaigns: boolean;
   isConnected?: boolean;
+  fetchNextPage?: () => void | Promise<unknown>;
+  hasNextPage?: boolean;
+  isFetchingNextPage?: boolean;
 }
 
 interface MyCampaignsSectionProps {
@@ -85,6 +88,9 @@ export function MyCampaignsSection({
     refetch,
     hasNoCampaigns,
     isConnected = true,
+    fetchNextPage,
+    hasNextPage = false,
+    isFetchingNextPage = false,
   } = data;
 
   const handleMutation = useCallback(() => {
@@ -103,6 +109,14 @@ export function MyCampaignsSection({
       )),
     [campaigns, handleMutation, network],
   );
+
+  const shouldShowMore = Boolean(hasNextPage);
+  const handleShowMore = useCallback(() => {
+    if (!shouldShowMore || isFetchingNextPage) {
+      return;
+    }
+    void fetchNextPage?.();
+  }, [fetchNextPage, isFetchingNextPage, shouldShowMore]);
 
   if (isOwnerView && !isConnected) {
     return (
@@ -190,15 +204,49 @@ export function MyCampaignsSection({
 
   if (!isOwnerView) {
     return (
-      <div className="grid gap-6 md:grid-cols-2">
-        {campaigns.map((campaign) => (
-          <CampaignCardWithStats key={campaign.id} campaign={campaign} />
-        ))}
+      <div className="flex flex-col gap-6">
+        <div className="grid gap-6 md:grid-cols-2">
+          {campaigns.map((campaign) => (
+            <CampaignCardWithStats key={campaign.id} campaign={campaign} />
+          ))}
+        </div>
+        {shouldShowMore && (
+          <div className="flex justify-center">
+            <Button
+              onClick={handleShowMore}
+              className="flex items-center gap-2 bg-blue-50 px-6 text-blue-500 hover:bg-blue-100"
+              disabled={isFetchingNextPage}
+            >
+              <span>
+                {isFetchingNextPage ? "Loading more..." : "Show more"}
+              </span>
+              <ChevronDown className="h-3.5 w-3.5" />
+            </Button>
+          </div>
+        )}
       </div>
     );
   }
 
-  return <div className="flex flex-col gap-6">{campaignList}</div>;
+  return (
+    <div className="flex flex-col gap-6">
+      {campaignList}
+      {shouldShowMore && (
+        <div className="flex justify-center">
+          <Button
+            onClick={handleShowMore}
+            className="flex items-center gap-2 bg-blue-50 px-6 text-blue-500 hover:bg-blue-100"
+            disabled={isFetchingNextPage}
+          >
+            <span>
+              {isFetchingNextPage ? "Loading more..." : "Show more"}
+            </span>
+            <ChevronDown className="h-3.5 w-3.5" />
+          </Button>
+        </div>
+      )}
+    </div>
+  );
 }
 
 function CampaignCardSkeleton() {

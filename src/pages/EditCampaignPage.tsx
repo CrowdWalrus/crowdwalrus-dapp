@@ -686,6 +686,8 @@ export default function EditCampaignPage() {
     form,
     initialDescription,
     initialized,
+    maxEpochs,
+    minEpochs,
     resetStorageEstimate,
     selectedEpochs,
     walrusChangesDetected,

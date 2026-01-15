@@ -36,41 +36,27 @@ export function useOwnerCampaigns({
   const shouldFetch = Boolean(enabled && normalizedOwner);
 
   const {
-    campaigns: allCampaigns,
+    campaigns,
     isPending,
     error,
     refetch,
-  } = useAllCampaigns(network, { enabled: shouldFetch });
-
-  const campaigns = useMemo(() => {
-    if (!shouldFetch || !normalizedOwner) {
-      return [];
-    }
-
-    return allCampaigns.filter((campaign) => {
-      if (!campaign.creatorAddress) {
-        return false;
-      }
-
-      try {
-        return (
-          normalizeSuiAddress(campaign.creatorAddress) === normalizedOwner
-        );
-      } catch {
-        return false;
-      }
-    });
-  }, [allCampaigns, normalizedOwner, shouldFetch]);
-
-  const hasNoCampaigns = shouldFetch
-    ? !isPending && campaigns.length === 0
-    : false;
+    hasNoCampaigns,
+    fetchNextPage,
+    hasNextPage,
+    isFetchingNextPage,
+  } = useAllCampaigns(network, {
+    enabled: shouldFetch,
+    ownerAddress: normalizedOwner,
+  });
 
   return {
     campaigns,
     isPending: shouldFetch ? isPending : false,
     error: shouldFetch ? error : null,
     refetch,
-    hasNoCampaigns,
+    hasNoCampaigns: shouldFetch ? hasNoCampaigns : false,
+    fetchNextPage,
+    hasNextPage,
+    isFetchingNextPage,
   };
 }

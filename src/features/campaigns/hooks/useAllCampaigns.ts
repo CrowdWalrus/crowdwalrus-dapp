@@ -16,6 +16,8 @@ interface UseAllCampaignsOptions {
   enabled?: boolean;
   pageSize?: number;
   verified?: boolean;
+  ownerAddress?: string | null;
+  hydrateDetails?: boolean;
 }
 
 /** Fetch and map paginated campaigns from the indexer into UI-ready data. */
@@ -23,13 +25,20 @@ export function useAllCampaigns(
   network: SupportedNetwork = DEFAULT_NETWORK,
   options: UseAllCampaignsOptions = {},
 ) {
-  const { enabled = true, pageSize = 20, verified = false } = options;
+  const {
+    enabled = true,
+    pageSize = 20,
+    verified = false,
+    ownerAddress = null,
+    hydrateDetails = false,
+  } = options;
 
   const query = useCampaigns({
     pageSize,
     verified,
-    hydrateDetails: true,
+    hydrateDetails,
     enabled,
+    ownerAddress,
   });
 
   const campaigns = useMemo<CampaignData[]>(() => {
@@ -65,7 +74,7 @@ export function useAllCampaigns(
     isPending: query.isPending,
     error: (query.error as Error) ?? null,
     refetch,
-    hasNoCampaigns: !query.isPending && campaigns.length === 0,
+    hasNoCampaigns: enabled && !query.isPending && campaigns.length === 0,
     fetchNextPage: query.fetchNextPage,
     hasNextPage: query.hasNextPage,
     isFetchingNextPage: query.isFetchingNextPage,

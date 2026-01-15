@@ -155,7 +155,7 @@ export function CampaignContributionsTable({
       : false,
   });
 
-  const pages = data?.pages ?? [];
+  const pages = useMemo(() => data?.pages ?? [], [data?.pages]);
   const lastPage = pages.length > 0 ? pages[pages.length - 1] : undefined;
   const lastLoadedPage = lastPage?.page ?? 1;
   const pageNumbers = useMemo(() => {

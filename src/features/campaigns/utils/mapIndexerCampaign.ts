@@ -59,7 +59,7 @@ export function mapIndexerCampaignToData(
   summary: CampaignSummary | null,
   { network }: MapCampaignOptions,
 ): CampaignData {
-  const metadataMap = toStringMap(detail?.metadata ?? {});
+  const metadataMap = toStringMap(detail?.metadata ?? summary?.metadata ?? {});
 
   const walrusQuiltId = metadataMap["walrus_quilt_id"] ?? "";
   const walrusStorageEpochs = metadataMap["walrus_storage_epochs"] ?? "0";

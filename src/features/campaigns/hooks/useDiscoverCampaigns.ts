@@ -34,7 +34,7 @@ export function useDiscoverCampaigns(
     enabled = true,
     pageSize = 5,
     fundingMetric = "recipient",
-    hydrateDetails = true,
+    hydrateDetails = false,
   } = options;
 
   // Discover ordering is phase-based (funding -> active -> open soon -> ended) with backend-only deleted filtering.
