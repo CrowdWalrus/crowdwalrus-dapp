@@ -36,8 +36,8 @@ import {
 } from "@/features/donations/utils";
 import { useCampaignDonations } from "@/hooks/indexer/useCampaignDonations";
 import { useEnabledTokens } from "@/features/tokens/hooks";
-import { useProfileHandle } from "@/features/profiles/hooks/useProfileHandle";
-import { DEFAULT_NETWORK } from "@/shared/config/networkConfig";
+import { DEFAULT_NETWORK, useNetworkVariable } from "@/shared/config/networkConfig";
+import { resolveProfileLink } from "@/shared/utils/profile";
 import type { PendingCampaignDonation } from "../types/donation";
 
 interface CampaignContributionsTableProps {
@@ -58,10 +58,22 @@ function formatContributor(address: string): string {
   return `${value.slice(0, 5)}...${value.slice(-4)}`;
 }
 
-function ContributorNameCell({ address }: { address: string }) {
+function ContributorNameCell({
+  address,
+  subdomainName,
+  campaignDomain,
+}: {
+  address: string;
+  subdomainName?: string | null;
+  campaignDomain?: string | null;
+}) {
   const trimmed = address.trim();
   const hasAddress = trimmed.length >= 10 && trimmed.startsWith("0x");
-  const { handle, profilePath } = useProfileHandle(hasAddress ? trimmed : null);
+  const { handle, profilePath } = resolveProfileLink({
+    address: hasAddress ? trimmed : null,
+    subdomainName,
+    campaignDomain: campaignDomain ?? null,
+  });
   const label = handle ?? formatContributor(trimmed);
 
   if (!profilePath) {
@@ -84,6 +96,9 @@ export function CampaignContributionsTable({
   onPendingResolved,
 }: CampaignContributionsTableProps) {
   const [currentPage, setCurrentPage] = useState(1);
+  const campaignDomain = useNetworkVariable("campaignDomain") as
+    | string
+    | undefined;
 
   useEffect(() => {
     setCurrentPage(1);
@@ -258,7 +273,10 @@ export function CampaignContributionsTable({
           </div>
         </TableCell>
         <TableCell className="px-4 py-4 text-black-500">
-          <ContributorNameCell address={pendingDonation.donor} />
+          <ContributorNameCell
+            address={pendingDonation.donor}
+            campaignDomain={campaignDomain ?? null}
+          />
         </TableCell>
         <TableCell className="px-4 py-4 text-black-500">
           <div className="flex items-center gap-2">
@@ -426,7 +444,11 @@ export function CampaignContributionsTable({
                 {formatContributionDate(donation.timestampMs)}
               </TableCell>
               <TableCell className="px-4 py-4 text-black-500">
-                <ContributorNameCell address={donation.donor} />
+                <ContributorNameCell
+                  address={donation.donor}
+                  subdomainName={donation.donorProfileSubdomainName}
+                  campaignDomain={campaignDomain ?? null}
+                />
               </TableCell>
               <TableCell className="px-4 py-4 text-black-500">
                 <div className="flex items-center gap-2">

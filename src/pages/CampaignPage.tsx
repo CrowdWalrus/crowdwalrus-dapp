@@ -562,6 +562,7 @@ export function CampaignPage() {
                 category={campaign.category}
                 contributorsCount={contributorsCount}
                 publisherAddress={campaign.creatorAddress}
+                publisherSubdomainName={campaign.ownerProfileSubdomainName}
                 socialLinks={campaign.socialLinks}
               />
 

@@ -16,7 +16,8 @@ import {
   StartsInBadge,
 } from "./CampaignBadges";
 import { getCampaignStatusInfo } from "../utils/campaignStatus";
-import { useProfileHandle } from "@/features/profiles/hooks/useProfileHandle";
+import { resolveProfileLink } from "@/shared/utils/profile";
+import { useNetworkVariable } from "@/shared/config/networkConfig";
 
 const PLACEHOLDER_IMAGE = "/assets/images/placeholders/campaign.png";
 
@@ -40,6 +41,7 @@ interface CampaignHeroProps {
   category: string;
   contributorsCount: number;
   publisherAddress: string;
+  publisherSubdomainName?: string | null;
   socialLinks: CampaignSocialLink[];
 }
 
@@ -54,8 +56,12 @@ export function CampaignHero({
   category,
   contributorsCount,
   publisherAddress,
+  publisherSubdomainName = null,
   socialLinks,
 }: CampaignHeroProps) {
+  const campaignDomain = useNetworkVariable("campaignDomain") as
+    | string
+    | undefined;
   // Calculate days until start
   const nowMs = Date.now();
   const msPerDay = 24 * 60 * 60 * 1000;
@@ -102,7 +108,11 @@ export function CampaignHero({
     normalizedPublisherAddress.length >= 10 &&
     normalizedPublisherAddress.startsWith("0x");
   const { handle: publisherHandle, profilePath: publisherProfilePath } =
-    useProfileHandle(hasPublisherAddress ? normalizedPublisherAddress : null);
+    resolveProfileLink({
+      address: hasPublisherAddress ? normalizedPublisherAddress : null,
+      subdomainName: publisherSubdomainName,
+      campaignDomain: campaignDomain ?? null,
+    });
   const formattedPublisher = formatAddress(normalizedPublisherAddress);
   const publisherLabel = publisherHandle ?? formattedPublisher;
 
