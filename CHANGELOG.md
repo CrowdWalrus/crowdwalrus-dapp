@@ -1,5 +1,19 @@
 # Changelog
 
+## [1.2.0](https://github.com/CrowdWalrus/crowdwalrus-dapp/compare/v1.1.3...v1.2.0) (2026-01-15)
+
+
+### Features
+
+* **campaigns:** add description length validation and warning in campaign forms ([87127ac](https://github.com/CrowdWalrus/crowdwalrus-dapp/commit/87127ac8ceb3b451341200923a7be8bcbba7d147))
+
+
+### Bug Fixes
+
+* **campaigns:** paginate profile lists and reduce list fetches ([49ee536](https://github.com/CrowdWalrus/crowdwalrus-dapp/commit/49ee536129087be30cae8440ce05138110dd7508))
+* **ui:** remove profile identity N+1 calls in lists ([c9feb66](https://github.com/CrowdWalrus/crowdwalrus-dapp/commit/c9feb66dc884055aa5a99e7f82fff91b079ad24d))
+* **ui:** remove profile identity N+1 calls in lists ([e7d9ca2](https://github.com/CrowdWalrus/crowdwalrus-dapp/commit/e7d9ca22e2cef2374ad41ba2847cc5c08ed81aed))
+
 ## [1.1.3](https://github.com/CrowdWalrus/crowdwalrus-dapp/compare/v1.1.2...v1.1.3) (2026-01-14)
 
 
