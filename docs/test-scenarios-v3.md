@@ -42,7 +42,6 @@ codebase and are intended as manual acceptance tests.
 - Success criteria: Wallet address displays in the header; account menu items
   navigate correctly; disconnect returns UI to connect state.
 
-
 **TC-RESP-01: Header responsiveness**
 
 - Steps: Resize viewport to mobile widths (e.g., 375px) and tablet widths.
@@ -60,12 +59,15 @@ codebase and are intended as manual acceptance tests.
   - Within each bucket, campaigns are sorted by highest funded amount first.
   - If Featured list capacity isn't filled by one bucket, the next bucket is appended (same sorting).
 
-**TC-HOME-02: Home page token list renders correctly**
+**TC-HOME-02: Token list visible in Donation Card dropdown**
 
-- Steps: Open Home page section that lists supported tokens.
+- Steps:
+  1) Open any campaign that shows the Donation Card.
+  2) Click the token selector to open the dropdown.
 - Success criteria:
-  - Tokens shown match the expected UI list for the current environment (testnet/mainnet).
-  - Token labels and icons render (no broken images).
+  - Token dropdown renders a visible list (not blank/hidden behind modal).
+  - Tokens shown match the currently enabled set for the environment. Expected (per PR #120): **SUI, USDC, WAL, USDT, SUINS, BLUE (Bluefin)** (only those enabled should appear).
+  - Each token shows label + icon (no broken images).
 
 **TC-BRAND-01: Browser tab title + favicon**
 
@@ -73,8 +75,6 @@ codebase and are intended as manual acceptance tests.
 - Success criteria:
   - Page title matches the product name (no default template title).
   - Favicon appears and matches the brand icon.
-
-
 
 ---
 
@@ -98,7 +98,6 @@ codebase and are intended as manual acceptance tests.
 - Success criteria: Additional cards are appended; button disables while
   loading.
 
-
 **TC-EX-04: Verified-only listing regression**
 
 - Steps:
@@ -107,7 +106,6 @@ codebase and are intended as manual acceptance tests.
 - Success criteria:
   - Unverified campaigns do NOT appear in Explore.
   - Unverified campaigns remain reachable by direct link.
-
 
 ---
 
@@ -132,7 +130,6 @@ codebase and are intended as manual acceptance tests.
   invalid Sui wallet address, invalid subdomain format.
 - Success criteria: Each invalid input shows its specific validation error and
   prevents publish.
-
 
 **TC-CC-04: Recipient address defaults to connected wallet + input hardening**
 
@@ -161,7 +158,6 @@ codebase and are intended as manual acceptance tests.
 - Success criteria:
   - Key headings and labels match the latest copy spec (terminology consistency).
   - No broken/missing labels, placeholders, or tooltips.
-
 
 ---
 
@@ -192,7 +188,6 @@ codebase and are intended as manual acceptance tests.
   - Goal/target amounts display with the correct currency sign ($ where applicable).
   - Large numbers use separators for readability (e.g., 12,000).
   - No missing symbols or formatting regressions across card + detail views.
-
 
 ---
 
@@ -225,7 +220,6 @@ codebase and are intended as manual acceptance tests.
 - Steps: Attempt to donate from the campaign owner wallet or recipient wallet.
 - Success criteria: Donation input is disabled or blocked; error messaging
   indicates self-contribution is not allowed.
-
 
 **TC-DO-05: Donation amount input UX + validation hardening**
 
@@ -267,7 +261,6 @@ codebase and are intended as manual acceptance tests.
   - Images load (no broken thumbnails).
   - If an image fails, a graceful fallback is shown (placeholder + retry) instead of a blank/broken UI.
 
-
 ---
 
 ## Campaign Updates (Add Update)
@@ -301,7 +294,6 @@ codebase and are intended as manual acceptance tests.
 - Success criteria: Reupload warning modal appears; confirming proceeds with
   upload and publish.
 
-
 **TC-CE-03: Verified campaign edit warning (verification/listing impact)**
 
 - Steps:
@@ -311,7 +303,6 @@ codebase and are intended as manual acceptance tests.
 - Success criteria:
   - UI warns if editing will cause the campaign to become unverified/unlisted (if that is the platform rule).
   - Warning is clear, requires explicit confirmation, and the outcome is reflected in the UI after publishing.
-
 
 ---
 
@@ -377,14 +368,6 @@ codebase and are intended as manual acceptance tests.
 - Success criteria: Public view renders without owner-only actions; campaigns
   list loads (or empty state).
 
-
-**TC-PV-03: My contributions table includes net amount column**
-
-- Steps: Open Profile → My Contributions for a wallet that donated to a commercial campaign.
-- Success criteria:
-  - Table includes a Net Amount column (matching the campaign contributions table style).
-  - Net amount values match fee policy (commercial vs nonprofit).
-
 **TC-PV-04: Contribution header counts are accurate**
 
 - Steps:
@@ -392,7 +375,6 @@ codebase and are intended as manual acceptance tests.
   2) Open Profile → My Contributions and note the count.
 - Success criteria:
   - Header/tab counts match the rendered rows (after indexer refresh).
-
 
 ---
 
@@ -428,7 +410,6 @@ codebase and are intended as manual acceptance tests.
 
 ## Global Wallet and Transaction Edge-Case Handling (All Tx-Based Flows)
 
-
 ## Form Input Hardening (Numeric Fields)
 
 Applies to: campaign goal/target amount, donation amount, any USD display inputs.
@@ -444,7 +425,6 @@ Applies to: campaign goal/target amount, donation amount, any USD display inputs
   - Separators are formatted for readability where applicable (e.g., 12,000,456).
   - Values are clamped or rejected at max caps with clear error.
   - Minimum of $1 (or defined min) enforced.
-
 
 Applies to: create campaign, create/update profile, donate, post updates, edit campaign, activate/deactivate, delete.
 
@@ -606,7 +586,6 @@ Subname rules (from docs): lowercase letters + numbers, interior hyphens allowed
   - Output is rendered correctly in all avatar locations (header, profile page, donor list).
   - No distortion.
 
-
 **TC-MEDIA-05: Campaign cover upload does not hard-block on min resolution (cropper assists)**
 - Steps:
   1) Upload an image smaller than the legacy min-res error threshold (e.g., below 946x432).
@@ -616,7 +595,6 @@ Subname rules (from docs): lowercase letters + numbers, interior hyphens allowed
   - Upload is accepted into the cropper (no immediate hard error that blocks progress).
   - Cropper guides user to meet the required aspect (e.g., 946x432 or equivalent).
   - Final saved image meets the expected aspect ratio and renders correctly.
-
 
 ---
 
@@ -635,7 +613,6 @@ Subname rules (from docs): lowercase letters + numbers, interior hyphens allowed
   - Links open in a new tab.
   - Destinations are correct and safe (official docs / known DEX routes).
 
-
 **TC-WAL-03: Bluefin swap route opens in new tab (testnet)**
 - Steps: Trigger the WAL-insufficient flow and click the 'Get $WAL' link.
 - Success criteria:
@@ -649,7 +626,6 @@ Subname rules (from docs): lowercase letters + numbers, interior hyphens allowed
 - Success criteria:
   - WAL balance is detected correctly.
   - UI unblocks without requiring hard refresh (or clearly instructs if a refresh is required).
-
 
 ---
 
@@ -780,7 +756,6 @@ Covers input enablement, progress bar, labels, timing and messaging.
   - CTA to apply is visible.
   - CTA opens correct destination (Typeform or equivalent).
 
-
 **TC-VER-06: Unverified badge opens explainer modal (benefits + apply link)**
 - Steps:
   1) Open an unverified campaign in owner view.
@@ -789,7 +764,6 @@ Covers input enablement, progress bar, labels, timing and messaging.
   - A modal opens that explains what unverified means.
   - Modal clearly explains benefits of verification/listing.
   - Modal provides a clear CTA to apply for verification.
-
 
 **TC-VER-05: Regression - all verified campaigns appear in Explore pagination**
 - Steps: Ensure many verified campaigns exist (>= page size). Scroll/"Show more".
@@ -950,7 +924,6 @@ Covers input enablement, progress bar, labels, timing and messaging.
 - Steps: Navigate to Disclaimer.
 - Success criteria: Same as TC-STATIC-01.
 
-
 **TC-STATIC-04: About Us page loads and renders correctly**
 - Steps: Navigate to About Us.
 - Success criteria:
@@ -962,7 +935,6 @@ Covers input enablement, progress bar, labels, timing and messaging.
 - Success criteria:
   - Page loads without console errors.
   - Content renders and includes intended contact channels.
-
 
 **TC-FOOTER-01: Footer appears on ALL pages**
 - Steps: Visit:
