@@ -13,10 +13,12 @@ export interface CampaignListParams {
   page?: number;
   pageSize?: number;
   verified?: boolean;
+  verificationStatus?: CampaignVerificationStatus;
   ownerAddress?: string;
 }
 
 export type DiscoverFundingMetric = "recipient" | "total";
+export type CampaignVerificationStatus = "all" | "verified" | "unverified";
 
 export interface DiscoverCampaignListParams {
   page?: number;
@@ -31,12 +33,18 @@ function clampPageSize(pageSize?: number) {
   return Math.max(1, Math.min(pageSize, MAX_PAGE_SIZE));
 }
 
-/** Fetch paginated campaign summaries; optionally filter to verified only. */
+/** Fetch paginated campaign summaries; optionally filter by verification status. */
 export async function getCampaigns(
   params: CampaignListParams = {},
 ): Promise<PaginatedResponse<CampaignSummary>> {
-  const { page, pageSize, verified, ownerAddress } = params;
-  const path = verified ? "/v1/campaigns/verified" : "/v1/campaigns";
+  const { page, pageSize, verified, verificationStatus, ownerAddress } = params;
+  const status = verificationStatus ?? (verified ? "verified" : "all");
+  const path =
+    status === "verified"
+      ? "/v1/campaigns/verified"
+      : status === "unverified"
+        ? "/v1/campaigns/unverified"
+        : "/v1/campaigns";
   return indexerRequest<PaginatedResponse<CampaignSummary>>(path, {
     query: {
       page,

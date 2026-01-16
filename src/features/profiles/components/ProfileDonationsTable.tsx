@@ -1,10 +1,12 @@
 import { useEffect, useMemo, useState } from "react";
+import { useQueryClient } from "@tanstack/react-query";
 import { AlertCircle, ExternalLink } from "lucide-react";
 import { Link } from "react-router-dom";
 
 import {
   Pagination,
   PaginationContent,
+  PaginationEllipsis,
   PaginationItem,
   PaginationLink,
   PaginationNext,
@@ -19,13 +21,18 @@ import {
   TableHeader,
   TableRow,
 } from "@/shared/components/ui/table";
-import { useProfileDonations } from "@/hooks/indexer/useProfileDonations";
+import {
+  fetchProfileDonationsPage,
+  profileDonationsPageQueryKey,
+  useProfileDonationsPage,
+} from "@/hooks/indexer/useProfileDonationsPage";
 import { useEnabledTokens } from "@/features/tokens/hooks";
 import {
   formatContributionDate,
   formatTokenAmount,
   resolveTokenInfo,
 } from "@/features/donations/utils";
+import { getPaginationItems } from "@/shared/lib/pagination";
 import { cn } from "@/shared/lib/utils";
 import { formatUsdLocaleFromMicros } from "@/shared/utils/currency";
 import { buildExplorerTxUrl } from "@/shared/utils/explorer";
@@ -47,6 +54,7 @@ export function ProfileDonationsTable({
   title = "Contributions",
 }: ProfileDonationsTableProps) {
   const [currentPage, setCurrentPage] = useState(1);
+  const queryClient = useQueryClient();
 
   useEffect(() => {
     setCurrentPage(1);
@@ -72,29 +80,71 @@ export function ProfileDonationsTable({
   const {
     data,
     isPending: donationsPending,
-    isFetchingNextPage,
-    fetchNextPage,
-    hasNextPage,
+    isFetching: donationsFetching,
+    isPlaceholderData: donationsPlaceholder,
     error: donationsError,
     refetch,
-  } = useProfileDonations(ownerAddress, { pageSize: PAGE_SIZE });
+  } = useProfileDonationsPage(ownerAddress, {
+    page: currentPage,
+    pageSize: PAGE_SIZE,
+  });
 
-  const pages = data?.pages ?? [];
-  const lastPage = pages.length > 0 ? pages[pages.length - 1] : undefined;
-  const lastLoadedPage = lastPage?.page ?? 1;
-  const pageNumbers = useMemo(() => {
-    const count = lastLoadedPage + (lastPage?.hasMore ? 1 : 0);
-    return Array.from({ length: Math.max(count, 1) }, (_, index) => index + 1);
-  }, [lastLoadedPage, lastPage?.hasMore]);
+  const totalCount = data?.totalCount ?? 0;
+  const totalPages = totalCount > 0 ? Math.ceil(totalCount / PAGE_SIZE) : 0;
+  const paginationItems = useMemo(
+    () =>
+      getPaginationItems({
+        currentPage,
+        totalPages,
+      }),
+    [currentPage, totalPages],
+  );
 
-  const currentPageData =
-    pages.find((page) => page.page === currentPage)?.data ?? [];
+  useEffect(() => {
+    if (totalPages > 0 && currentPage > totalPages) {
+      setCurrentPage(totalPages);
+    }
+  }, [currentPage, totalPages]);
+
+  useEffect(() => {
+    if (!ownerAddress || totalPages <= 1) return;
+
+    const nextPage = currentPage + 1;
+    const prevPage = currentPage - 1;
+
+    if (nextPage <= totalPages) {
+      void queryClient.prefetchQuery({
+        queryKey: profileDonationsPageQueryKey(
+          ownerAddress,
+          nextPage,
+          PAGE_SIZE,
+        ),
+        queryFn: () =>
+          fetchProfileDonationsPage(ownerAddress, nextPage, PAGE_SIZE),
+        staleTime: 30_000,
+      });
+    }
+
+    if (prevPage >= 1) {
+      void queryClient.prefetchQuery({
+        queryKey: profileDonationsPageQueryKey(
+          ownerAddress,
+          prevPage,
+          PAGE_SIZE,
+        ),
+        queryFn: () =>
+          fetchProfileDonationsPage(ownerAddress, prevPage, PAGE_SIZE),
+        staleTime: 30_000,
+      });
+    }
+  }, [queryClient, ownerAddress, currentPage, totalPages]);
+
+  const currentPageData = data?.data ?? [];
 
   const isLoadingPage =
     donationsPending ||
     tokensPending ||
-    (currentPageData.length === 0 &&
-      (isFetchingNextPage || (hasNextPage && currentPage > lastLoadedPage)));
+    (donationsFetching && donationsPlaceholder && currentPageData.length === 0);
 
   const showEmptyState =
     !isLoadingPage && !donationsError && currentPageData.length === 0;
@@ -103,18 +153,13 @@ export function ProfileDonationsTable({
     donationsError?.message ??
     (tokensError instanceof Error ? tokensError.message : null);
 
-  async function handleSelectPage(targetPage: number) {
-    if (targetPage < 1 || targetPage === currentPage) return;
-
-    const needsFetch =
-      targetPage > lastLoadedPage && hasNextPage && !isFetchingNextPage;
-
-    if (needsFetch) {
-      try {
-        await fetchNextPage();
-      } catch {
-        return;
-      }
+  function handleSelectPage(targetPage: number) {
+    if (
+      targetPage < 1 ||
+      targetPage === currentPage ||
+      (totalPages > 0 && targetPage > totalPages)
+    ) {
+      return;
     }
 
     setCurrentPage(targetPage);
@@ -254,10 +299,7 @@ export function ProfileDonationsTable({
   }
 
   const canGoPrev = currentPage > 1;
-  const canGoNext =
-    (hasNextPage ?? false) ||
-    currentPage < lastLoadedPage ||
-    isFetchingNextPage;
+  const canGoNext = totalPages > 0 && currentPage < totalPages;
 
   return (
     <div className="flex flex-col gap-4 sm:gap-6">
@@ -298,7 +340,7 @@ export function ProfileDonationsTable({
         </Table>
       </div>
 
-      {(pageNumbers.length > 1 || (lastPage?.hasMore ?? false)) && (
+      {totalPages > 1 && (
         <Pagination className="pt-2">
           <PaginationContent>
             <PaginationItem>
@@ -316,20 +358,26 @@ export function ProfileDonationsTable({
                 }}
               />
             </PaginationItem>
-            {pageNumbers.map((pageNumber) => (
-              <PaginationItem key={pageNumber}>
-                <PaginationLink
-                  href="#"
-                  isActive={pageNumber === currentPage}
-                  onClick={(event) => {
-                    event.preventDefault();
-                    void handleSelectPage(pageNumber);
-                  }}
-                >
-                  {pageNumber}
-                </PaginationLink>
-              </PaginationItem>
-            ))}
+            {paginationItems.map((item, index) =>
+              item === "ellipsis" ? (
+                <PaginationItem key={`ellipsis-${index}`}>
+                  <PaginationEllipsis />
+                </PaginationItem>
+              ) : (
+                <PaginationItem key={item}>
+                  <PaginationLink
+                    href="#"
+                    isActive={item === currentPage}
+                    onClick={(event) => {
+                      event.preventDefault();
+                      void handleSelectPage(item);
+                    }}
+                  >
+                    {item}
+                  </PaginationLink>
+                </PaginationItem>
+              ),
+            )}
             <PaginationItem>
               <PaginationNext
                 href="#"
