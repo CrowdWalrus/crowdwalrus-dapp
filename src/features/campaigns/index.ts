@@ -8,6 +8,7 @@ export {
   useCampaignDescription,
   type CampaignData,
 } from "./hooks/useAllCampaigns";
+export { useCampaignsPage } from "./hooks/useCampaignsPage";
 export { useMyCampaigns } from "./hooks/useMyCampaigns";
 
 // Campaign Types

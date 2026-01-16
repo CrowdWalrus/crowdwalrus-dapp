@@ -7,6 +7,7 @@ import {
 import {
   getCampaignById,
   getCampaigns,
+  type CampaignVerificationStatus,
   type CampaignDetail,
   type CampaignSummary,
 } from "@/services/indexer-services";
@@ -17,11 +18,13 @@ export interface CampaignsPage {
   page: number;
   pageSize: number;
   hasMore: boolean;
+  totalCount: number;
 }
 
 export interface UseCampaignsOptions {
   pageSize?: number;
   verified?: boolean;
+  verificationStatus?: CampaignVerificationStatus;
   hydrateDetails?: boolean;
   enabled?: boolean;
   ownerAddress?: string | null;
@@ -38,23 +41,25 @@ export function useCampaigns(
   const {
     pageSize = DEFAULT_PAGE_SIZE,
     verified = false,
+    verificationStatus,
     hydrateDetails = true,
     enabled = true,
     ownerAddress = null,
   } = options;
+  const resolvedStatus = verificationStatus ?? (verified ? "verified" : "all");
 
   return useInfiniteQuery<CampaignsPage, Error>({
     queryKey: [
       "indexer",
       "campaigns",
-      { pageSize, verified, hydrateDetails, ownerAddress },
+      { pageSize, verificationStatus: resolvedStatus, hydrateDetails, ownerAddress },
     ],
     queryFn: async ({ pageParam }) => {
       const page = typeof pageParam === "number" ? pageParam : 1;
       const response = await getCampaigns({
         page,
         pageSize,
-        verified,
+        verificationStatus: resolvedStatus,
         ownerAddress: ownerAddress ?? undefined,
       });
 
@@ -65,6 +70,7 @@ export function useCampaigns(
           page: response.page,
           pageSize: response.pageSize,
           hasMore: response.hasMore,
+          totalCount: response.totalCount,
         } satisfies CampaignsPage;
       }
 
@@ -90,6 +96,7 @@ export function useCampaigns(
         page: response.page,
         pageSize: response.pageSize,
         hasMore: response.hasMore,
+        totalCount: response.totalCount,
       } satisfies CampaignsPage;
     },
     getNextPageParam: (lastPage) =>

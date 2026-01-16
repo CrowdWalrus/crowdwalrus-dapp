@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useMemo, useState } from "react";
+import { useCallback, useMemo, useState } from "react";
 import {
   CircleCheck,
   ExternalLink,
@@ -8,7 +8,6 @@ import {
 } from "lucide-react";
 
 import type { CampaignData } from "@/features/campaigns/hooks/useAllCampaigns";
-import { useCampaignStats } from "@/features/campaigns/hooks/useCampaignStats";
 import { useCampaignOwnership } from "@/features/campaigns/hooks/useCampaignOwnership";
 import { useActivateCampaign } from "@/features/campaigns/hooks/useActivateCampaign";
 import { useDeactivateCampaign } from "@/features/campaigns/hooks/useDeactivateCampaign";
@@ -56,24 +55,6 @@ export function MyCampaignCardContainer({
 
   const [isDeactivateModalOpen, setIsDeactivateModalOpen] = useState(false);
   const [isActivateModalOpen, setIsActivateModalOpen] = useState(false);
-  const {
-    recipientTotalUsdMicro,
-    uniqueDonorsCount,
-    isPending: isStatsPending,
-    error: statsError,
-  } = useCampaignStats({
-    campaignId: campaign.id,
-    enabled: Boolean(campaign.id),
-  });
-
-  useEffect(() => {
-    if (statsError) {
-      console.warn(
-        `[MyCampaignCardContainer] Failed to load stats for ${campaign.id}:`,
-        statsError,
-      );
-    }
-  }, [campaign.id, statsError]);
 
   const handleMutation = useCallback(async () => {
     await refetchOwnership();
@@ -203,12 +184,8 @@ export function MyCampaignCardContainer({
       <MyCampaignCard
         campaign={campaign}
         actions={quickActions}
-        raisedAmountUsdMicro={
-          statsError || isStatsPending ? 0n : recipientTotalUsdMicro
-        }
-        supportersCount={
-          statsError || isStatsPending ? undefined : uniqueDonorsCount
-        }
+        raisedAmountUsdMicro={campaign.recipientTotalUsdMicro}
+        supportersCount={campaign.uniqueDonorsCount}
         className={className}
       />
 

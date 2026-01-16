@@ -33,6 +33,7 @@ export function useCampaignDonations(
           page,
           pageSize,
           hasMore: false,
+          totalCount: 0,
         });
       }
       return getCampaignDonations({ id: campaignId, page, pageSize });
