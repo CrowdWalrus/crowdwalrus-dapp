@@ -1,5 +1,18 @@
 # Changelog
 
+## [1.3.0](https://github.com/CrowdWalrus/crowdwalrus-dapp/compare/v1.2.0...v1.3.0) (2026-01-16)
+
+
+### Features
+
+* **campaigns:** implement pagination for campaigns and donations ([9c4f402](https://github.com/CrowdWalrus/crowdwalrus-dapp/commit/9c4f4027d62d9d0675aa5544757da4390bf2652a))
+* **campaigns:** implement pagination for campaigns and donations ([90cd763](https://github.com/CrowdWalrus/crowdwalrus-dapp/commit/90cd763930250ed788a5dc362a4ae89dac3d6326))
+
+
+### Documentation
+
+* add minimal test scenarios and success criteria for frontend features ([4308602](https://github.com/CrowdWalrus/crowdwalrus-dapp/commit/4308602f069ca56a8820de2b410287c16d2725f6))
+
 ## [1.2.0](https://github.com/CrowdWalrus/crowdwalrus-dapp/compare/v1.1.3...v1.2.0) (2026-01-15)
 
 
