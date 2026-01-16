@@ -35,6 +35,7 @@ export function useProfileDonations(
           page,
           pageSize,
           hasMore: false,
+          totalCount: 0,
         });
       }
 

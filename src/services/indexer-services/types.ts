@@ -3,6 +3,7 @@ export interface PaginatedResponse<T> {
   page: number;
   pageSize: number;
   hasMore: boolean;
+  totalCount: number;
 }
 
 export interface CampaignSummary {

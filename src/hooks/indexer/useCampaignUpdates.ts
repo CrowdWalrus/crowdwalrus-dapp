@@ -32,6 +32,7 @@ export function useCampaignUpdates(
           page,
           pageSize,
           hasMore: false,
+          totalCount: 0,
         });
       }
       return getCampaignUpdates({ id: campaignId, page, pageSize });
