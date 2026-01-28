@@ -1,10 +1,12 @@
 import { useFormContext, Controller } from "react-hook-form";
+import { Link } from "react-router-dom";
 import { Alert, AlertDescription } from "@/shared/components/ui/alert";
 import { Checkbox } from "@/shared/components/ui/checkbox";
 import { Label } from "@/shared/components/ui/label";
 import { FormMessage } from "@/shared/components/ui/form";
 import { AlertCircleIcon } from "lucide-react";
 import { cn } from "@/shared/lib/utils";
+import { ROUTES } from "@/shared/config/routes";
 
 interface CampaignTermsAndConditionsSectionProps {
   emphasizeRequiredNotice?: boolean;
@@ -45,7 +47,13 @@ export function CampaignTermsAndConditionsSection({
                   className="cursor-pointer font-normal text-sm text-neutral-700 leading-[1.5]"
                 >
                   By publishing your campaign on CrowdWalrus, you agree to our
-                  [Terms and Conditions].
+                  <Link
+                    to={ROUTES.TERMS}
+                    className="ml-1 underline underline-offset-4 hover:text-neutral-900"
+                  >
+                    Terms and Conditions
+                  </Link>
+                  .
                 </Label>
               </div>
               {error && <FormMessage>{error.message}</FormMessage>}

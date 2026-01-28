@@ -49,6 +49,7 @@ export function Header() {
     { to: ROUTES.EXPLORE, label: "Campaigns" },
     { to: "/about", label: "About" },
     { to: "/contact", label: "Contact Us" },
+    { to: ROUTES.TERMS, label: "Terms" },
   ];
 
   const getNavLinkClassName = (linkTo: string) => {
