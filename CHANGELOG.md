@@ -1,5 +1,24 @@
 # Changelog
 
+## [1.4.0](https://github.com/CrowdWalrus/crowdwalrus-dapp/compare/v1.3.0...v1.4.0) (2026-01-29)
+
+
+### Features
+
+* add Terms of Service page and integrate throughout app ([b8a2c21](https://github.com/CrowdWalrus/crowdwalrus-dapp/commit/b8a2c218d2725bcf1e2e5f84925e2d1c2ccd8480))
+* enhance app layout and documentation links ([1444948](https://github.com/CrowdWalrus/crowdwalrus-dapp/commit/14449480f733f5a37ef3a19aacdfe23cac7e7ed9))
+* enhance app layout and documentation links ([9116850](https://github.com/CrowdWalrus/crowdwalrus-dapp/commit/9116850211db26914a34725fd02fcb53e651cd56))
+
+
+### Bug Fixes
+
+* **about:** update team member email addresses to new domain ([dd269de](https://github.com/CrowdWalrus/crowdwalrus-dapp/commit/dd269decd44e1de8203d3a0b0e817826925302ed))
+
+
+### Refactors
+
+* update Terms and Conditions links and improve navigation ([2df285c](https://github.com/CrowdWalrus/crowdwalrus-dapp/commit/2df285c13615d1923f918a989ed558107c46b043))
+
 ## [1.3.0](https://github.com/CrowdWalrus/crowdwalrus-dapp/compare/v1.2.0...v1.3.0) (2026-01-16)
 
 
