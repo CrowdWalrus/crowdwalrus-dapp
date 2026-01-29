@@ -14,11 +14,10 @@ interface TipCardProps {
 }
 
 export function TipCard({ icon: Icon, title, href }: TipCardProps) {
-  return (
-    <Link
-      to={href}
-      className="flex items-center gap-6 bg-white-500 rounded-2xl p-6 hover:shadow-sm transition-shadow flex-1"
-    >
+  const isExternal = href.startsWith("http");
+
+  const content = (
+    <>
       <div className="flex items-center gap-6 flex-1">
         {/* Icon Circle */}
         <div className="flex items-center justify-center bg-blue-50 rounded-full size-12 shrink-0">
@@ -33,6 +32,28 @@ export function TipCard({ icon: Icon, title, href }: TipCardProps) {
 
       {/* Arrow Icon */}
       <ArrowRight className="size-6 text-black-500 shrink-0" strokeWidth={2} />
+    </>
+  );
+
+  const className =
+    "flex items-center gap-6 bg-white-500 rounded-2xl p-6 hover:shadow-sm transition-shadow flex-1";
+
+  if (isExternal) {
+    return (
+      <a
+        href={href}
+        target="_blank"
+        rel="noopener noreferrer"
+        className={className}
+      >
+        {content}
+      </a>
+    );
+  }
+
+  return (
+    <Link to={href} className={className}>
+      {content}
     </Link>
   );
 }
