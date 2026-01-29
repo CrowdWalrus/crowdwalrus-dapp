@@ -5,10 +5,10 @@ import {
   DialogDescription,
   DialogTitle,
 } from "@/shared/components/ui/dialog";
+import { DOCS_LINKS } from "@/shared/config/docsLinks";
 
 const APPLY_FOR_VERIFICATION_URL = "https://form.typeform.com/to/HaM6QLE7";
-const VERIFICATION_DOCS_URL =
-  "https://github.com/CrowdWalrus/Docs/blob/main/VerificationProcess.md";
+const VERIFICATION_DOCS_URL = DOCS_LINKS.trustSafety.verificationProcess;
 
 interface UnverifiedCampaignModalProps {
   open: boolean;
@@ -95,4 +95,3 @@ export function UnverifiedCampaignModal({
     </Dialog>
   );
 }
-

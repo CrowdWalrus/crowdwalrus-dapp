@@ -12,6 +12,7 @@ import { HomeHowItWorksBackground } from "./how-it-works/HomeHowItWorksBackgroun
 import { HomeHowItWorksIllustration } from "./how-it-works/HomeHowItWorksIllustration";
 import { Button } from "@/shared/components/ui/button";
 import { ROUTES } from "@/shared/config/routes";
+import { DOCS_BASE_URL } from "@/shared/config/docsLinks";
 
 const STEPS = [
   {
@@ -74,10 +75,14 @@ export function HomeHowItWorksSection() {
                 asChild
                 className="h-[52px] justify-center gap-3 rounded-[8px] bg-blue-50 pl-[23px] pr-[24px] py-[14px] text-base font-medium text-blue-500 shadow-none hover:bg-blue-100 [&_svg]:size-5"
               >
-                <Link to={ROUTES.EXPLORE}>
+                <a
+                  href={DOCS_BASE_URL}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                >
                   <FileText />
                   Read Docs
-                </Link>
+                </a>
               </Button>
 
               <Button

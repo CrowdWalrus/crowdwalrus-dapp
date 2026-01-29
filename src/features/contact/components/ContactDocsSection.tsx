@@ -7,27 +7,32 @@ import {
   Rocket,
 } from "lucide-react";
 import { Button } from "@/shared/components/ui/button";
+import { DOCS_BASE_URL, DOCS_LINKS } from "@/shared/config/docsLinks";
 
 const DOC_CATEGORIES = [
   {
     icon: Rocket,
     title: "Getting Started",
     description: "Platform basics and first steps",
+    href: DOCS_LINKS.startHere.whatIsCrowdWalrus,
   },
   {
     icon: FileText,
     title: "Campaign Creation",
     description: "How to launch your campaign",
+    href: DOCS_LINKS.campaignOwners.launchCampaign,
   },
   {
     icon: Shield,
     title: "Verification",
     description: "Badge and trust process",
+    href: DOCS_LINKS.trustSafety.verificationOverview,
   },
   {
     icon: Code,
     title: "Developer Resources",
     description: "APIs and integration guides",
+    href: DOCS_LINKS.developers.indexerAndApis,
   },
 ];
 
@@ -73,8 +78,11 @@ export function ContactDocsSection() {
           {/* Doc Categories Grid */}
           <div className="grid gap-6 sm:grid-cols-2 lg:grid-cols-4">
             {DOC_CATEGORIES.map((category, idx) => (
-              <div
+              <a
                 key={idx}
+                href={category.href}
+                target="_blank"
+                rel="noopener noreferrer"
                 className="group flex flex-col gap-4 rounded-2xl border border-black-400 bg-black-400/50 p-6 transition-all hover:border-sky-500/50 hover:bg-black-400/80"
               >
                 <div className="flex h-12 w-12 items-center justify-center rounded-xl bg-gradient-to-br from-sky-500 to-sky-600 text-white-50">
@@ -88,7 +96,7 @@ export function ContactDocsSection() {
                     {category.description}
                   </p>
                 </div>
-              </div>
+              </a>
             ))}
           </div>
 
@@ -99,7 +107,7 @@ export function ContactDocsSection() {
               className="h-14 gap-3 rounded-xl bg-sky-500 px-8 text-lg font-semibold text-black-500 shadow-lg transition-all hover:scale-105 hover:bg-sky-400 hover:shadow-xl [&_svg]:size-5"
             >
               <a
-                href="https://docs.crowdwalrus.xyz"
+                href={DOCS_BASE_URL}
                 target="_blank"
                 rel="noopener noreferrer"
               >

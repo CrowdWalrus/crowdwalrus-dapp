@@ -24,7 +24,12 @@ import {
   SheetTrigger,
 } from "@/shared/components/ui/sheet";
 import { ROUTES } from "@/shared/config/routes";
+import { DOCS_LINKS } from "@/shared/config/docsLinks";
 import { buildProfileDetailPath } from "@/shared/utils/routes";
+
+type NavLink =
+  | { label: string; to: string }
+  | { label: string; href: string; external: true };
 
 export function Header() {
   const account = useCurrentAccount();
@@ -44,22 +49,54 @@ export function Header() {
     connectButtonRef.current?.querySelector("button")?.click();
   };
 
-  const navLinks = [
+  const navLinks: NavLink[] = [
     { to: ROUTES.HOME, label: "Home" },
     { to: ROUTES.EXPLORE, label: "Campaigns" },
-    { to: "/about", label: "About" },
-    { to: "/contact", label: "Contact Us" },
+    { to: ROUTES.ABOUT, label: "About" },
+    { to: ROUTES.CONTACT, label: "Contact Us" },
+    { href: DOCS_LINKS.legal.termsOfUse, label: "Terms of Use", external: true },
   ];
 
+  const baseNavLinkClassName =
+    "font-medium text-lg hover:text-primary transition-colors";
+
   const getNavLinkClassName = (linkTo: string) => {
-    const baseClassName =
-      "font-medium text-lg hover:text-primary transition-colors";
     const isExploreLink = linkTo === ROUTES.EXPLORE;
     const isActive = isExploreLink
       ? location.pathname.startsWith(ROUTES.EXPLORE)
       : location.pathname === linkTo;
 
-    return isActive ? `${baseClassName} text-primary` : baseClassName;
+    return isActive
+      ? `${baseNavLinkClassName} text-primary`
+      : baseNavLinkClassName;
+  };
+
+  const renderNavLink = (link: NavLink, onClick?: () => void) => {
+    if ("href" in link) {
+      return (
+        <a
+          key={link.label}
+          href={link.href}
+          target="_blank"
+          rel="noopener noreferrer"
+          className={baseNavLinkClassName}
+          onClick={onClick}
+        >
+          {link.label}
+        </a>
+      );
+    }
+
+    return (
+      <Link
+        key={link.to}
+        to={link.to}
+        className={getNavLinkClassName(link.to)}
+        onClick={onClick}
+      >
+        {link.label}
+      </Link>
+    );
   };
 
   const profileBasePath = account
@@ -121,15 +158,7 @@ export function Header() {
           {/* Desktop Navigation */}
           <nav className="hidden lg:block">
             <div className="flex gap-12 items-center">
-              {navLinks.map((link) => (
-                <Link
-                  key={link.to}
-                  to={link.to}
-                  className={getNavLinkClassName(link.to)}
-                >
-                  {link.label}
-                </Link>
-              ))}
+              {navLinks.map((link) => renderNavLink(link))}
             </div>
           </nav>
 
@@ -312,16 +341,9 @@ export function Header() {
                 <div className="flex flex-col gap-6 mt-8">
                   {/* Mobile Navigation Links */}
                   <nav className="flex flex-col gap-4">
-                    {navLinks.map((link) => (
-                      <Link
-                        key={link.to}
-                        to={link.to}
-                        className={getNavLinkClassName(link.to)}
-                        onClick={() => setMobileMenuOpen(false)}
-                      >
-                        {link.label}
-                      </Link>
-                    ))}
+                    {navLinks.map((link) =>
+                      renderNavLink(link, () => setMobileMenuOpen(false)),
+                    )}
                   </nav>
 
                   {/* Mobile Wallet Actions */}

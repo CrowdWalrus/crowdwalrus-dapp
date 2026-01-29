@@ -1,4 +1,3 @@
-import { Link } from "react-router-dom";
 import {
   Eye,
   Shield,
@@ -8,6 +7,7 @@ import {
   CheckCircle2,
 } from "lucide-react";
 import { Button } from "@/shared/components/ui/button";
+import { DOCS_LINKS } from "@/shared/config/docsLinks";
 
 const TRANSPARENCY_FEATURES = [
   {
@@ -67,10 +67,14 @@ export function ContactTransparencySection() {
                 asChild
                 className="h-12 gap-2 rounded-xl bg-green-500 px-6 font-semibold text-black-500 transition-all hover:scale-105 hover:bg-green-400 [&_svg]:size-5"
               >
-                <Link to="#">
+                <a
+                  href={DOCS_LINKS.trustSafety.verificationOverview}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                >
                   Learn About Verification
                   <ArrowRight className="h-5 w-5" />
-                </Link>
+                </a>
               </Button>
             </div>
           </div>

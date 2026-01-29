@@ -1,22 +1,23 @@
 import { HandHeart, Lightbulb, Pencil } from "lucide-react";
 
 import { TipCard } from "@/features/explore/components/TipCard";
+import { DOCS_LINKS } from "@/shared/config/docsLinks";
 
 const TIPS = [
   {
     icon: Pencil,
     title: "How to start a project?",
-    href: "/tips/start-project",
+    href: DOCS_LINKS.campaignOwners.launchCampaign,
   },
   {
     icon: Lightbulb,
     title: "Crowdfunding Tips",
-    href: "/tips/crowdfunding",
+    href: DOCS_LINKS.campaignOwners.campaignWritingToolkit,
   },
   {
     icon: HandHeart,
     title: "How to make a donation?",
-    href: "/tips/make-donation",
+    href: DOCS_LINKS.donors.howToContribute,
   },
 ] as const;
 

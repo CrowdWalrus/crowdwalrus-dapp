@@ -5,6 +5,7 @@ import { Label } from "@/shared/components/ui/label";
 import { FormMessage } from "@/shared/components/ui/form";
 import { AlertCircleIcon } from "lucide-react";
 import { cn } from "@/shared/lib/utils";
+import { DOCS_LINKS } from "@/shared/config/docsLinks";
 
 interface CampaignTermsAndConditionsSectionProps {
   emphasizeRequiredNotice?: boolean;
@@ -45,7 +46,15 @@ export function CampaignTermsAndConditionsSection({
                   className="cursor-pointer font-normal text-sm text-neutral-700 leading-[1.5]"
                 >
                   By publishing your campaign on CrowdWalrus, you agree to our
-                  [Terms and Conditions].
+                  <a
+                    href={DOCS_LINKS.legal.termsOfUse}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="ml-1 underline underline-offset-4 hover:text-neutral-900"
+                  >
+                    Terms and Conditions
+                  </a>
+                  .
                 </Label>
               </div>
               {error && <FormMessage>{error.message}</FormMessage>}

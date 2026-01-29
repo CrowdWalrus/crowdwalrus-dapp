@@ -12,6 +12,7 @@ import { ROUTES } from "@/shared/config/routes";
 import { NotFoundPage } from "@/pages/NotFoundPage";
 import { AboutPage } from "@/pages/AboutPage";
 import { ContactPage } from "@/pages/ContactPage";
+import { TermsOfServicePage } from "@/pages/TermsOfServicePage";
 
 export function AppRoutes() {
   return (
@@ -19,6 +20,7 @@ export function AppRoutes() {
       <Route path={ROUTES.HOME} element={<HomePage />} />
       <Route path={ROUTES.ABOUT} element={<AboutPage />} />
       <Route path={ROUTES.CONTACT} element={<ContactPage />} />
+      <Route path={ROUTES.TERMS} element={<TermsOfServicePage />} />
       <Route path={ROUTES.EXPLORE} element={<ExplorePage />} />
       <Route path={ROUTES.ADMIN} element={<AdminPage />} />
       <Route path={ROUTES.CAMPAIGNS_NEW} element={<NewCampaignPage />} />
