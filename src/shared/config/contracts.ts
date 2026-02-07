@@ -85,8 +85,8 @@ const DEVNET_CONFIG: NetworkContractConfig = {
     aggregatorUrl: "https://aggregator.walrus-testnet.walrus.space/v1",
     // Devnet uses testnet system object
     systemObjectId:
-      "0x98ebc47370603fe81d9e15491b2f1443d619d1dab720d586e429ed233e1255c1",
-    // Testnet doesn't have a subsidy object - subsidies are implicit in pricing
+      "0x6c2547cbbc38025cf3adac45f63cb0a8d12ecf777cdc75a4971612bf97fdf6af",
+    // No subsidy object configured for devnet/testnet environments
     subsidyObjectId: "",
   },
   campaignDomain: "crowdwalrus-test.sui",
@@ -140,8 +140,8 @@ const TESTNET_CONFIG: NetworkContractConfig = {
     uploadRelay: "https://relay.walrus.site",
     aggregatorUrl: "https://aggregator.walrus-testnet.walrus.space/v1",
     systemObjectId:
-      "0x98ebc47370603fe81d9e15491b2f1443d619d1dab720d586e429ed233e1255c1",
-    // Testnet doesn't have a subsidy object - subsidies are implicit in pricing
+      "0x6c2547cbbc38025cf3adac45f63cb0a8d12ecf777cdc75a4971612bf97fdf6af",
+    // No subsidy object configured for testnet
     subsidyObjectId: "",
   },
   campaignDomain: "crowdwalrus-test.sui",

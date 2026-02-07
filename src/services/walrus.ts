@@ -275,9 +275,11 @@ export function buildCertifyTransaction(flow: WriteFilesFlow) {
  * Returns blob ID and file details needed for campaign creation
  */
 export async function getUploadedFilesInfo(
+  suiClient: SuiClient,
   flow: WriteFilesFlow,
   files: WalrusFile[],
   epochs: number,
+  network: SupportedNetwork,
 ): Promise<WalrusUploadResult> {
   try {
     // Get the list of uploaded files from the flow
@@ -307,13 +309,28 @@ export async function getUploadedFilesInfo(
     fileSizes.forEach(f => console.log(`  - ${f.identifier}: ${f.size} bytes`));
 
     const totalSize = fileSizes.reduce((sum, file) => sum + file.size, 0);
-    // Using fallback estimate here since we don't have SuiClient in this context
-    // The actual cost was already calculated and paid during the register transaction
-    const cost = estimateStorageCostSimple(totalSize, epochs);
+    let cost = "N/A";
+
+    try {
+      const pricingNetwork = network === "devnet" ? "testnet" : network;
+      const costBreakdown = await calculateCampaignStorageCost(
+        suiClient,
+        pricingNetwork,
+        totalSize,
+        epochs,
+      );
+      cost = formatTokenAmountFromNumber(costBreakdown.subsidizedTotalCost);
+    } catch (costError) {
+      console.warn("Failed to estimate upload cost after certification:", costError);
+    }
 
     console.log("Total size:", totalSize, "bytes");
     console.log("Storage epochs:", epochs);
-    console.log("Estimated cost:", cost, "WAL (deprecated estimator - actual cost paid during registration)");
+    if (cost === "N/A") {
+      console.log("Estimated cost: N/A (already paid during registration)");
+    } else {
+      console.log("Estimated cost:", cost, "WAL");
+    }
     console.log("==============================\n");
 
     return {
@@ -507,33 +524,6 @@ export async function calculateProfileAvatarStorageCost(
     pricingTimestamp: cost.pricing.timestamp,
     network: cost.pricing.network,
   };
-}
-
-/**
- * Simple storage cost estimation (DEPRECATED - kept for backward compatibility)
- * Use calculateStorageCost with real pricing instead
- *
- * @deprecated This uses placeholder pricing. Use calculateStorageCost instead.
- */
-function estimateStorageCostSimple(rawSize: number, epochs: number): string {
-  // Fallback estimate using Testnet pricing (as of January 2025)
-  // Storage: 102,400 FROST/MB (100 FROST/KiB), Upload: 2,048,000 FROST/MB (2000 FROST/KiB)
-  // 1 WAL = 1 billion FROST
-
-  const METADATA_SIZE_MB = 64; // 64MB metadata per blob
-  const ENCODING_MULTIPLIER = 5; // 5x encoding overhead
-  const STORAGE_PRICE_PER_MB = 102_400; // Testnet pricing
-  const UPLOAD_PRICE_PER_MB = 2_048_000; // Testnet pricing
-
-  const rawSizeMb = rawSize / (1024 * 1024);
-  const encodedSizeMb = (rawSizeMb * ENCODING_MULTIPLIER) + METADATA_SIZE_MB;
-
-  const storageCostFrost = encodedSizeMb * STORAGE_PRICE_PER_MB * epochs;
-  const uploadCostFrost = encodedSizeMb * UPLOAD_PRICE_PER_MB;
-  const totalCostFrost = storageCostFrost + uploadCostFrost;
-
-  const totalCostWal = totalCostFrost / 1_000_000_000;
-  return formatTokenAmountFromNumber(totalCostWal);
 }
 
 /**
