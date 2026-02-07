@@ -44,6 +44,7 @@ import {
   extractMoveAbortCode,
 } from "@/features/campaigns/utils/errorMapping";
 import { getContractConfig, CLOCK_OBJECT_ID } from "@/shared/config/contracts";
+import { fetchWalrusBlob } from "@/services/walrus";
 import { DEFAULT_NETWORK, WALRUS_EPOCH_CONFIG } from "@/shared/config/networkConfig";
 import { ROUTES } from "@/shared/config/routes";
 import { buildCampaignDetailPath } from "@/shared/utils/routes";
@@ -183,11 +184,7 @@ const isEditFieldDirty = (
 };
 
 async function fetchCoverImageFile(url: string): Promise<File> {
-  const response = await fetch(url);
-  if (!response.ok) {
-    throw new Error("Failed to fetch existing cover image from Walrus");
-  }
-  const blob = await response.blob();
+  const blob = await fetchWalrusBlob(url);
   const extension = blob.type === "image/png" ? "png" : "jpg";
   return new File([blob], `cover.${extension}`, {
     type: blob.type || "image/jpeg",

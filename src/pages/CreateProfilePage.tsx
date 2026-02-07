@@ -81,7 +81,7 @@ import {
   type WalrusFlowState,
 } from "@/features/campaigns/hooks/useWalrusUpload";
 import type { StorageCostEstimate } from "@/features/campaigns/types/campaign";
-import { getWalrusUrl } from "@/services/walrus";
+import { getWalrusUrl, normalizeWalrusReadUrl } from "@/services/walrus";
 import { WizardStep } from "@/features/campaigns/types/campaign";
 import { useEstimateProfileAvatarCost } from "@/features/profiles/hooks/useProfileAvatarStorage";
 
@@ -648,7 +648,7 @@ export default function CreateProfilePage() {
   const storedAvatarWalrusUrl =
     storedAvatarWalrusValue === PROFILE_METADATA_REMOVED_VALUE
       ? ""
-      : storedAvatarWalrusValue;
+      : normalizeWalrusReadUrl(storedAvatarWalrusValue);
   const shouldWarnOnAvatarReplace =
     Boolean(storedAvatarWalrusUrl) && !avatarMarkedForRemoval;
   const resolvedAvatarPreview = avatarMarkedForRemoval
