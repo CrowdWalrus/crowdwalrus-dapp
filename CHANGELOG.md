@@ -1,5 +1,12 @@
 # Changelog
 
+## [1.6.0](https://github.com/CrowdWalrus/crowdwalrus-dapp/compare/v1.5.0...v1.6.0) (2026-02-07)
+
+
+### Features
+
+* enhance Walrus upload functionality and pricing estimation ([4c5f4f6](https://github.com/CrowdWalrus/crowdwalrus-dapp/commit/4c5f4f6c43eab6775ab8dbd6095f647102a1fa6f))
+
 ## [1.5.0](https://github.com/CrowdWalrus/crowdwalrus-dapp/compare/v1.4.0...v1.5.0) (2026-02-07)
 
 
