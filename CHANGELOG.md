@@ -1,5 +1,12 @@
 # Changelog
 
+## [1.7.0](https://github.com/CrowdWalrus/crowdwalrus-dapp/compare/v1.6.0...v1.7.0) (2026-02-07)
+
+
+### Features
+
+* update Walrus service and configuration for improved functionality ([5857930](https://github.com/CrowdWalrus/crowdwalrus-dapp/commit/5857930b89bb8c19f3dd855006593f9ab70366f2))
+
 ## [1.6.0](https://github.com/CrowdWalrus/crowdwalrus-dapp/compare/v1.5.0...v1.6.0) (2026-02-07)
 
 
