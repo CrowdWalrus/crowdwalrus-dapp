@@ -161,29 +161,29 @@ const TESTNET_CONFIG: NetworkContractConfig = {
 
 const MAINNET_CONFIG: NetworkContractConfig = {
   contracts: {
-    // TODO: Add your mainnet package ID after deployment
-    packageId: "YOUR_MAINNET_PACKAGE_ID_HERE",
+    packageId:
+      "0x035cf7b699be1d67785cc54dabc83e497fae23516c0329bea39faabf3384f702",
 
-    // TODO: Add your CrowdWalrus shared object ID
-    crowdWalrusObjectId: "YOUR_MAINNET_CROWDWALRUS_OBJECT_ID_HERE",
+    crowdWalrusObjectId:
+      "0x95084b96d2f27283fd91db36166d96c477a02d8d76317655b6ba04cfa24e94a0",
 
-    // TODO: Add SuiNS Manager object ID for mainnet
-    suinsManagerObjectId: "YOUR_MAINNET_SUINS_MANAGER_OBJECT_ID_HERE",
+    suinsManagerObjectId:
+      "0xd71de83cc6a3a1f266b7b1dddb751b3b268ec9cd741e759f827e5fab10d6890e",
 
-    // TODO: Add SuiNS registry object ID for mainnet
-    suinsObjectId: "YOUR_MAINNET_SUINS_OBJECT_ID_HERE",
+    suinsObjectId:
+      "0x6e0ddefc0ad98889c04bab9639e512c21766c5e6366f89e696956d9be6952871",
 
-    // TODO: Add PolicyRegistry shared object ID
-    policyRegistryObjectId: "YOUR_MAINNET_POLICY_REGISTRY_OBJECT_ID_HERE",
+    policyRegistryObjectId:
+      "0xb9478cb0359b4a9a6a86b4e9ca2f6a171b7b6405f8ffada12b1f45d68077897c",
 
-    // TODO: Add ProfilesRegistry shared object ID
-    profilesRegistryObjectId: "YOUR_MAINNET_PROFILES_REGISTRY_OBJECT_ID_HERE",
+    profilesRegistryObjectId:
+      "0xd95e1968dcbf42ea0eccb1184ec9c529bbc7b7651b046a7d9247903b14869501",
 
-    // TODO: Add TokenRegistry shared object ID
-    tokenRegistryObjectId: "YOUR_MAINNET_TOKEN_REGISTRY_OBJECT_ID_HERE",
+    tokenRegistryObjectId:
+      "0x9409e01b8bafbad0b89e949bcfb8416be7f600f4b87df3bc4103e6f5d78cfb00",
 
-    // TODO: Add BadgeConfig shared object ID
-    badgeConfigObjectId: "YOUR_MAINNET_BADGE_CONFIG_OBJECT_ID_HERE",
+    badgeConfigObjectId:
+      "0xdbbc3ed362df0a25b68d62bdcb237c8ea7eb2c109228de69a575dd15a77de43e",
   },
   walrus: {
     network: "mainnet",
@@ -197,8 +197,10 @@ const MAINNET_CONFIG: NetworkContractConfig = {
   campaignDomain: "crowdwalrus.sui",
   pyth: {
     hermesUrl: "https://hermes.pyth.network",
-    pythStateId: "YOUR_MAINNET_PYTH_STATE_ID_HERE",
-    wormholeStateId: "YOUR_MAINNET_WORMHOLE_STATE_ID_HERE",
+    pythStateId:
+      "0x1f9310238ee9298fb703c3419030b35b22bb1cc37113e3bb5007c99aec79e5b8",
+    wormholeStateId:
+      "0xaeab97f96cf9877fee2883315d459552b2b921edc16d7ceac6eab944dd88919c",
   },
 };
 
