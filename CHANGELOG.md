@@ -1,5 +1,13 @@
 # Changelog
 
+## [1.5.0](https://github.com/CrowdWalrus/crowdwalrus-dapp/compare/v1.4.0...v1.5.0) (2026-02-07)
+
+
+### Features
+
+* implement dynamic network resolution and update indexer URLs ([622a4c0](https://github.com/CrowdWalrus/crowdwalrus-dapp/commit/622a4c0db0f6378f08b7ee1ef2f4d11cc46922ba))
+* update mainnet configuration with actual object IDs ([3d4de7c](https://github.com/CrowdWalrus/crowdwalrus-dapp/commit/3d4de7c596ab46e2be67cc1b566c4c544dea807f))
+
 ## [1.4.0](https://github.com/CrowdWalrus/crowdwalrus-dapp/compare/v1.3.0...v1.4.0) (2026-01-29)
 
 
