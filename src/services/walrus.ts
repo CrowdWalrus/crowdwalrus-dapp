@@ -37,6 +37,7 @@ import walrusWasmUrl from "@mysten/walrus-wasm/web/walrus_wasm_bg.wasm?url";
 const SUPPORTED_AVATAR_MIME_TYPES = new Set(["image/jpeg", "image/png"]);
 const WALRUS_RELAY_MAX_TIP_MIST = 10_000_000_000; // 10 SUI
 const WALRUS_UPLOAD_REQUEST_TIMEOUT_MS = 2 * 60 * 60 * 1000; // 2 hours
+const WALRUS_READ_REQUEST_TIMEOUT_MS = 90 * 1000; // 90 seconds
 const WALRUS_READ_MAX_BYTES = 100 * 1024 * 1024; // 100 MB
 const WALRUS_UPLOAD_RETRY_ATTEMPTS = 3;
 const WALRUS_UPLOAD_RETRY_DELAY_MS = 1_200;
@@ -125,7 +126,7 @@ async function fetchWalrusResponse(
     throw new Error("Walrus URL is empty.");
   }
 
-  const timeoutMs = options.timeoutMs;
+  const timeoutMs = options.timeoutMs ?? WALRUS_READ_REQUEST_TIMEOUT_MS;
   const retries = Math.max(1, options.retries ?? WALRUS_READ_RETRY_ATTEMPTS);
 
   let lastError: unknown;
