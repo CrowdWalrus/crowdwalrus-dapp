@@ -1,9 +1,19 @@
+import type { SupportedNetwork } from "@/shared/types/network";
+import { resolveRuntimeNetwork } from "./runtimeNetwork";
+
 /**
- * Indexer base URL for the CrowdWalrus API.
- * This is hardcoded because Walrus Sites (decentralized static hosting)
- * does not support runtime environment variables.
+ * Indexer base URLs by network.
+ * Keep API routing aligned with runtime chain routing.
  */
-const INDEXER_BASE_URL_RAW = "https://indexer.crowdwalrus.xyz";
+const INDEXER_BASE_URLS: Record<SupportedNetwork, string> = {
+  devnet: "https://indexer-testnet.crowdwalrus.xyz",
+  testnet: "https://indexer-testnet.crowdwalrus.xyz",
+  mainnet: "https://indexer-mainnet.crowdwalrus.xyz",
+};
+
+/** Resolved indexer base URL from current hostname (no trailing slash). */
+const INDEXER_BASE_URL_RAW =
+  INDEXER_BASE_URLS[resolveRuntimeNetwork()];
 
 /** Canonical Indexer base URL (no trailing slash). */
 export const INDEXER_BASE_URL = INDEXER_BASE_URL_RAW.replace(/\/$/, "");

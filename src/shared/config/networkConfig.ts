@@ -2,13 +2,14 @@ import { getFullnodeUrl } from "@mysten/sui/client";
 import { createNetworkConfig } from "@mysten/dapp-kit";
 
 import contractsConfig from "./contracts";
+import { resolveRuntimeNetwork } from "./runtimeNetwork";
 import type { SupportedNetwork } from "@/shared/types/network";
 
 /**
  * Default network for the application
- * Change this single value to switch between testnet and mainnet
+ * Resolved from runtime hostname so each domain targets the correct network.
  */
-export const DEFAULT_NETWORK: SupportedNetwork = "testnet";
+export const DEFAULT_NETWORK: SupportedNetwork = resolveRuntimeNetwork();
 
 /**
  * WAL token coin types for each network
