@@ -242,9 +242,11 @@ export function useWalrusUpload() {
       }
 
       const uploadResult = await getUploadedFilesInfo(
+        suiClient,
         flowState.flow,
         flowState.files,
-        flowState.storageEpochs
+        flowState.storageEpochs,
+        flowState.network,
       );
 
       return {

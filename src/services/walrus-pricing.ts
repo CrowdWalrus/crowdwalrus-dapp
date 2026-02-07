@@ -1,12 +1,25 @@
 /**
  * Walrus Pricing Service
  *
- * Queries Walrus system object on Sui for real-time storage and upload pricing.
- * Implements caching to minimize RPC calls.
+ * Uses Walrus protocol-consistent pricing:
+ * - Encoded size from RedStuff/RS2 encoding formula
+ * - Billing per storage unit (1 MiB), rounded up
+ * - Storage and write prices from live Walrus system state
  */
 
+import { WalrusClient } from "@mysten/walrus";
 import type { SuiClient } from "@mysten/sui/client";
 import { getContractConfig } from "@/shared/config/contracts";
+import walrusWasmUrl from "@mysten/walrus-wasm/web/walrus_wasm_bg.wasm?url";
+
+const STORAGE_UNIT_BYTES = 1024 * 1024; // 1 MiB
+const FROST_PER_WAL = 1_000_000_000;
+const DEFAULT_N_SHARDS = 1000;
+
+// RedStuff/RS2 encoding constants
+const DIGEST_LEN_BYTES = 32n;
+const BLOB_ID_LEN_BYTES = 32n;
+const RS2_SYMBOL_ALIGNMENT = 2n;
 
 const isRecord = (value: unknown): value is Record<string, unknown> =>
   typeof value === "object" && value !== null;
@@ -24,21 +37,13 @@ const getMoveObjectFields = (
   return null;
 };
 
-const getRecordField = (
-  record: Record<string, unknown>,
-  key: string,
-): Record<string, unknown> | null => {
-  const value = record[key];
-  return isRecord(value) ? value : null;
-};
-
 const getNumericField = (
   record: Record<string, unknown>,
   key: string,
 ): number | undefined => {
   const value = record[key];
   if (typeof value === "number") {
-    return value;
+    return Number.isFinite(value) ? value : undefined;
   }
   if (typeof value === "bigint") {
     const parsed = Number(value);
@@ -51,44 +56,124 @@ const getNumericField = (
   return undefined;
 };
 
+const toNonNegativeInteger = (value: number): number => {
+  if (!Number.isFinite(value)) return 0;
+  return Math.max(0, Math.floor(value));
+};
+
+const toPositiveInteger = (value: number, fallback = 1): number => {
+  if (!Number.isFinite(value)) return fallback;
+  const normalized = Math.floor(value);
+  return normalized > 0 ? normalized : fallback;
+};
+
+const clampSubsidyRate = (value: number): number => {
+  if (!Number.isFinite(value) || value < 0) return 0;
+  return Math.max(0, Math.min(value, 1));
+};
+
+const normalizeOnChainSubsidyRate = (value: number): number => {
+  if (!Number.isFinite(value) || value < 0) return 0;
+  // Walrus subsidy rates are encoded in basis points on-chain (u32).
+  // If callers pass decimals (e.g. 0.8), preserve that behavior.
+  if (Number.isInteger(value)) {
+    return clampSubsidyRate(value / 10_000);
+  }
+
+  const normalized = value > 1 ? value / 10_000 : value;
+  return clampSubsidyRate(normalized);
+};
+
+const getMaxFaultyNodes = (nShards: number): number =>
+  Math.floor((nShards - 1) / 3);
+
+const calculateMetadataSizeBytesBigInt = (nShards: number): bigint => {
+  const shardCount = BigInt(toPositiveInteger(nShards, DEFAULT_N_SHARDS));
+  return shardCount * (shardCount * DIGEST_LEN_BYTES * 2n + BLOB_ID_LEN_BYTES);
+};
+
+function calculateEncodedSizeBigInt(
+  rawSizeBytes: number,
+  nShards: number,
+): bigint {
+  const shardCount = toPositiveInteger(nShards, DEFAULT_N_SHARDS);
+  const maxFaulty = getMaxFaultyNodes(shardCount);
+  const primarySymbols = shardCount - 2 * maxFaulty;
+  const secondarySymbols = shardCount - maxFaulty;
+  const sourceSymbols = BigInt(primarySymbols) * BigInt(secondarySymbols);
+
+  let unencodedLength = BigInt(toNonNegativeInteger(rawSizeBytes));
+  if (unencodedLength === 0n) {
+    unencodedLength = 1n;
+  }
+
+  let symbolSize = (unencodedLength - 1n) / sourceSymbols + 1n;
+  if (symbolSize % RS2_SYMBOL_ALIGNMENT !== 0n) {
+    symbolSize += 1n;
+  }
+
+  const sliversSize =
+    BigInt(shardCount) * BigInt(primarySymbols + secondarySymbols) * symbolSize;
+  return sliversSize + calculateMetadataSizeBytesBigInt(shardCount);
+}
+
+const frostBigIntToWal = (frost: bigint): number => {
+  const whole = frost / BigInt(FROST_PER_WAL);
+  const fractional = frost % BigInt(FROST_PER_WAL);
+  return Number(whole) + Number(fractional) / FROST_PER_WAL;
+};
+
 /**
- * Pricing information from Walrus system
- * All prices in FROST (1 WAL = 1,000,000,000 FROST)
+ * Pricing information from Walrus system.
+ * All prices are in FROST (1 WAL = 1,000,000,000 FROST).
+ *
+ * Despite field names, values are per storage unit (1 MiB).
  */
 export interface WalrusPricing {
-  storagePerMbPerEpoch: number; // FROST per MB per epoch
-  uploadPerMb: number; // FROST per MB (one-time)
-  timestamp: number; // When this pricing was fetched
-  network: 'testnet' | 'mainnet';
-  subsidyRate?: number; // Subsidy rate (0-1, e.g., 0.80 for 80% discount)
+  storagePerMbPerEpoch: number; // FROST per storage unit per epoch
+  uploadPerMb: number; // FROST per storage unit (one-time write fee)
+  nShards: number; // Committee shard count for encoded-size calculation
+  storageUnitBytes: number; // Billing unit size in bytes (1 MiB)
+  timestamp: number; // Fetch timestamp
+  network: "testnet" | "mainnet";
+  subsidyRate?: number; // User-facing subsidy rate (0..1)
 }
 
 /**
- * Fallback pricing constants
- * Used when system object query fails
- * Note: Testnet and Mainnet have different pricing
+ * Fallback pricing used only when live Walrus system queries fail.
+ * Keep these conservative and close to current network defaults.
+ * Values below were observed from `systemState()` on February 7, 2026.
  */
 const FALLBACK_PRICING_MAINNET: WalrusPricing = {
-  storagePerMbPerEpoch: 100_000, // 100,000 FROST per MB per epoch
-  uploadPerMb: 20_000, // 20,000 FROST per MB
+  storagePerMbPerEpoch: 11_000,
+  uploadPerMb: 20_000,
+  nShards: DEFAULT_N_SHARDS,
+  storageUnitBytes: STORAGE_UNIT_BYTES,
   timestamp: Date.now(),
-  network: 'mainnet',
-  subsidyRate: 0, // Mainnet currently has 0% subsidy (as of Jan 2025)
+  network: "mainnet",
+  subsidyRate: 0,
 };
 
 const FALLBACK_PRICING_TESTNET: WalrusPricing = {
-  storagePerMbPerEpoch: 102_400, // 102,400 FROST per MB per epoch (100 per KiB)
-  uploadPerMb: 2_048_000, // 2,048,000 FROST per MB (2000 per KiB)
+  storagePerMbPerEpoch: 1_000,
+  uploadPerMb: 2_000,
+  nShards: DEFAULT_N_SHARDS,
+  storageUnitBytes: STORAGE_UNIT_BYTES,
   timestamp: Date.now(),
-  network: 'testnet',
-  // Testnet has implicit ~80% subsidy (pricing is arbitrary for testing)
-  // Subsidy object doesn't exist on testnet but costs are effectively subsidized
-  subsidyRate: 0.80,
+  network: "testnet",
+  // Testnet currently has no subsidy object configured in app config.
+  subsidyRate: 0,
 };
 
-/**
- * Pricing cache with 5-minute TTL
- */
+const getFallbackPricing = (network: "testnet" | "mainnet"): WalrusPricing => {
+  const fallbackTemplate =
+    network === "testnet" ? FALLBACK_PRICING_TESTNET : FALLBACK_PRICING_MAINNET;
+  return {
+    ...fallbackTemplate,
+    timestamp: Date.now(),
+  };
+};
+
 interface PricingCache {
   pricing: WalrusPricing | null;
   expiresAt: number;
@@ -97,161 +182,112 @@ interface PricingCache {
 const CACHE_TTL_MS = 5 * 60 * 1000; // 5 minutes
 const pricingCache: Record<string, PricingCache> = {};
 
+const createPricingWalrusClient = (
+  suiClient: SuiClient,
+  network: "testnet" | "mainnet",
+): WalrusClient => {
+  return new WalrusClient({
+    suiClient,
+    network,
+    wasmUrl: walrusWasmUrl,
+  });
+};
+
 /**
- * Query Walrus subsidy object for discount rate
+ * Query Walrus subsidy object for discount rate.
  */
 async function querySubsidyRate(
   suiClient: SuiClient,
-  network: 'testnet' | 'mainnet',
+  network: "testnet" | "mainnet",
 ): Promise<number> {
   const config = getContractConfig(network);
   const subsidyObjectId = config.walrus.subsidyObjectId;
-  const fallback = network === 'testnet' ? FALLBACK_PRICING_TESTNET : FALLBACK_PRICING_MAINNET;
 
-  // Testnet doesn't have a subsidy object - use fallback (implicit subsidy)
-  if (!subsidyObjectId || subsidyObjectId === '') {
-    return fallback.subsidyRate || 0;
+  if (!subsidyObjectId) {
+    return 0;
   }
 
   try {
     const subsidyObject = await suiClient.getObject({
       id: subsidyObjectId,
-      options: {
-        showContent: true,
-      },
+      options: { showContent: true },
     });
 
     const fieldsRecord = getMoveObjectFields(subsidyObject.data?.content);
     if (!fieldsRecord) {
-      throw new Error('Invalid subsidy object structure');
+      throw new Error("Invalid subsidy object structure");
     }
 
-    // Try buyer_subsidy_rate first, fall back to system_subsidy_rate
-    const buyerRate = getNumericField(fieldsRecord, 'buyer_subsidy_rate');
-    const systemRate = getNumericField(fieldsRecord, 'system_subsidy_rate');
-    const subsidyRateBasisPoints = buyerRate ?? systemRate ?? 0;
-
-    // Convert from basis points (if > 1) or use directly (if 0-1)
-    // Basis points: 8000 = 80%, but if already decimal: 0.8 = 80%
-    const subsidyRate = subsidyRateBasisPoints > 1
-      ? subsidyRateBasisPoints / 10000
-      : subsidyRateBasisPoints;
-
-    return subsidyRate;
+    const buyerRate = getNumericField(fieldsRecord, "buyer_subsidy_rate");
+    const systemRate = getNumericField(fieldsRecord, "system_subsidy_rate");
+    const rawRate = buyerRate ?? systemRate ?? 0;
+    return normalizeOnChainSubsidyRate(rawRate);
   } catch (error) {
     console.warn(`Failed to query subsidy rate for ${network}:`, error);
-    return fallback.subsidyRate || 0;
+    return 0;
   }
 }
 
 /**
- * Query Walrus system object for current pricing
+ * Query Walrus system state through the official Walrus SDK.
  */
 async function querySystemPricing(
   suiClient: SuiClient,
-  network: 'testnet' | 'mainnet',
+  network: "testnet" | "mainnet",
+  walrusClient?: WalrusClient,
 ): Promise<WalrusPricing> {
-  // Get system object ID from centralized config
-  const config = getContractConfig(network);
-  const systemObjectId = config.walrus.systemObjectId;
-  const fallback = network === 'testnet' ? FALLBACK_PRICING_TESTNET : FALLBACK_PRICING_MAINNET;
+  const fallback = getFallbackPricing(network);
 
   try {
-    // The pricing is stored in a dynamic field called SystemStateInnerV1
-    // First get the dynamic fields of the system object
-    const dynamicFields = await suiClient.getDynamicFields({
-      parentId: systemObjectId,
-    });
+    const client = walrusClient ?? createPricingWalrusClient(suiClient, network);
+    const systemState = await client.systemState();
 
-    if (!dynamicFields.data || dynamicFields.data.length === 0) {
-      throw new Error('No dynamic fields found in system object');
+    const storagePerUnit = Number(systemState.storage_price_per_unit_size);
+    const writePerUnit = Number(systemState.write_price_per_unit_size);
+    const nShards = Number(systemState.committee.n_shards);
+
+    if (
+      !Number.isFinite(storagePerUnit) ||
+      !Number.isFinite(writePerUnit) ||
+      !Number.isFinite(nShards)
+    ) {
+      throw new Error("Invalid numeric values in Walrus system state");
     }
 
-    // Get the SystemStateInnerV1 dynamic field (usually the first one)
-    const systemStateField = dynamicFields.data.find(f =>
-      f.objectType?.includes('system_state_inner::SystemStateInnerV1')
-    );
-
-    if (!systemStateField) {
-      throw new Error('SystemStateInnerV1 field not found');
-    }
-
-    // Get the actual field object with pricing data
-    const fieldObject = await suiClient.getDynamicFieldObject({
-      parentId: systemObjectId,
-      name: systemStateField.name,
-    });
-
-    const contentFields = getMoveObjectFields(fieldObject.data?.content);
-    if (!contentFields) {
-      throw new Error('Invalid system state inner structure');
-    }
-
-    const valueRecord = getRecordField(contentFields, 'value');
-    if (!valueRecord) {
-      throw new Error('System state inner value not found');
-    }
-
-    const innerFields = getRecordField(valueRecord, 'fields');
-
-    if (!innerFields) {
-      throw new Error('System state inner fields not found');
-    }
-
-    // Extract pricing from system state inner fields
-    // Pricing is per KiB (unit size), we convert to per MB
-    const storagePerUnitSize =
-      getNumericField(innerFields, 'storage_price_per_unit_size') ??
-      fallback.storagePerMbPerEpoch / 1024;
-
-    const writePerUnitSize =
-      getNumericField(innerFields, 'write_price_per_unit_size') ??
-      fallback.uploadPerMb / 1024;
-
-    // Convert from per-KiB to per-MB (multiply by 1024)
-    const storagePerMbPerEpoch = Math.round(storagePerUnitSize * 1024);
-    const uploadPerMb = Math.round(writePerUnitSize * 1024);
-
-    // Query subsidy rate
     const subsidyRate = await querySubsidyRate(suiClient, network);
 
     return {
-      storagePerMbPerEpoch,
-      uploadPerMb,
+      storagePerMbPerEpoch: Math.max(0, Math.round(storagePerUnit)),
+      uploadPerMb: Math.max(0, Math.round(writePerUnit)),
+      nShards: toPositiveInteger(nShards, DEFAULT_N_SHARDS),
+      storageUnitBytes: STORAGE_UNIT_BYTES,
       timestamp: Date.now(),
       network,
       subsidyRate,
     };
   } catch (error) {
-    console.warn(`Failed to query Walrus system object for ${network}:`, error);
-    console.warn('Using fallback pricing estimates');
+    console.warn(
+      `Failed to query Walrus system pricing for ${network}:`,
+      error,
+    );
+    console.warn("Using fallback pricing estimates");
     return fallback;
   }
 }
 
-/**
- * Get current Walrus pricing with caching
- *
- * @param suiClient - Sui client instance
- * @param network - Network to query (testnet or mainnet)
- * @returns Current pricing information
- */
 export async function getWalrusPricing(
   suiClient: SuiClient,
-  network: 'testnet' | 'mainnet',
+  network: "testnet" | "mainnet",
+  walrusClient?: WalrusClient,
 ): Promise<WalrusPricing> {
   const cacheKey = network;
   const cached = pricingCache[cacheKey];
 
-  // Return cached pricing if still valid
   if (cached && cached.expiresAt > Date.now() && cached.pricing) {
     return cached.pricing;
   }
 
-  // Query fresh pricing
-  const pricing = await querySystemPricing(suiClient, network);
-
-  // Update cache
+  const pricing = await querySystemPricing(suiClient, network, walrusClient);
   pricingCache[cacheKey] = {
     pricing,
     expiresAt: Date.now() + CACHE_TTL_MS,
@@ -260,144 +296,133 @@ export async function getWalrusPricing(
   return pricing;
 }
 
-/**
- * Convert FROST to WAL
- * 1 WAL = 1,000,000,000 FROST
- */
-export function frostToWal(frost: number): number {
-  return frost / 1_000_000_000;
-}
+const calculateMetadataSizeBytes = (nShards = DEFAULT_N_SHARDS): number =>
+  Number(calculateMetadataSizeBytesBigInt(nShards));
 
-/**
- * Convert WAL to FROST
- */
-export function walToFrost(wal: number): number {
-  return wal * 1_000_000_000;
-}
-
-/**
- * Convert bytes to MB
- */
-export function bytesToMb(bytes: number): number {
-  return bytes / (1024 * 1024);
-}
-
-/**
- * Calculate storage cost in WAL
- *
- * @param sizeBytes - Raw blob size in bytes
- * @param epochs - Number of epochs to store
- * @param pricing - Current Walrus pricing
- * @returns Storage cost in WAL
- */
-export function calculateStorageCost(
-  sizeBytes: number,
+const calculateCostsFromPricing = (
+  encodedSizeBytes: bigint,
+  pricing: WalrusPricing,
   epochs: number,
-  pricing: WalrusPricing,
-): number {
-  const sizeMb = bytesToMb(sizeBytes);
-  const costFrost = sizeMb * pricing.storagePerMbPerEpoch * epochs;
-  return frostToWal(costFrost);
-}
+): {
+  storageCostWal: number;
+  uploadCostWal: number;
+  totalCostWal: number;
+} => {
+  const storageUnitBytes = BigInt(
+    toPositiveInteger(pricing.storageUnitBytes, STORAGE_UNIT_BYTES),
+  );
+  const billingUnits = (encodedSizeBytes + storageUnitBytes - 1n) / storageUnitBytes;
+
+  const storagePricePerUnitPerEpoch = BigInt(
+    toNonNegativeInteger(pricing.storagePerMbPerEpoch),
+  );
+  const writePricePerUnit = BigInt(toNonNegativeInteger(pricing.uploadPerMb));
+  const epochsBigInt = BigInt(toPositiveInteger(epochs));
+
+  const storageCostFrost =
+    billingUnits * storagePricePerUnitPerEpoch * epochsBigInt;
+  const uploadCostFrost = billingUnits * writePricePerUnit;
+  const totalCostFrost = storageCostFrost + uploadCostFrost;
+
+  return {
+    storageCostWal: frostBigIntToWal(storageCostFrost),
+    uploadCostWal: frostBigIntToWal(uploadCostFrost),
+    totalCostWal: frostBigIntToWal(totalCostFrost),
+  };
+};
 
 /**
- * Calculate upload cost in WAL
- *
- * @param sizeBytes - Raw blob size in bytes
- * @param pricing - Current Walrus pricing
- * @returns Upload cost in WAL
- */
-export function calculateUploadCost(
-  sizeBytes: number,
-  pricing: WalrusPricing,
-): number {
-  const sizeMb = bytesToMb(sizeBytes);
-  const costFrost = sizeMb * pricing.uploadPerMb;
-  return frostToWal(costFrost);
-}
-
-/**
- * Calculate total encoded size (content + metadata)
- *
- * Walrus encoding:
- * - Content: 5x original size (erasure coding)
- * - Metadata: Fixed 64MB per blob
- */
-export function calculateEncodedSize(rawSizeBytes: number): number {
-  const ENCODING_MULTIPLIER = 5;
-  const METADATA_SIZE_BYTES = 64 * 1024 * 1024; // 64MB
-
-  return (rawSizeBytes * ENCODING_MULTIPLIER) + METADATA_SIZE_BYTES;
-}
-
-/**
- * Calculate total storage cost for campaign files
- * Includes both storage and upload costs
+ * Calculate total storage cost for campaign files.
+ * Includes storage reservation + write fee and optional subsidy display.
  */
 export interface CampaignStorageCost {
-  // Sizes
-  rawSize: number;        // Original file sizes in bytes
-  encodedSize: number;    // Size after encoding (5x + metadata)
-  metadataSize: number;   // Fixed metadata overhead
-
-  // Costs in WAL (before subsidy)
-  storageCostWal: number; // Storage cost (per epoch)
-  uploadCostWal: number;  // One-time upload cost
-  totalCostWal: number;   // Total cost before subsidy
-
-  // Subsidized costs
-  subsidizedStorageCost: number; // Storage cost after subsidy
-  subsidizedUploadCost: number;  // Upload cost after subsidy
-  subsidizedTotalCost: number;   // Total cost after subsidy (what user actually pays)
-
-  // Epochs
+  rawSize: number;
+  encodedSize: number;
+  metadataSize: number;
+  storageCostWal: number;
+  uploadCostWal: number;
+  totalCostWal: number;
+  subsidizedStorageCost: number;
+  subsidizedUploadCost: number;
+  subsidizedTotalCost: number;
   epochs: number;
-
-  // Pricing used
   pricing: WalrusPricing;
 }
 
 export async function calculateCampaignStorageCost(
   suiClient: SuiClient,
-  network: 'testnet' | 'mainnet',
+  network: "testnet" | "mainnet",
   rawSizeBytes: number,
   epochs: number,
 ): Promise<CampaignStorageCost> {
-  const pricing = await getWalrusPricing(suiClient, network);
+  const normalizedRawSize = toNonNegativeInteger(rawSizeBytes);
+  const normalizedEpochs = toPositiveInteger(epochs);
+  const walrusClient = createPricingWalrusClient(suiClient, network);
 
-  const METADATA_SIZE_BYTES = 64 * 1024 * 1024; // 64MB
-  const encodedSize = calculateEncodedSize(rawSizeBytes);
+  const [pricing, sdkCostResult] = await Promise.all([
+    getWalrusPricing(suiClient, network, walrusClient),
+    walrusClient
+      .storageCost(normalizedRawSize, normalizedEpochs)
+      .then((cost) => ({ ok: true as const, cost }))
+      .catch((error: unknown) => ({ ok: false as const, error })),
+  ]);
 
-  const storageCostWal = calculateStorageCost(encodedSize, epochs, pricing);
-  const uploadCostWal = calculateUploadCost(encodedSize, pricing);
-  const totalCostWal = storageCostWal + uploadCostWal;
+  const encodedSizeBigInt = calculateEncodedSizeBigInt(
+    normalizedRawSize,
+    pricing.nShards,
+  );
+  const encodedSize = Number(encodedSizeBigInt);
+  const metadataSize = calculateMetadataSizeBytes(pricing.nShards);
 
-  // Apply subsidy rate
-  const subsidyRate = pricing.subsidyRate || 0;
-  const subsidyMultiplier = 1 - subsidyRate; // e.g., 0.80 subsidy means user pays 0.20
+  let storageCostWal: number;
+  let uploadCostWal: number;
+  let totalCostWal: number;
+
+  if (sdkCostResult.ok) {
+    // Source of truth for WAL charging is the SDK's storageCost path, which matches register logic.
+    storageCostWal = frostBigIntToWal(sdkCostResult.cost.storageCost);
+    uploadCostWal = frostBigIntToWal(sdkCostResult.cost.writeCost);
+    totalCostWal = frostBigIntToWal(sdkCostResult.cost.totalCost);
+  } else {
+    console.warn(
+      `Walrus storageCost failed for ${network}; falling back to price-based estimation.`,
+      sdkCostResult.error,
+    );
+    const fallbackCost = calculateCostsFromPricing(
+      encodedSizeBigInt,
+      pricing,
+      normalizedEpochs,
+    );
+    storageCostWal = fallbackCost.storageCostWal;
+    uploadCostWal = fallbackCost.uploadCostWal;
+    totalCostWal = fallbackCost.totalCostWal;
+  }
+
+  const subsidyRate = clampSubsidyRate(pricing.subsidyRate ?? 0);
+  const subsidyMultiplier = Math.max(0, 1 - subsidyRate);
 
   const subsidizedStorageCost = storageCostWal * subsidyMultiplier;
   const subsidizedUploadCost = uploadCostWal * subsidyMultiplier;
   const subsidizedTotalCost = totalCostWal * subsidyMultiplier;
 
   return {
-    rawSize: rawSizeBytes,
+    rawSize: normalizedRawSize,
     encodedSize,
-    metadataSize: METADATA_SIZE_BYTES,
+    metadataSize,
     storageCostWal,
     uploadCostWal,
     totalCostWal,
     subsidizedStorageCost,
     subsidizedUploadCost,
     subsidizedTotalCost,
-    epochs,
+    epochs: normalizedEpochs,
     pricing,
   };
 }
 
 /**
- * Clear pricing cache (useful for testing)
+ * Clear pricing cache (useful for tests/dev tooling).
  */
 export function clearPricingCache(): void {
-  Object.keys(pricingCache).forEach(key => delete pricingCache[key]);
+  Object.keys(pricingCache).forEach((key) => delete pricingCache[key]);
 }

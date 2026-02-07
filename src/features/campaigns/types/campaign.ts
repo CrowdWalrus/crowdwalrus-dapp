@@ -75,7 +75,7 @@ export interface WalrusUploadResult {
     identifier: string;
     size: number;
   }[];
-  cost: string; // Storage cost in SUI
+  cost: string; // Storage cost in WAL ("N/A" if post-certification estimate is unavailable)
 }
 
 /**
