@@ -3,6 +3,7 @@ import { useMemo, useCallback } from "react";
 import { useCampaigns, type CampaignsPage } from "@/hooks/indexer/useCampaigns";
 import { DEFAULT_NETWORK } from "@/shared/config/networkConfig";
 import type { SupportedNetwork } from "@/shared/types/network";
+import { fetchWalrusText } from "@/services/walrus";
 import type {
   CampaignDetail,
   CampaignSummary,
@@ -99,11 +100,7 @@ export function useCampaignDescription(descriptionUrl: string) {
     if (!descriptionUrl) return "";
 
     try {
-      const response = await fetch(descriptionUrl);
-      if (!response.ok) {
-        throw new Error(`Failed to fetch description: ${response.statusText}`);
-      }
-      return await response.text();
+      return await fetchWalrusText(descriptionUrl);
     } catch (error) {
       console.error("Error fetching campaign description:", error);
       return "";

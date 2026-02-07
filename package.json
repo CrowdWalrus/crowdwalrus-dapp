@@ -20,9 +20,9 @@
     "@lexical/selection": "^0.36.2",
     "@lexical/table": "^0.36.2",
     "@lexical/utils": "^0.36.2",
-    "@mysten/dapp-kit": "0.18.0",
-    "@mysten/sui": "1.38.0",
-    "@mysten/walrus": "^0.7.0",
+    "@mysten/dapp-kit": "0.19.4",
+    "@mysten/sui": "1.42.0",
+    "@mysten/walrus": "0.7.5",
     "@mysten/walrus-wasm": "0.1.1",
     "@pythnetwork/pyth-sui-js": "^2.4.0",
     "@radix-ui/colors": "^3.0.0",
@@ -79,5 +79,10 @@
     "typescript": "^5.9.2",
     "typescript-eslint": "^8.46.1",
     "vite": "^7.1.5"
+  },
+  "pnpm": {
+    "overrides": {
+      "@mysten/sui": "1.42.0"
+    }
   }
 }

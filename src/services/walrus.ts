@@ -5,7 +5,12 @@
  * including file uploads, Quilt management, and cost calculations.
  */
 
-import { WalrusClient, WalrusFile, type WriteFilesFlow } from "@mysten/walrus";
+import {
+  RetryableWalrusClientError,
+  WalrusClient,
+  WalrusFile,
+  type WriteFilesFlow,
+} from "@mysten/walrus";
 import type { SuiClient } from "@mysten/sui/client";
 import {
   WalrusUploadError,
@@ -30,6 +35,177 @@ import {
 import walrusWasmUrl from "@mysten/walrus-wasm/web/walrus_wasm_bg.wasm?url";
 
 const SUPPORTED_AVATAR_MIME_TYPES = new Set(["image/jpeg", "image/png"]);
+const WALRUS_RELAY_MAX_TIP_MIST = 10_000_000_000; // 10 SUI
+const WALRUS_UPLOAD_REQUEST_TIMEOUT_MS = 2 * 60 * 60 * 1000; // 2 hours
+const WALRUS_READ_MAX_BYTES = 100 * 1024 * 1024; // 100 MB
+const WALRUS_UPLOAD_RETRY_ATTEMPTS = 3;
+const WALRUS_UPLOAD_RETRY_DELAY_MS = 1_200;
+const WALRUS_READ_RETRY_ATTEMPTS = 3;
+const WALRUS_READ_RETRY_BASE_DELAY_MS = 500;
+const LEGACY_MAINNET_AGGREGATOR_HOST = "aggregator.walrus.site";
+const PREVIOUS_MAINNET_AGGREGATOR_HOST = "aggregator.walrus.space";
+const LEGACY_MAINNET_AGGREGATOR_HOST_2 = "aggregator-mainnet.walrus.space";
+const LEGACY_MAINNET_AGGREGATOR_HOST_3 = "aggregator.mainnet.walrus.space";
+const CURRENT_MAINNET_AGGREGATOR_HOST =
+  "aggregator.walrus-mainnet.walrus.space";
+const RETRYABLE_HTTP_STATUSES = new Set([408, 425, 429, 500, 502, 503, 504]);
+const RETRYABLE_UPLOAD_ERROR_MESSAGES = [
+  "too many failures while writing blob",
+  "request timed out",
+  "connection error",
+  "not registered",
+];
+
+const wait = (ms: number) =>
+  new Promise<void>((resolve) => {
+    setTimeout(resolve, ms);
+  });
+
+const isAbortError = (error: unknown): boolean =>
+  error instanceof DOMException && error.name === "AbortError";
+
+function isRetryableUploadError(error: unknown): boolean {
+  if (error instanceof RetryableWalrusClientError) {
+    return true;
+  }
+
+  if (!(error instanceof Error)) {
+    return false;
+  }
+
+  const normalizedMessage = error.message.toLowerCase();
+  return RETRYABLE_UPLOAD_ERROR_MESSAGES.some((pattern) =>
+    normalizedMessage.includes(pattern),
+  );
+}
+
+export function normalizeWalrusReadUrl(url: string): string {
+  const trimmed = url.trim();
+  if (!trimmed) {
+    return "";
+  }
+
+  try {
+    const parsed = new URL(trimmed);
+    if (
+      parsed.hostname === LEGACY_MAINNET_AGGREGATOR_HOST ||
+      parsed.hostname === PREVIOUS_MAINNET_AGGREGATOR_HOST ||
+      parsed.hostname === LEGACY_MAINNET_AGGREGATOR_HOST_2 ||
+      parsed.hostname === LEGACY_MAINNET_AGGREGATOR_HOST_3
+    ) {
+      parsed.hostname = CURRENT_MAINNET_AGGREGATOR_HOST;
+    }
+    return parsed.toString();
+  } catch {
+    return trimmed;
+  }
+}
+
+function buildWalrusReadCandidates(url: string): string[] {
+  const normalized = normalizeWalrusReadUrl(url);
+  if (!normalized) {
+    return [];
+  }
+  return [normalized];
+}
+
+interface WalrusReadOptions {
+  signal?: AbortSignal;
+  timeoutMs?: number;
+  retries?: number;
+  maxBytes?: number;
+}
+
+async function fetchWalrusResponse(
+  url: string,
+  options: WalrusReadOptions = {},
+): Promise<Response> {
+  const candidates = buildWalrusReadCandidates(url);
+  if (candidates.length === 0) {
+    throw new Error("Walrus URL is empty.");
+  }
+
+  const timeoutMs = options.timeoutMs;
+  const retries = Math.max(1, options.retries ?? WALRUS_READ_RETRY_ATTEMPTS);
+
+  let lastError: unknown;
+
+  for (const candidate of candidates) {
+    for (let attempt = 1; attempt <= retries; attempt += 1) {
+      if (options.signal?.aborted) {
+        throw new DOMException("Request aborted", "AbortError");
+      }
+
+      const timeoutSignal =
+        typeof timeoutMs === "number" && timeoutMs > 0
+          ? AbortSignal.timeout(timeoutMs)
+          : null;
+      const requestSignal = timeoutSignal
+        ? options.signal
+          ? AbortSignal.any([options.signal, timeoutSignal])
+          : timeoutSignal
+        : options.signal;
+
+      try {
+        const response = await fetch(candidate, {
+          mode: "cors",
+          signal: requestSignal,
+        });
+
+        if (response.ok) {
+          return response;
+        }
+
+        const statusError = new Error(
+          `Walrus read failed (${response.status} ${response.statusText || "Unknown"})`,
+        );
+        lastError = statusError;
+
+        const canRetry =
+          attempt < retries && RETRYABLE_HTTP_STATUSES.has(response.status);
+        if (!canRetry) {
+          break;
+        }
+      } catch (error) {
+        if (isAbortError(error) && options.signal?.aborted) {
+          throw error;
+        }
+
+        lastError = error;
+        if (attempt >= retries) {
+          break;
+        }
+      }
+
+      await wait(WALRUS_READ_RETRY_BASE_DELAY_MS * attempt);
+    }
+  }
+
+  throw lastError instanceof Error
+    ? lastError
+    : new Error("Failed to fetch resource from Walrus.");
+}
+
+function assertContentLengthWithinLimit(
+  response: Response,
+  maxBytes?: number,
+): void {
+  if (!maxBytes) {
+    return;
+  }
+
+  const contentLengthHeader = response.headers.get("content-length");
+  if (!contentLengthHeader) {
+    return;
+  }
+
+  const contentLength = Number.parseInt(contentLengthHeader, 10);
+  if (Number.isFinite(contentLength) && contentLength > maxBytes) {
+    throw new Error(
+      `Walrus resource exceeds maximum allowed size (${maxBytes} bytes).`,
+    );
+  }
+}
 
 /**
  * Create and configure a WalrusClient instance
@@ -43,11 +219,29 @@ export function createWalrusClient(
   // WalrusClient only supports testnet and mainnet
   const walrusNetwork =
     network === "devnet" ? "testnet" : config.walrus.network;
+  const uploadRelayHost = config.walrus.uploadRelay?.trim();
 
   return new WalrusClient({
     suiClient,
     network: walrusNetwork as "testnet" | "mainnet",
     wasmUrl: walrusWasmUrl,
+    ...(uploadRelayHost
+      ? {
+          uploadRelay: {
+            host: uploadRelayHost,
+            timeout: WALRUS_UPLOAD_REQUEST_TIMEOUT_MS,
+            sendTip: {
+              max: WALRUS_RELAY_MAX_TIP_MIST,
+            },
+          },
+        }
+      : {}),
+    storageNodeClientOptions: {
+      timeout: WALRUS_UPLOAD_REQUEST_TIMEOUT_MS,
+      onError: (error) => {
+        console.warn("[Walrus storage node]", error.message);
+      },
+    },
   });
 }
 
@@ -245,14 +439,32 @@ export async function uploadToWalrusNodes(
   flow: WriteFilesFlow,
   registerDigest: string,
 ) {
-  try {
-    await flow.upload({ digest: registerDigest });
-  } catch (error) {
-    throw new WalrusUploadError(
-      `Failed to upload to Walrus storage nodes: ${error instanceof Error ? error.message : "Unknown error"}`,
-      error,
-    );
+  let lastError: unknown;
+
+  for (let attempt = 1; attempt <= WALRUS_UPLOAD_RETRY_ATTEMPTS; attempt += 1) {
+    try {
+      await flow.upload({ digest: registerDigest });
+      return;
+    } catch (error) {
+      lastError = error;
+      const isRetryAttempt = attempt < WALRUS_UPLOAD_RETRY_ATTEMPTS;
+
+      if (!isRetryAttempt || !isRetryableUploadError(error)) {
+        break;
+      }
+
+      console.warn(
+        `Walrus upload attempt ${attempt} failed; retrying...`,
+        error,
+      );
+      await wait(WALRUS_UPLOAD_RETRY_DELAY_MS * attempt);
+    }
   }
+
+  throw new WalrusUploadError(
+    `Failed to upload to Walrus storage nodes: ${lastError instanceof Error ? lastError.message : "Unknown error"}`,
+    lastError,
+  );
 }
 
 /**
@@ -535,7 +747,61 @@ export function getWalrusUrl(
   network: SupportedNetwork,
   fileName: string,
 ): string {
+  const normalizedBlobId = blobId.trim();
+  const normalizedFileName = fileName.trim();
+
+  if (!normalizedBlobId || !normalizedFileName) {
+    return "";
+  }
+
   const config = getContractConfig(network);
-  const baseUrl = config.walrus.aggregatorUrl;
-  return `${baseUrl}/blobs/by-quilt-id/${blobId}/${fileName}`;
+  const baseUrl = new URL(config.walrus.aggregatorUrl);
+  const basePath = baseUrl.pathname.replace(/\/+$/, "");
+  const encodedBlobId = encodeURIComponent(normalizedBlobId);
+  const encodedFileName = normalizedFileName
+    .split("/")
+    .map((segment) => encodeURIComponent(segment))
+    .join("/");
+
+  baseUrl.pathname = `${basePath}/blobs/by-quilt-id/${encodedBlobId}/${encodedFileName}`;
+  return baseUrl.toString();
+}
+
+export async function fetchWalrusText(
+  readUrl: string,
+  options: WalrusReadOptions = {},
+): Promise<string> {
+  const effectiveMaxBytes = options.maxBytes ?? WALRUS_READ_MAX_BYTES;
+  const response = await fetchWalrusResponse(readUrl, options);
+  assertContentLengthWithinLimit(response, effectiveMaxBytes);
+
+  const text = await response.text();
+  if (effectiveMaxBytes) {
+    const size = new TextEncoder().encode(text).length;
+    if (size > effectiveMaxBytes) {
+      throw new Error(
+        `Walrus text exceeds maximum allowed size (${effectiveMaxBytes} bytes).`,
+      );
+    }
+  }
+
+  return text;
+}
+
+export async function fetchWalrusBlob(
+  readUrl: string,
+  options: WalrusReadOptions = {},
+): Promise<Blob> {
+  const effectiveMaxBytes = options.maxBytes ?? WALRUS_READ_MAX_BYTES;
+  const response = await fetchWalrusResponse(readUrl, options);
+  assertContentLengthWithinLimit(response, effectiveMaxBytes);
+
+  const blob = await response.blob();
+  if (blob.size > effectiveMaxBytes) {
+    throw new Error(
+      `Walrus blob exceeds maximum allowed size (${effectiveMaxBytes} bytes).`,
+    );
+  }
+
+  return blob;
 }

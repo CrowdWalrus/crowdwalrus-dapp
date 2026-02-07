@@ -33,7 +33,7 @@ export default defineConfig({
       "Cross-Origin-Embedder-Policy": "credentialless",
       "Referrer-Policy": "strict-origin-when-cross-origin",
       "Content-Security-Policy":
-        "img-src 'self' data: blob: https://aggregator.walrus-testnet.walrus.space https://aggregator.walrus.space https://aggregator.walrus.site https://aggregator.walrus-testnet.walrus.site;",
+        "img-src 'self' data: blob: https://aggregator.walrus-mainnet.walrus.space https://aggregator.walrus-testnet.walrus.space https://aggregator.walrus.space https://aggregator.walrus.site https://aggregator-mainnet.walrus.space https://aggregator.mainnet.walrus.space https://aggregator.walrus-testnet.walrus.site;",
     },
   },
 });
