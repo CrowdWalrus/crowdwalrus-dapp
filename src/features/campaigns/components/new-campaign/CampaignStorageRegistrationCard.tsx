@@ -1,3 +1,5 @@
+import { useMemo } from "react";
+import { useQuery } from "@tanstack/react-query";
 import type { StorageCostEstimate } from "@/features/campaigns/types/campaign";
 import { Card, CardContent } from "@/shared/components/ui/card";
 import { Button } from "@/shared/components/ui/button";
@@ -10,6 +12,7 @@ import {
   SelectValue,
 } from "@/shared/components/ui/select";
 import {
+  DEFAULT_NETWORK,
   useNetworkVariable,
   type StorageDurationOption,
 } from "@/shared/config/networkConfig";
@@ -18,7 +21,12 @@ import {
   CertificationErrorAlert,
   StorageRegistrationSuccessAlert,
 } from "@/features/campaigns/components/CampaignAlerts";
-import { formatTokenAmountFromNumber } from "@/shared/utils/currency";
+import { useEnabledTokens } from "@/features/tokens/hooks";
+import { previewPriceOracleQuote } from "@/services/priceOracle";
+import {
+  formatTokenAmountFromNumber,
+  formatUsdLocaleFromMicros,
+} from "@/shared/utils/currency";
 
 export interface StorageCost {
   label: string;
@@ -94,9 +102,65 @@ export function CampaignStorageRegistrationCard({
   const currentOption = storageDurationOptions.find(
     (opt: StorageDurationOption) => opt.epochs === currentEpochs,
   );
-  const defaultValue = currentOption?.label ?? storageDurationOptions[0].label;
+  const legacyDurationOption = currentOption
+    ? null
+    : {
+        label: `${currentEpochs} epochs`,
+        epochs: currentEpochs,
+        days: currentEpochs * epochConfig.epochDurationDays,
+      };
+  const selectableDurationOptions = legacyDurationOption
+    ? [...storageDurationOptions, legacyDurationOption]
+    : storageDurationOptions;
+  const defaultValue =
+    currentOption?.label ??
+    legacyDurationOption?.label ??
+    storageDurationOptions[0].label;
 
-  const walRate = "1 WAL = ~$0.38 USD";
+  const { tokens: enabledTokens } = useEnabledTokens({
+    network: DEFAULT_NETWORK,
+  });
+  const walToken = useMemo(
+    () =>
+      enabledTokens.find((token) => {
+        const normalizedSymbol = token.symbol.trim().toUpperCase();
+        return (
+          normalizedSymbol === "WAL" ||
+          token.coinType.toLowerCase().includes("::wal::")
+        );
+      }),
+    [enabledTokens],
+  );
+
+  const walRateQuery = useQuery({
+    queryKey: [
+      "wal-usd-rate",
+      DEFAULT_NETWORK,
+      walToken?.coinType,
+      walToken?.pythFeedId,
+      walToken?.decimals,
+    ],
+    enabled: Boolean(walToken),
+    staleTime: 60 * 1000,
+    gcTime: 5 * 60 * 1000,
+    queryFn: async () => {
+      if (!walToken) {
+        throw new Error("WAL token is not available in the token registry.");
+      }
+
+      return previewPriceOracleQuote({
+        network: DEFAULT_NETWORK,
+        token: walToken,
+        rawAmount: 10n ** BigInt(Math.max(0, Math.floor(walToken.decimals))),
+      });
+    },
+  });
+
+  const walRate = walRateQuery.data
+    ? `1 WAL = $${formatUsdLocaleFromMicros(walRateQuery.data.quotedUsdMicro)} USD`
+    : walRateQuery.isError
+      ? "1 WAL = unavailable"
+      : "1 WAL = Loading...";
 
   const walrusFeeValue = estimatedCost
     ? estimatedCost.subsidizedStorageCost + estimatedCost.subsidizedUploadCost
@@ -150,7 +214,7 @@ export function CampaignStorageRegistrationCard({
                     if (controlsDisabled) {
                       return;
                     }
-                    const option = storageDurationOptions.find(
+                    const option = selectableDurationOptions.find(
                       (opt: StorageDurationOption) => opt.label === value,
                     );
                     if (option && onEpochsChange) {
@@ -165,7 +229,7 @@ export function CampaignStorageRegistrationCard({
                     <SelectValue />
                   </SelectTrigger>
                   <SelectContent>
-                    {storageDurationOptions.map(
+                    {selectableDurationOptions.map(
                       (option: StorageDurationOption) => (
                         <SelectItem key={option.label} value={option.label}>
                           {option.label} ({option.epochs} epochs)
