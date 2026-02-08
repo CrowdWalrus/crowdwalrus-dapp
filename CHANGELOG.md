@@ -1,5 +1,13 @@
 # Changelog
 
+## [1.9.0](https://github.com/CrowdWalrus/crowdwalrus-dapp/compare/v1.8.0...v1.9.0) (2026-02-08)
+
+
+### Features
+
+* enhance CampaignStorageRegistrationCard with dynamic WAL token pricing and selectable duration options ([580b923](https://github.com/CrowdWalrus/crowdwalrus-dapp/commit/580b9234d89270e27968056cded138685066e276))
+* refactor donation transaction handling and improve error management ([bbfdb92](https://github.com/CrowdWalrus/crowdwalrus-dapp/commit/bbfdb923dc3c9986f17b1b6d67dc4b1080f7aee9))
+
 ## [1.8.0](https://github.com/CrowdWalrus/crowdwalrus-dapp/compare/v1.7.0...v1.8.0) (2026-02-08)
 
 
