@@ -26,8 +26,13 @@ import {
 } from "@/services/walrus";
 import type { CampaignFormData } from "@/features/campaigns/types/campaign";
 import type { CampaignUpdateStorageData } from "@/features/campaigns/types/campaignUpdate";
-import { DEFAULT_NETWORK, WALRUS_EPOCH_CONFIG } from "@/shared/config/networkConfig";
+import {
+  DEFAULT_NETWORK,
+  WALRUS_EPOCH_CONFIG,
+  WAL_COIN_TYPE,
+} from "@/shared/config/networkConfig";
 import type { SupportedNetwork } from "@/shared/types/network";
+import { isUserRejectedError } from "@/shared/utils/errors";
 
 /**
  * Walrus flow state that's passed between steps
@@ -64,6 +69,120 @@ export interface CertifyResult {
   blobId: string;
   cost: string;
   storageEpochs: number;
+}
+
+const WAL_COIN_SYNC_ATTEMPTS = 4;
+const WAL_COIN_SYNC_DELAY_MS = 600;
+const REGISTER_RETRY_DELAY_MS = 1000;
+const REGISTER_MAX_RETRIES = 1; // Initial attempt + 1 retry
+const STALE_OBJECT_ERROR_PATTERNS = [
+  "error checking transaction input objects",
+  "could not find the referenced object",
+  "version none",
+  "object not found",
+];
+
+const wait = (ms: number) =>
+  new Promise<void>((resolve) => {
+    setTimeout(resolve, ms);
+  });
+
+function collectErrorText(error: unknown): string {
+  const parts: string[] = [];
+
+  const pushValue = (value: unknown) => {
+    if (typeof value === "string" && value.trim().length > 0) {
+      parts.push(value);
+    }
+  };
+
+  if (error instanceof Error) {
+    pushValue(error.message);
+
+    const errorWithCause = error as Error & { cause?: unknown };
+    if (errorWithCause.cause) {
+      pushValue(collectErrorText(errorWithCause.cause));
+    }
+  } else if (typeof error === "string") {
+    pushValue(error);
+  } else if (error && typeof error === "object") {
+    if ("message" in error) {
+      pushValue((error as { message?: unknown }).message);
+    }
+    if ("cause" in error) {
+      pushValue(collectErrorText((error as { cause?: unknown }).cause));
+    }
+  }
+
+  return parts.join(" ").toLowerCase();
+}
+
+function isStaleObjectResolutionError(error: unknown): boolean {
+  const text = collectErrorText(error);
+  if (!text) {
+    return false;
+  }
+
+  return STALE_OBJECT_ERROR_PATTERNS.some((pattern) => text.includes(pattern));
+}
+
+function isInsufficientWalBalanceError(
+  error: unknown,
+  network: SupportedNetwork,
+): boolean {
+  const text = collectErrorText(error);
+  if (!text) {
+    return false;
+  }
+
+  const hasInsufficientMarker =
+    text.includes("not enough coins") ||
+    text.includes("insufficient");
+  const walCoinType = WAL_COIN_TYPE[network].toLowerCase();
+  const hasWalMarker =
+    text.includes(walCoinType) ||
+    text.includes("::wal::wal");
+
+  return hasInsufficientMarker && hasWalMarker;
+}
+
+async function waitForWalCoinSync(
+  owner: string,
+  network: SupportedNetwork,
+  suiClient: ReturnType<typeof useSuiClient>,
+) {
+  const walCoinType = WAL_COIN_TYPE[network];
+
+  try {
+    const walBalance = await suiClient.getBalance({
+      owner,
+      coinType: walCoinType,
+    });
+    if (!walBalance.totalBalance || BigInt(walBalance.totalBalance) <= 0n) {
+      return;
+    }
+
+    for (let attempt = 1; attempt <= WAL_COIN_SYNC_ATTEMPTS; attempt += 1) {
+      const page = await suiClient.getCoins({
+        owner,
+        coinType: walCoinType,
+        limit: 20,
+      });
+      const hasSpendableCoin = page.data.some(
+        (coin) => BigInt(coin.balance ?? "0") > 0n,
+      );
+
+      if (hasSpendableCoin) {
+        return;
+      }
+
+      if (attempt < WAL_COIN_SYNC_ATTEMPTS) {
+        await wait(WAL_COIN_SYNC_DELAY_MS * attempt);
+      }
+    }
+  } catch (error) {
+    console.warn("[Walrus register] WAL coin preflight check failed:", error);
+  }
 }
 
 /**
@@ -112,7 +231,7 @@ export function useWalrusUpload() {
       network = DEFAULT_NETWORK,
       storageEpochs,
     }) => {
-      const resolvedNetwork = network ?? DEFAULT_NETWORK;
+      const resolvedNetwork = network;
       const networkKey: keyof typeof WALRUS_EPOCH_CONFIG = resolvedNetwork;
       const epochConfig = WALRUS_EPOCH_CONFIG[networkKey];
       const minEpochs = epochConfig.minEpochs ?? 1;
@@ -175,43 +294,71 @@ export function useWalrusUpload() {
         throw new Error("Wallet not connected");
       }
 
-      const registerTx = buildRegisterTransaction(
-        flowState.flow,
-        flowState.storageEpochs,
-        currentAccount.address
-      );
+      let lastError: unknown = null;
 
-      try {
-        const result = await signAndExecute({
-          transaction: registerTx,
-          chain: `sui:${flowState.network}`,
-        });
+      for (let retry = 0; retry <= REGISTER_MAX_RETRIES; retry += 1) {
+        const attempt = retry + 1;
+        await waitForWalCoinSync(currentAccount.address, flowState.network, suiClient);
 
-        if (!result) {
-          throw new Error("Failed to register blob: No result returned");
-        }
+        const registerTx = buildRegisterTransaction(
+          flowState.flow,
+          flowState.storageEpochs,
+          currentAccount.address
+        );
 
-        return {
-          transactionDigest: result.digest,
-          flowState,
-        };
-      } catch (error) {
-        if (error instanceof Error) {
-          const isInsufficientBalance =
-            error.message.includes("Not enough coins") ||
-            error.message.includes("Insufficient") ||
-            error.stack?.includes("loadMoreCoins");
+        try {
+          // Resolve intents with our own Sui client before wallet signing.
+          // This avoids wallet-side stale coin object selection after recent WAL changes.
+          await registerTx.build({ client: suiClient });
 
-          const isWalToken =
-            error.message.includes("WAL") ||
-            error.message.includes("wal::WAL");
+          const result = await signAndExecute({
+            transaction: registerTx,
+            chain: `sui:${flowState.network}`,
+          });
 
-          if (isInsufficientBalance && isWalToken) {
+          if (!result) {
+            throw new Error("Failed to register blob: No result returned");
+          }
+
+          return {
+            transactionDigest: result.digest,
+            flowState,
+          };
+        } catch (error) {
+          if (isUserRejectedError(error)) {
+            throw error;
+          }
+
+          if (isInsufficientWalBalanceError(error, flowState.network)) {
             throw new Error("Insufficient WAL balance to register storage");
           }
+
+          lastError = error;
+
+          const shouldRetry =
+            retry < REGISTER_MAX_RETRIES &&
+            isStaleObjectResolutionError(error);
+          if (!shouldRetry) {
+            break;
+          }
+
+          console.warn(
+            `[Walrus register] Attempt ${attempt} failed due to stale object references. Retrying...`,
+            error,
+          );
+          await wait(REGISTER_RETRY_DELAY_MS * attempt);
         }
-        throw error;
       }
+
+      if (isStaleObjectResolutionError(lastError)) {
+        throw new Error(
+          "Your wallet just changed and coin objects are still syncing. Please wait a few seconds and try Register Storage again.",
+        );
+      }
+
+      throw lastError instanceof Error
+        ? lastError
+        : new Error("Failed to register Walrus storage.");
     },
   });
 
