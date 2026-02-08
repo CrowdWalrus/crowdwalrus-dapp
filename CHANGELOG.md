@@ -1,5 +1,18 @@
 # Changelog
 
+## [1.8.0](https://github.com/CrowdWalrus/crowdwalrus-dapp/compare/v1.7.0...v1.8.0) (2026-02-08)
+
+
+### Features
+
+* enhance Walrus upload hook with improved error handling and retry logic ([bd67c74](https://github.com/CrowdWalrus/crowdwalrus-dapp/commit/bd67c7416e327d888a395046cbbd0b79a150ad52))
+* implement token sorting and prioritization in useEnabledTokens hook ([4e75ab3](https://github.com/CrowdWalrus/crowdwalrus-dapp/commit/4e75ab3b71fa5d6720c86688c7d1bbdf60e339f6))
+
+
+### Refactors
+
+* remove unused COMING_SOON_TOKENS from DonationCard component ([9976906](https://github.com/CrowdWalrus/crowdwalrus-dapp/commit/997690665d1ecfca13bec8154221193bcce9088d))
+
 ## [1.7.0](https://github.com/CrowdWalrus/crowdwalrus-dapp/compare/v1.6.0...v1.7.0) (2026-02-07)
 
 
