@@ -46,6 +46,32 @@ interface RepeatDonationBuilderParams extends BaseDonationBuilderParams {
   profileId: string;
 }
 
+export type DonationBuildFlow = "firstTime" | "repeat";
+
+export interface BuildDonationTransactionParams
+  extends BaseDonationBuilderParams {
+  flow: DonationBuildFlow;
+  profileId?: string | null;
+}
+
+export async function buildDonationTransaction(
+  params: BuildDonationTransactionParams,
+): Promise<DonationBuildResult> {
+  const { flow, profileId, ...common } = params;
+
+  if (flow === "repeat") {
+    if (!profileId) {
+      throw new Error("Profile ID is required for repeat donations.");
+    }
+    return await buildRepeatDonationTx({
+      ...common,
+      profileId,
+    });
+  }
+
+  return await buildFirstTimeDonationTx(common);
+}
+
 export async function buildFirstTimeDonationTx(
   params: BaseDonationBuilderParams,
 ): Promise<DonationBuildResult> {

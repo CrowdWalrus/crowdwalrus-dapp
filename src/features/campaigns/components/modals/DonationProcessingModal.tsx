@@ -26,8 +26,48 @@ export function DonationProcessingModal({
   onCancel,
   onConfirm,
 }: DonationProcessingModalProps) {
-  const confirmLabel = "Try again";
-  const confirmDisabled = isBuilding || isWalletRequestPending || !canConfirm;
+  type ModalPhase = "preparing" | "ready" | "walletPending" | "blocked";
+
+  const phase: ModalPhase = (() => {
+    if (isBuilding) {
+      return "preparing";
+    }
+    if (isWalletRequestPending) {
+      return "walletPending";
+    }
+    if (canConfirm) {
+      return "ready";
+    }
+    return "blocked";
+  })();
+
+  const titleByPhase: Record<ModalPhase, string> = {
+    preparing: "Preparing transaction",
+    ready: "Ready to continue",
+    walletPending: "Approve in wallet",
+    blocked: "Preparing transaction",
+  };
+
+  const descriptionByPhase: Record<ModalPhase, string> = {
+    preparing: "Syncing latest coin objects and price quote...",
+    ready: "Click Continue to open your wallet.",
+    walletPending:
+      "A wallet prompt should be open. Approve the transaction to continue.",
+    blocked: "Please wait while we finish preparing your transaction.",
+  };
+
+  const confirmLabelByPhase: Record<ModalPhase, string> = {
+    preparing: "Preparing...",
+    ready: "Continue to wallet",
+    walletPending: "Waiting for wallet...",
+    blocked: "Preparing...",
+  };
+
+  const showSpinner = phase !== "ready";
+  const confirmDisabled = phase !== "ready";
+  const title = titleByPhase[phase];
+  const description = descriptionByPhase[phase];
+  const confirmLabel = confirmLabelByPhase[phase];
 
   return (
     <Dialog
@@ -42,10 +82,10 @@ export function DonationProcessingModal({
 
           <div className="flex flex-col gap-2">
             <DialogTitle className="text-2xl font-semibold text-black-500">
-              Confirm transaction
+              {title}
             </DialogTitle>
             <DialogDescription className="text-sm text-black-300">
-              Please confirm transaction from your wallet
+              {description}
             </DialogDescription>
           </div>
         </div>
@@ -63,7 +103,7 @@ export function DonationProcessingModal({
             onClick={() => onConfirm()}
             disabled={confirmDisabled}
           >
-            {isWalletRequestPending ? (
+            {showSpinner ? (
               <span className="flex items-center justify-center gap-2 text-sm font-semibold">
                 <Loader2 className="size-4 animate-spin" />
                 {confirmLabel}
