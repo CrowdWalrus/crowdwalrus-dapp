@@ -708,7 +708,9 @@ export default function PostCampaignUpdatePage() {
       setWizardStep(WizardStep.FORM);
       setError(null);
 
-      if (!certifyResult) {
+      // Preserve paid registration/upload context so a certify failure does not
+      // force the user through WAL registration again.
+      if (!certifyResult && !registerResult) {
         setFlowState(null);
         setRegisterResult(null);
         setUploadCompleted(false);

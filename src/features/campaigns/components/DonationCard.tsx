@@ -38,11 +38,11 @@ import { useDonorBadges } from "@/features/badges/hooks/useDonorBadges";
 import { useDebounce } from "@/shared/hooks/useDebounce";
 import { Skeleton } from "@/shared/components/ui/skeleton";
 import {
-  buildFirstTimeDonationTx,
-  buildRepeatDonationTx,
+  buildDonationTransaction,
   parseCoinInputToRawAmount,
   DEFAULT_SLIPPAGE_BPS,
-  type DonationBuildResult,
+  type DonationBuildFlow,
+  type BuildDonationTransactionParams,
 } from "@/services/donations";
 import { resolveProfileIdOnChain } from "@/services/profile";
 import { previewPriceOracleQuote } from "@/services/priceOracle";
@@ -53,7 +53,13 @@ import {
 } from "@/shared/config/networkConfig";
 import type { SupportedNetwork } from "@/shared/types/network";
 import type { TokenRegistryEntry } from "@/services/tokenRegistry";
-import { isUserRejectedError } from "@/shared/utils/errors";
+import {
+  executeWithStaleObjectRetry,
+  isInsufficientCoinBalanceError,
+  isInsufficientSuiGasError,
+  isStaleObjectError,
+  isUserRejectedError,
+} from "@/shared/utils/errors";
 import { getContractConfig } from "@/shared/config/contracts";
 import {
   getTokenDisplayData,
@@ -627,6 +633,44 @@ export function DonationCard({
   const donationEventType = `${contractConfig.contracts.packageId}::donations::DonationReceived`;
   const badgeEventType = `${contractConfig.contracts.packageId}::badge_rewards::BadgeMinted`;
 
+  const buildDonationForContext = useCallback(
+    async ({
+      rawAmount,
+      selectedToken,
+      donationFlow,
+      profileId,
+    }: Pick<
+      PendingDonationContext,
+      "rawAmount" | "selectedToken" | "donationFlow" | "profileId"
+    >) => {
+      if (!currentAccount?.address) {
+        throw new Error("Connect your wallet to donate.");
+      }
+
+      const params: BuildDonationTransactionParams = {
+        flow: donationFlow,
+        profileId,
+        suiClient,
+        accountAddress: currentAccount.address,
+        campaignId,
+        statsId,
+        token: selectedToken,
+        rawAmount,
+        network,
+        slippageBps: DEFAULT_SLIPPAGE_BPS,
+      };
+
+      return await buildDonationTransaction(params);
+    },
+    [
+      campaignId,
+      currentAccount?.address,
+      network,
+      statsId,
+      suiClient,
+    ],
+  );
+
   async function handleDonate() {
     setValidationError(null);
 
@@ -768,39 +812,23 @@ export function DonationCard({
       void refetchProfile();
     }
 
-    const donationFlow: DonationFlow = resolvedProfileId
+    const donationFlow: DonationBuildFlow = resolvedProfileId
       ? "repeat"
       : "firstTime";
     const shouldRefreshProfile =
       donationFlow === "firstTime" || (profileResolvedFromChain && !hasProfile);
-    let buildResult: DonationBuildResult;
+    let previewBuildResult;
     try {
-      buildResult =
-        donationFlow === "repeat"
-          ? await buildRepeatDonationTx({
-              suiClient,
-              accountAddress: currentAccount.address,
-              campaignId,
-              statsId,
-              token: selectedToken,
-              rawAmount,
-              network,
-              slippageBps: DEFAULT_SLIPPAGE_BPS,
-              profileId: resolvedProfileId!,
-            })
-          : await buildFirstTimeDonationTx({
-              suiClient,
-              accountAddress: currentAccount.address,
-              campaignId,
-              statsId,
-              token: selectedToken,
-              rawAmount,
-              network,
-              slippageBps: DEFAULT_SLIPPAGE_BPS,
-            });
+      previewBuildResult = await buildDonationForContext({
+        rawAmount,
+        selectedToken,
+        donationFlow,
+        profileId: resolvedProfileId,
+      });
     } catch (error) {
       const message = formatDonationError(error, {
         flow: donationFlow,
+        token: selectedToken,
       });
       setValidationError(message);
       setIsProcessing(false);
@@ -819,27 +847,27 @@ export function DonationCard({
       flow: donationFlow,
       rawAmount: rawAmount.toString(),
       coinType: selectedToken.coinType,
-      quotedUsdMicro: buildResult.quotedUsdMicro.toString(),
-      expectedMinUsdMicro: buildResult.expectedMinUsdMicro.toString(),
+      quotedUsdMicro: previewBuildResult.quotedUsdMicro.toString(),
+      expectedMinUsdMicro: previewBuildResult.expectedMinUsdMicro.toString(),
     });
 
-    setLastUsdQuote(buildResult.quotedUsdMicro);
+    setLastUsdQuote(previewBuildResult.quotedUsdMicro);
     setIsBuildingDonation(false);
     if (donationFlowRef.current !== flowToken) {
       return;
     }
 
     const pendingContext: PendingDonationContext = {
-      buildResult,
       rawAmount,
       selectedToken,
       selectedTokenDisplay,
       donationFlow,
       shouldRefreshProfile,
+      profileId: resolvedProfileId,
+      previewQuotedUsdMicro: previewBuildResult.quotedUsdMicro,
     };
 
     setPendingDonation(pendingContext);
-    void executePendingDonation(pendingContext);
   }
 
   const executePendingDonation = useCallback(
@@ -855,17 +883,15 @@ export function DonationCard({
       setIsWalletRequestPending(true);
 
       const {
-        buildResult,
         rawAmount,
         selectedToken,
         selectedTokenDisplay,
         donationFlow,
-        shouldRefreshProfile,
       } = context;
 
       const runDonation = async (
         transaction: Transaction,
-        refreshProfile: boolean,
+        executionContext: PendingDonationContext,
       ) => {
         const response = await signAndExecuteWithWallet(
           transaction,
@@ -991,7 +1017,7 @@ export function DonationCard({
         setContributionAmount("");
         setValidationError(null);
 
-        if (refreshProfile) {
+        if (executionContext.shouldRefreshProfile) {
           try {
             await refetchProfile();
           } catch (profileRefreshError) {
@@ -1032,8 +1058,8 @@ export function DonationCard({
           txDigest: transactionDigest,
           timestampMs: Date.now(),
           donor: currentAccount?.address ?? "",
-          coinTypeCanonical: selectedToken.coinType,
-          coinSymbol: selectedToken.symbol,
+          coinTypeCanonical: executionContext.selectedToken.coinType,
+          coinSymbol: executionContext.selectedToken.symbol,
           amountRaw: grossRawAmount,
           amountUsdMicro,
           platformBps: platformFeeBps,
@@ -1052,9 +1078,66 @@ export function DonationCard({
         setIsProcessing(false);
       };
 
+      const executeDonationFlow = async (
+        executionContext: PendingDonationContext,
+        options: { enforceQuoteReconfirm: boolean },
+      ) => {
+        await executeWithStaleObjectRetry({
+          maxRetries: DONATION_STALE_MAX_RETRIES,
+          retryDelayMs: DONATION_STALE_RETRY_DELAY_MS,
+          onRetry: (error, nextAttempt) => {
+            console.warn(
+              `[donation] stale object detected; retrying attempt ${nextAttempt + 1}`,
+              error,
+            );
+          },
+          execute: async (attempt) => {
+            const freshBuildResult = await buildDonationForContext({
+              rawAmount: executionContext.rawAmount,
+              selectedToken: executionContext.selectedToken,
+              donationFlow: executionContext.donationFlow,
+              profileId: executionContext.profileId,
+            });
+
+            if (
+              options.enforceQuoteReconfirm &&
+              attempt === 0 &&
+              shouldRequireQuoteReconfirm(
+                executionContext.previewQuotedUsdMicro,
+                freshBuildResult.quotedUsdMicro,
+              )
+            ) {
+              throw new DonationQuoteReconfirmError(
+                freshBuildResult.quotedUsdMicro,
+              );
+            }
+
+            return await runDonation(
+              freshBuildResult.transaction,
+              executionContext,
+            );
+          },
+        });
+      };
+
       try {
-        await runDonation(buildResult.transaction, shouldRefreshProfile);
+        await executeDonationFlow(context, {
+          enforceQuoteReconfirm: true,
+        });
       } catch (error) {
+        if (error instanceof DonationQuoteReconfirmError) {
+          const updatedContext: PendingDonationContext = {
+            ...context,
+            previewQuotedUsdMicro: error.nextQuotedUsdMicro,
+          };
+          setPendingDonation(updatedContext);
+          setLastUsdQuote(error.nextQuotedUsdMicro);
+          toast.info(
+            "Live quote changed meaningfully while preparing your transaction. Review the updated estimate and press Continue to wallet.",
+          );
+          return;
+        }
+
         if (isUserRejectedError(error)) {
           toast.info("Transaction cancelled. No funds were sent.");
           return;
@@ -1077,32 +1160,31 @@ export function DonationCard({
             });
 
             if (onChainProfileId) {
-              const retryBuildResult = await buildRepeatDonationTx({
-                suiClient,
-                accountAddress: currentAccount?.address ?? "",
-                campaignId,
-                statsId,
-                token: selectedToken,
+              const repeatPreview = await buildDonationForContext({
                 rawAmount,
-                network,
-                slippageBps: DEFAULT_SLIPPAGE_BPS,
+                selectedToken,
+                donationFlow: "repeat",
                 profileId: onChainProfileId,
               });
 
               const retryContext: PendingDonationContext = {
-                buildResult: retryBuildResult,
                 rawAmount,
                 selectedToken,
                 selectedTokenDisplay,
                 donationFlow: "repeat",
                 shouldRefreshProfile: true,
+                profileId: onChainProfileId,
+                previewQuotedUsdMicro: repeatPreview.quotedUsdMicro,
               };
 
               setPendingDonation(retryContext);
+              setLastUsdQuote(repeatPreview.quotedUsdMicro);
               toast.info(
                 "Detected an existing donor profile. Retrying with the repeat-donor flow.",
               );
-              await runDonation(retryBuildResult.transaction, true);
+              await executeDonationFlow(retryContext, {
+                enforceQuoteReconfirm: false,
+              });
               return;
             }
           } catch (retryError) {
@@ -1112,6 +1194,7 @@ export function DonationCard({
             }
             const message = formatDonationError(retryError, {
               flow: "repeat",
+              token: selectedToken,
             });
             toast.error(message);
             console.error("[donation] retry execution failed", {
@@ -1123,6 +1206,7 @@ export function DonationCard({
 
         const message = formatDonationError(error, {
           flow: donationFlow,
+          token: selectedToken,
         });
         toast.error(message);
         console.error("[donation] transaction execution failed", {
@@ -1140,8 +1224,7 @@ export function DonationCard({
       badgeEventType,
       donationEventType,
       network,
-      campaignId,
-      statsId,
+      buildDonationForContext,
       currentAccount?.address,
       ownedBadges,
       refetchDonorBadges,
@@ -1722,15 +1805,19 @@ function buildExplorerTxUrl(
 }
 
 interface PendingDonationContext {
-  buildResult: DonationBuildResult;
   rawAmount: bigint;
   selectedToken: TokenRegistryEntry;
   selectedTokenDisplay: TokenDisplayData | null;
-  donationFlow: DonationFlow;
+  donationFlow: DonationBuildFlow;
   shouldRefreshProfile: boolean;
+  profileId: string | null;
+  previewQuotedUsdMicro: bigint;
 }
 
-type DonationFlow = "firstTime" | "repeat";
+const DONATION_STALE_MAX_RETRIES = 1;
+const DONATION_STALE_RETRY_DELAY_MS = 900;
+const DONATION_QUOTE_RECONFIRM_THRESHOLD_BPS = 300; // 3%
+const DONATION_QUOTE_RECONFIRM_MIN_DELTA_USD_MICRO = 500_000n; // $0.50
 
 const DONATION_ABORT_MESSAGES: Record<number, string> = {
   1: "Campaign is not active right now. Please refresh and try again.",
@@ -1743,14 +1830,68 @@ const DONATION_ABORT_MESSAGES: Record<number, string> = {
   8: "Campaign totals desynced. Refresh the page and try again.",
 };
 
+class DonationQuoteReconfirmError extends Error {
+  readonly nextQuotedUsdMicro: bigint;
+
+  constructor(nextQuotedUsdMicro: bigint) {
+    super("Donation quote changed materially and requires reconfirmation.");
+    this.name = "DonationQuoteReconfirmError";
+    this.nextQuotedUsdMicro = nextQuotedUsdMicro;
+  }
+}
+
+function shouldRequireQuoteReconfirm(
+  previousQuotedUsdMicro: bigint,
+  nextQuotedUsdMicro: bigint,
+): boolean {
+  if (previousQuotedUsdMicro <= 0n || nextQuotedUsdMicro <= 0n) {
+    return false;
+  }
+
+  const delta =
+    previousQuotedUsdMicro > nextQuotedUsdMicro
+      ? previousQuotedUsdMicro - nextQuotedUsdMicro
+      : nextQuotedUsdMicro - previousQuotedUsdMicro;
+
+  if (delta < DONATION_QUOTE_RECONFIRM_MIN_DELTA_USD_MICRO) {
+    return false;
+  }
+
+  const driftBps = (delta * 10_000n) / previousQuotedUsdMicro;
+  return driftBps >= BigInt(DONATION_QUOTE_RECONFIRM_THRESHOLD_BPS);
+}
+
 function formatDonationError(
   error: unknown,
-  options: { flow: DonationFlow },
+  options: { flow: DonationBuildFlow; token?: TokenRegistryEntry | null },
 ): string {
   const fallback =
     error instanceof Error
       ? error.message
       : "Donation failed. Please try again.";
+
+  if (isStaleObjectError(error)) {
+    return "Wallet coin objects are still syncing after a recent balance change. Please wait a few seconds and try again.";
+  }
+
+  if (isInsufficientSuiGasError(error)) {
+    return "Insufficient SUI balance for gas fees. Leave some SUI in your wallet and try again.";
+  }
+
+  const tokenMarkers = options.token
+    ? [
+        options.token.coinType,
+        options.token.symbol,
+      ]
+    : undefined;
+  if (
+    isInsufficientCoinBalanceError(error, {
+      expectedCoinMarkers: tokenMarkers,
+    })
+  ) {
+    return "Insufficient token balance for this donation amount.";
+  }
+
   const abortCode = extractAbortCode(fallback);
 
   if (abortCode !== null) {
@@ -1782,8 +1923,8 @@ function isPendingDonationContext(value: unknown): value is PendingDonationConte
   return (
     typeof value === "object" &&
     value !== null &&
-    "buildResult" in value &&
     "rawAmount" in value &&
-    "selectedToken" in value
+    "selectedToken" in value &&
+    "donationFlow" in value
   );
 }

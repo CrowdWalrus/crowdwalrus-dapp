@@ -45,12 +45,12 @@ export function CampaignTermsAndConditionsSection({
                   htmlFor="terms"
                   className="cursor-pointer font-normal text-sm text-neutral-700 leading-[1.5]"
                 >
-                  By publishing your campaign on CrowdWalrus, you agree to our
+                  By publishing your campaign on CrowdWalrus, you agree to our{" "}
                   <a
                     href={DOCS_LINKS.legal.termsOfUse}
                     target="_blank"
                     rel="noopener noreferrer"
-                    className="ml-1 underline underline-offset-4 hover:text-neutral-900"
+                    className="underline underline-offset-4 hover:text-neutral-900"
                   >
                     Terms and Conditions
                   </a>

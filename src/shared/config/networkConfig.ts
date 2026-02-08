@@ -38,7 +38,7 @@ export const WALRUS_EPOCH_CONFIG = {
     epochDurationDays: 14, // 14 days (2 weeks) per epoch on mainnet
     minEpochs: 27, // Minimum: ~1 year (27 epochs × 14 days = 378 days)
     defaultEpochs: 27, // Default: ~1 year (27 epochs × 14 days = 378 days)
-    maxEpochs: 78, // Max: ~3 years (78 epochs × 14 days = 1092 days)
+    maxEpochs: 78, // Protocol cap: 78 epochs (1092 days)
   },
   devnet: {
     epochDurationDays: 1, // Same as testnet
@@ -72,7 +72,6 @@ export const STORAGE_DURATION_OPTIONS = {
   mainnet: [
     { label: "1 year", epochs: 27, days: 378 }, // 27 epochs × 14 days = 378 days
     { label: "2 years", epochs: 53, days: 742 }, // 53 epochs × 14 days = 742 days
-    { label: "3 years", epochs: 78, days: 1092 }, // 78 epochs × 14 days = 1092 days
   ] as StorageDurationOption[],
   devnet: [
     { label: "3 days", epochs: 3, days: 3 },

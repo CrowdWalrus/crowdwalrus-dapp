@@ -368,6 +368,16 @@ export default function NewCampaignPage() {
       return;
     }
 
+    // Starting a brand-new registration attempt should discard any prior
+    // register/upload/certify context to avoid retrying stale flow data.
+    setError(null);
+    setCertifyRejectionMessage(null);
+    setCampaignResult(null);
+    setFlowState(null);
+    setRegisterResult(null);
+    setUploadCompleted(false);
+    setCertifyResult(null);
+
     const campaignFormData = transformNewCampaignFormData(data);
     setFormData(campaignFormData);
     // Don't open modal yet - let estimation and preparation happen silently
@@ -736,7 +746,9 @@ export default function NewCampaignPage() {
       setWizardStep(WizardStep.FORM);
       setError(null);
 
-      if (!certifyResult) {
+      // Preserve paid registration/upload context so a certify failure does not
+      // force the user through WAL registration again.
+      if (!certifyResult && !registerResult) {
         setFormData(null);
         setFlowState(null);
         setRegisterResult(null);

@@ -11,7 +11,11 @@
  */
 
 import { useMutation } from "@tanstack/react-query";
-import { useSuiClient, useSignAndExecuteTransaction, useCurrentAccount } from "@mysten/dapp-kit";
+import {
+  useSuiClient,
+  useSignAndExecuteTransaction,
+  useCurrentAccount,
+} from "@mysten/dapp-kit";
 import { WalrusFile, type WriteFilesFlow } from "@mysten/walrus";
 import {
   createWalrusClient,
@@ -32,7 +36,13 @@ import {
   WAL_COIN_TYPE,
 } from "@/shared/config/networkConfig";
 import type { SupportedNetwork } from "@/shared/types/network";
-import { isUserRejectedError } from "@/shared/utils/errors";
+import {
+  executeWithStaleObjectRetry,
+  isInsufficientCoinBalanceError,
+  isInsufficientSuiGasError,
+  isStaleObjectError,
+  isUserRejectedError,
+} from "@/shared/utils/errors";
 
 /**
  * Walrus flow state that's passed between steps
@@ -75,76 +85,21 @@ const WAL_COIN_SYNC_ATTEMPTS = 4;
 const WAL_COIN_SYNC_DELAY_MS = 600;
 const REGISTER_RETRY_DELAY_MS = 1000;
 const REGISTER_MAX_RETRIES = 1; // Initial attempt + 1 retry
-const STALE_OBJECT_ERROR_PATTERNS = [
-  "error checking transaction input objects",
-  "could not find the referenced object",
-  "version none",
-  "object not found",
-];
+const REGISTER_STALE_SYNC_MESSAGE =
+  "Your wallet just changed and coin objects are still syncing. Please wait a few seconds and try Register Storage again.";
+const REGISTER_INSUFFICIENT_WAL_MESSAGE =
+  "Insufficient WAL balance to register storage.";
+const REGISTER_INSUFFICIENT_GAS_MESSAGE =
+  "Insufficient SUI balance for gas fees. Leave some SUI in your wallet and try Register Storage again.";
+const CERTIFY_STALE_SYNC_MESSAGE =
+  "Wallet objects are still syncing. Please wait a few seconds and try Certify again.";
+const CERTIFY_INSUFFICIENT_GAS_MESSAGE =
+  "Insufficient SUI balance for gas fees. Leave some SUI in your wallet and try Certify again.";
 
 const wait = (ms: number) =>
   new Promise<void>((resolve) => {
     setTimeout(resolve, ms);
   });
-
-function collectErrorText(error: unknown): string {
-  const parts: string[] = [];
-
-  const pushValue = (value: unknown) => {
-    if (typeof value === "string" && value.trim().length > 0) {
-      parts.push(value);
-    }
-  };
-
-  if (error instanceof Error) {
-    pushValue(error.message);
-
-    const errorWithCause = error as Error & { cause?: unknown };
-    if (errorWithCause.cause) {
-      pushValue(collectErrorText(errorWithCause.cause));
-    }
-  } else if (typeof error === "string") {
-    pushValue(error);
-  } else if (error && typeof error === "object") {
-    if ("message" in error) {
-      pushValue((error as { message?: unknown }).message);
-    }
-    if ("cause" in error) {
-      pushValue(collectErrorText((error as { cause?: unknown }).cause));
-    }
-  }
-
-  return parts.join(" ").toLowerCase();
-}
-
-function isStaleObjectResolutionError(error: unknown): boolean {
-  const text = collectErrorText(error);
-  if (!text) {
-    return false;
-  }
-
-  return STALE_OBJECT_ERROR_PATTERNS.some((pattern) => text.includes(pattern));
-}
-
-function isInsufficientWalBalanceError(
-  error: unknown,
-  network: SupportedNetwork,
-): boolean {
-  const text = collectErrorText(error);
-  if (!text) {
-    return false;
-  }
-
-  const hasInsufficientMarker =
-    text.includes("not enough coins") ||
-    text.includes("insufficient");
-  const walCoinType = WAL_COIN_TYPE[network].toLowerCase();
-  const hasWalMarker =
-    text.includes(walCoinType) ||
-    text.includes("::wal::wal");
-
-  return hasInsufficientMarker && hasWalMarker;
-}
 
 async function waitForWalCoinSync(
   owner: string,
@@ -294,71 +249,75 @@ export function useWalrusUpload() {
         throw new Error("Wallet not connected");
       }
 
-      let lastError: unknown = null;
+      const walCoinType = WAL_COIN_TYPE[flowState.network];
 
-      for (let retry = 0; retry <= REGISTER_MAX_RETRIES; retry += 1) {
-        const attempt = retry + 1;
-        await waitForWalCoinSync(currentAccount.address, flowState.network, suiClient);
+      try {
+        return await executeWithStaleObjectRetry({
+          maxRetries: REGISTER_MAX_RETRIES,
+          retryDelayMs: REGISTER_RETRY_DELAY_MS,
+          onRetry: (error, nextAttempt) => {
+            console.warn(
+              `[Walrus register] Attempt ${nextAttempt + 1} failed due to stale object references. Retrying...`,
+              error,
+            );
+          },
+          execute: async () => {
+            await waitForWalCoinSync(
+              currentAccount.address,
+              flowState.network,
+              suiClient,
+            );
 
-        const registerTx = buildRegisterTransaction(
-          flowState.flow,
-          flowState.storageEpochs,
-          currentAccount.address
-        );
+            const registerTx = buildRegisterTransaction(
+              flowState.flow,
+              flowState.storageEpochs,
+              currentAccount.address,
+            );
 
-        try {
-          // Resolve intents with our own Sui client before wallet signing.
-          // This avoids wallet-side stale coin object selection after recent WAL changes.
-          await registerTx.build({ client: suiClient });
+            // Resolve intents with our own Sui client before wallet signing.
+            // This avoids wallet-side stale coin object selection after recent WAL changes.
+            await registerTx.build({ client: suiClient });
 
-          const result = await signAndExecute({
-            transaction: registerTx,
-            chain: `sui:${flowState.network}`,
-          });
+            const result = await signAndExecute({
+              transaction: registerTx,
+              chain: `sui:${flowState.network}`,
+            });
 
-          if (!result) {
-            throw new Error("Failed to register blob: No result returned");
-          }
+            if (!result) {
+              throw new Error("Failed to register blob: No result returned");
+            }
 
-          return {
-            transactionDigest: result.digest,
-            flowState,
-          };
-        } catch (error) {
-          if (isUserRejectedError(error)) {
-            throw error;
-          }
-
-          if (isInsufficientWalBalanceError(error, flowState.network)) {
-            throw new Error("Insufficient WAL balance to register storage");
-          }
-
-          lastError = error;
-
-          const shouldRetry =
-            retry < REGISTER_MAX_RETRIES &&
-            isStaleObjectResolutionError(error);
-          if (!shouldRetry) {
-            break;
-          }
-
-          console.warn(
-            `[Walrus register] Attempt ${attempt} failed due to stale object references. Retrying...`,
-            error,
-          );
-          await wait(REGISTER_RETRY_DELAY_MS * attempt);
+            return {
+              transactionDigest: result.digest,
+              flowState,
+            };
+          },
+        });
+      } catch (error) {
+        if (isUserRejectedError(error)) {
+          throw error;
         }
-      }
 
-      if (isStaleObjectResolutionError(lastError)) {
-        throw new Error(
-          "Your wallet just changed and coin objects are still syncing. Please wait a few seconds and try Register Storage again.",
-        );
-      }
+        if (isInsufficientSuiGasError(error)) {
+          throw new Error(REGISTER_INSUFFICIENT_GAS_MESSAGE);
+        }
 
-      throw lastError instanceof Error
-        ? lastError
-        : new Error("Failed to register Walrus storage.");
+        if (
+          isInsufficientCoinBalanceError(error, {
+            expectedCoinMarkers: [walCoinType, "::wal::wal"],
+          })
+        ) {
+          throw new Error(REGISTER_INSUFFICIENT_WAL_MESSAGE);
+        }
+
+        if (isStaleObjectError(error)) {
+          throw new Error(REGISTER_STALE_SYNC_MESSAGE);
+        }
+
+        throw error instanceof Error
+          ? error
+          : new Error("Failed to register Walrus storage.");
+      }
     },
   });
 
@@ -377,30 +336,45 @@ export function useWalrusUpload() {
    */
   const certify = useMutation<CertifyResult, Error, WalrusFlowState>({
     mutationFn: async (flowState) => {
-      const certifyTx = buildCertifyTransaction(flowState.flow);
+      try {
+        const certifyTx = buildCertifyTransaction(flowState.flow);
 
-      const result = await signAndExecute({
-        transaction: certifyTx,
-        chain: `sui:${flowState.network}`,
-      });
+        const result = await signAndExecute({
+          transaction: certifyTx,
+          chain: `sui:${flowState.network}`,
+        });
 
-      if (!result) {
-        throw new Error("Failed to certify blob: No result returned");
+        if (!result) {
+          throw new Error("Failed to certify blob: No result returned");
+        }
+
+        const uploadResult = await getUploadedFilesInfo(
+          suiClient,
+          flowState.flow,
+          flowState.files,
+          flowState.storageEpochs,
+          flowState.network,
+        );
+
+        return {
+          blobId: uploadResult.blobId,
+          cost: uploadResult.cost,
+          storageEpochs: flowState.storageEpochs,
+        };
+      } catch (error) {
+        if (isUserRejectedError(error)) {
+          throw error;
+        }
+        if (isInsufficientSuiGasError(error)) {
+          throw new Error(CERTIFY_INSUFFICIENT_GAS_MESSAGE);
+        }
+        if (isStaleObjectError(error)) {
+          throw new Error(CERTIFY_STALE_SYNC_MESSAGE);
+        }
+        throw error instanceof Error
+          ? error
+          : new Error("Failed to certify Walrus storage.");
       }
-
-      const uploadResult = await getUploadedFilesInfo(
-        suiClient,
-        flowState.flow,
-        flowState.files,
-        flowState.storageEpochs,
-        flowState.network,
-      );
-
-      return {
-        blobId: uploadResult.blobId,
-        cost: uploadResult.cost,
-        storageEpochs: flowState.storageEpochs,
-      };
     },
   });
 
