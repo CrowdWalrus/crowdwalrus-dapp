@@ -76,15 +76,6 @@ import {
 import { ShareModal } from "./modals/ShareModal";
 import { UnverifiedCampaignModal } from "./modals/UnverifiedCampaignModal";
 
-const COMING_SOON_TOKENS: Pick<
-  TokenRegistryEntry,
-  "coinType" | "symbol" | "name"
->[] = [
-  { coinType: "soon:usdt", symbol: "USDT", name: "Tether" },
-  { coinType: "soon:suins", symbol: "SUINS", name: "SuiNS" },
-  { coinType: "soon:bluefin", symbol: "BLUEFIN", name: "Bluefin" },
-];
-
 interface DonationCardProps {
   campaignId: string;
   statsId: string;
@@ -1378,27 +1369,6 @@ export function DonationCard({
                               className="py-2 pl-2 pr-8"
                             >
                               <TokenChoiceContent display={display} />
-                            </SelectItem>
-                          );
-                        })}
-                        {COMING_SOON_TOKENS.map((token) => {
-                          const display = getTokenDisplayData(token);
-                          return (
-                            <SelectItem
-                              key={token.coinType}
-                              value={token.coinType}
-                              disabled
-                              className="py-2 pl-2 pr-8"
-                            >
-                              <div className="flex w-full items-center justify-between gap-2">
-                                <TokenChoiceContent
-                                  display={display}
-                                  className="opacity-60"
-                                />
-                                <span className="text-xs font-semibold text-black-300">
-                                  Soon
-                                </span>
-                              </div>
                             </SelectItem>
                           );
                         })}
