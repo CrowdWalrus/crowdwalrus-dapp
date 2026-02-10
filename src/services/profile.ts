@@ -9,6 +9,12 @@ import {
 } from "@/shared/config/contracts";
 import { DEFAULT_NETWORK } from "@/shared/config/networkConfig";
 import type { SupportedNetwork } from "@/shared/types/network";
+import {
+  extractSubdomainLabel,
+  SUBDOMAIN_MAX_LENGTH,
+  SUBDOMAIN_MIN_LENGTH,
+  SUBDOMAIN_PATTERN,
+} from "@/shared/utils/subdomain";
 
 const PROFILE_METADATA_MAX_KEY_LENGTH = 64;
 const PROFILE_METADATA_MAX_VALUE_LENGTH = 2048;
@@ -320,8 +326,27 @@ export function appendProfileSubdomainRegistration(
 ): Transaction {
   const config = getContractConfig(network);
   const normalizedSubdomain = subdomainFullName.trim();
+  const subdomainLabel = extractSubdomainLabel(
+    normalizedSubdomain,
+    config.campaignDomain,
+  ).trim();
   if (!normalizedSubdomain) {
     throw new Error("Subdomain is required to register a profile SuiNS name.");
+  }
+  if (subdomainLabel.length < SUBDOMAIN_MIN_LENGTH) {
+    throw new Error(
+      `Subdomain must be at least ${SUBDOMAIN_MIN_LENGTH} characters.`,
+    );
+  }
+  if (subdomainLabel.length > SUBDOMAIN_MAX_LENGTH) {
+    throw new Error(
+      `Subdomain must be ${SUBDOMAIN_MAX_LENGTH} characters or less.`,
+    );
+  }
+  if (!SUBDOMAIN_PATTERN.test(subdomainLabel)) {
+    throw new Error(
+      "Subdomain must contain only lowercase letters, numbers, and interior hyphens.",
+    );
   }
 
   tx.moveCall({

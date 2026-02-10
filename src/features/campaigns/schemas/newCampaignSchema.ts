@@ -8,7 +8,11 @@ import {
 } from "@/features/campaigns/constants/funding";
 import { MAX_SOCIAL_LINKS } from "@/features/campaigns/constants/socialPlatforms";
 import { DESCRIPTION_MAX_LENGTH } from "@/features/campaigns/constants/validation";
-import { SUBDOMAIN_PATTERN } from "@/shared/utils/subdomain";
+import {
+  SUBDOMAIN_MAX_LENGTH,
+  SUBDOMAIN_MIN_LENGTH,
+  SUBDOMAIN_PATTERN,
+} from "@/shared/utils/subdomain";
 
 const isValidHttpUrl = (value: string) => {
   try {
@@ -58,6 +62,14 @@ export const newCampaignSchema = z
     subdomain: z
       .string()
       .min(1, "Sub-name is required")
+      .min(
+        SUBDOMAIN_MIN_LENGTH,
+        `Sub-name must be at least ${SUBDOMAIN_MIN_LENGTH} characters`,
+      )
+      .max(
+        SUBDOMAIN_MAX_LENGTH,
+        `Sub-name must be ${SUBDOMAIN_MAX_LENGTH} characters or less`,
+      )
       .regex(
         SUBDOMAIN_PATTERN,
         "Use lowercase letters, numbers, and interior hyphens only (no leading/trailing hyphen or dots).",

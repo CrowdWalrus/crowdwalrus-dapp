@@ -4,7 +4,12 @@ import { Loader2, Check, AlertCircleIcon, Info, Lock } from "lucide-react";
 
 import { useDebounce } from "@/shared/hooks/useDebounce";
 import { useSubnameAvailability } from "@/features/campaigns/hooks/useSubnameAvailability";
-import { formatSubdomain, SUBDOMAIN_PATTERN } from "@/shared/utils/subdomain";
+import {
+  formatSubdomain,
+  SUBDOMAIN_MAX_LENGTH,
+  SUBDOMAIN_MIN_LENGTH,
+  SUBDOMAIN_PATTERN,
+} from "@/shared/utils/subdomain";
 import { cn } from "@/shared/lib/utils";
 import {
   FormField,
@@ -43,8 +48,12 @@ export function SubnameField({
   const hasRawSubdomain = rawSubdomain.length > 0;
   const hasDebouncedSubdomain = debouncedSubdomain.length > 0;
   const isLocked = locked && hasRawSubdomain;
+  const isSubdomainLengthValid =
+    hasDebouncedSubdomain &&
+    debouncedSubdomain.length >= SUBDOMAIN_MIN_LENGTH &&
+    debouncedSubdomain.length <= SUBDOMAIN_MAX_LENGTH;
   const isSubdomainPatternValid =
-    hasDebouncedSubdomain && SUBDOMAIN_PATTERN.test(debouncedSubdomain);
+    isSubdomainLengthValid && SUBDOMAIN_PATTERN.test(debouncedSubdomain);
   const shouldCheckAvailability = !disabled && isSubdomainPatternValid;
 
   const {
@@ -260,6 +269,7 @@ export function SubnameField({
                     id={inputId}
                     placeholder={placeholder}
                     disabled={disabled}
+                    maxLength={SUBDOMAIN_MAX_LENGTH}
                     className="flex-1 bg-transparent text-sm outline-none placeholder:text-muted-foreground/50"
                   />
                 </FormControl>
@@ -292,6 +302,7 @@ export function SubnameField({
                   aria-labelledby={`${inputId}-label`}
                   placeholder={placeholder}
                   disabled={disabled}
+                  maxLength={SUBDOMAIN_MAX_LENGTH}
                   className="flex-1 bg-transparent text-sm outline-none placeholder:text-muted-foreground/50"
                 />
               </FormControl>

@@ -4,9 +4,14 @@ import {
   useDisconnectWallet,
 } from "@mysten/dapp-kit";
 import { Link, useLocation, useNavigate } from "react-router-dom";
-import { useCallback, useRef, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { PlusIcon, WalletMinimal, Menu, LogOut, ChevronDown } from "lucide-react";
 
+import { useWalrusImage } from "@/features/campaigns/hooks/useWalrusImage";
+import {
+  PROFILE_METADATA_KEYS,
+  useProfile,
+} from "@/features/profiles/hooks/useProfile";
 import { Button } from "@/shared/components/ui/button";
 import {
   DropdownMenu,
@@ -23,13 +28,95 @@ import {
   SheetTitle,
   SheetTrigger,
 } from "@/shared/components/ui/sheet";
+import { Skeleton } from "@/shared/components/ui/skeleton";
 import { ROUTES } from "@/shared/config/routes";
-import { DOCS_LINKS } from "@/shared/config/docsLinks";
+import { useNetworkVariable } from "@/shared/config/networkConfig";
+import { cn } from "@/shared/lib/utils";
 import { buildProfileDetailPath } from "@/shared/utils/routes";
+import { formatSubdomain } from "@/shared/utils/subdomain";
 
 type NavLink =
   | { label: string; to: string }
   | { label: string; href: string; external: true };
+
+const formatAddress = (address: string) => `${address.slice(0, 4)}...${address.slice(-4)}`;
+
+function resolveProfileIdentityLabel(
+  subdomainName: string | null,
+  campaignDomain: string | null,
+): string | null {
+  const normalizedSubdomain = subdomainName?.trim() ?? "";
+  if (!normalizedSubdomain) {
+    return null;
+  }
+
+  if (!campaignDomain) {
+    return normalizedSubdomain;
+  }
+
+  const normalizedDomain = campaignDomain.toLowerCase();
+  const lowerSubdomain = normalizedSubdomain.toLowerCase();
+
+  if (lowerSubdomain.endsWith(`.${normalizedDomain}`)) {
+    return normalizedSubdomain;
+  }
+
+  if (lowerSubdomain.endsWith(`@${normalizedDomain}`)) {
+    const [label] = normalizedSubdomain.split("@");
+    return label?.trim() ? formatSubdomain(label, campaignDomain) : normalizedSubdomain;
+  }
+
+  if (normalizedSubdomain.includes(".") || normalizedSubdomain.includes("@")) {
+    return normalizedSubdomain;
+  }
+
+  return formatSubdomain(normalizedSubdomain, campaignDomain);
+}
+
+interface HeaderAccountAvatarProps {
+  imageUrl: string | null;
+  isLoading: boolean;
+  alt: string;
+}
+
+function HeaderAccountAvatar({ imageUrl, isLoading, alt }: HeaderAccountAvatarProps) {
+  const [isImageLoaded, setIsImageLoaded] = useState(false);
+  const [isImageErrored, setIsImageErrored] = useState(false);
+
+  useEffect(() => {
+    setIsImageLoaded(false);
+    setIsImageErrored(false);
+  }, [imageUrl]);
+
+  if (isLoading) {
+    return <Skeleton className="size-6 shrink-0 rounded-full bg-black-50" />;
+  }
+
+  if (imageUrl && !isImageErrored) {
+    return (
+      <div className="relative size-6 shrink-0 overflow-hidden rounded-full bg-black-50">
+        {!isImageLoaded ? (
+          <Skeleton className="absolute inset-0 rounded-none bg-black-50" />
+        ) : null}
+        <img
+          src={imageUrl}
+          alt={alt}
+          className={cn(
+            "h-full w-full object-cover transition-opacity duration-200",
+            isImageLoaded ? "opacity-100" : "opacity-0",
+          )}
+          loading="lazy"
+          onLoad={() => setIsImageLoaded(true)}
+          onError={() => setIsImageErrored(true)}
+        />
+      </div>
+    );
+  }
+
+  return (
+    <div className="size-6 shrink-0 rounded-full bg-gradient-to-br from-blue-500 to-purple-500" />
+  );
+}
 
 export function Header() {
   const account = useCurrentAccount();
@@ -40,10 +127,28 @@ export function Header() {
   const [mobileAccountMenuOpen, setMobileAccountMenuOpen] = useState(false);
   const location = useLocation();
   const navigate = useNavigate();
-
-  const formatAddress = (address: string) => {
-    return `${address.slice(0, 4)}...${address.slice(-4)}`;
-  };
+  const campaignDomain = (useNetworkVariable("campaignDomain") as string | undefined) ?? null;
+  const { subdomainName, metadata } = useProfile({
+    ownerAddress: account?.address ?? null,
+    enabled: Boolean(account?.address),
+    pageSize: 1,
+  });
+  const avatarWalrusUrl = (metadata[PROFILE_METADATA_KEYS.AVATAR_WALRUS_ID] ?? "").trim();
+  const { data: avatarImageUrl, isError: isAvatarError } = useWalrusImage(
+    avatarWalrusUrl || null,
+  );
+  const resolvedProfileIdentity = useMemo(
+    () => resolveProfileIdentityLabel(subdomainName, campaignDomain),
+    [campaignDomain, subdomainName],
+  );
+  const headerIdentityLabel = account
+    ? resolvedProfileIdentity || formatAddress(account.address)
+    : "";
+  const isAvatarSourceLoading = Boolean(
+    account && avatarWalrusUrl && !avatarImageUrl && !isAvatarError,
+  );
+  const resolvedAvatarImageUrl =
+    avatarWalrusUrl && avatarImageUrl && !isAvatarError ? avatarImageUrl : null;
 
   const handleConnectClick = () => {
     connectButtonRef.current?.querySelector("button")?.click();
@@ -54,7 +159,6 @@ export function Header() {
     { to: ROUTES.EXPLORE, label: "Campaigns" },
     { to: ROUTES.ABOUT, label: "About" },
     { to: ROUTES.CONTACT, label: "Contact Us" },
-    { href: DOCS_LINKS.legal.termsOfUse, label: "Terms of Use", external: true },
   ];
 
   const baseNavLinkClassName =
@@ -100,7 +204,10 @@ export function Header() {
   };
 
   const profileBasePath = account
-    ? buildProfileDetailPath(account.address)
+    ? buildProfileDetailPath(account.address, {
+        subdomainName,
+        campaignDomain,
+      })
     : null;
 
   const accountMenuLinks =
@@ -157,14 +264,22 @@ export function Header() {
 
           {/* Desktop Navigation */}
           <nav className="hidden lg:block">
-            <div className="flex gap-12 items-center">
+            <div className="flex gap-8 xl:gap-12 items-center">
               {navLinks.map((link) => renderNavLink(link))}
             </div>
           </nav>
 
           {/* Desktop Actions */}
-          <div className="hidden lg:flex gap-4 items-center">
-            <Button asChild>
+          <div className="hidden lg:flex gap-2 xl:gap-4 items-center">
+            <Button asChild size="icon" className="size-9 xl:hidden">
+              <Link
+                to={ROUTES.CAMPAIGNS_NEW}
+                aria-label="Launch your campaign"
+              >
+                <PlusIcon className="size-5" />
+              </Link>
+            </Button>
+            <Button asChild className="hidden xl:inline-flex">
               <Link to={ROUTES.CAMPAIGNS_NEW}>
                 <PlusIcon />
                 Launch Your Campaign
@@ -184,12 +299,21 @@ export function Header() {
                   <DropdownMenuTrigger asChild>
                     <Button
                       variant="outline"
-                      className="hover:bg-white cursor-pointer gap-2"
+                      className="hover:bg-white cursor-pointer gap-2 min-w-0 max-w-[290px] xl:max-w-[380px]"
                     >
-                      <div className="size-6 rounded-full bg-gradient-to-br from-blue-500 to-purple-500" />
-                      {formatAddress(account.address)}
+                      <HeaderAccountAvatar
+                        imageUrl={resolvedAvatarImageUrl}
+                        isLoading={isAvatarSourceLoading}
+                        alt={headerIdentityLabel}
+                      />
+                      <span
+                        className="max-w-[180px] truncate text-left xl:max-w-[260px]"
+                        title={headerIdentityLabel}
+                      >
+                        {headerIdentityLabel}
+                      </span>
                       <ChevronDown
-                        className={`size-4 text-black-200 transition-transform duration-200 ${
+                        className={`size-4 shrink-0 text-black-200 transition-transform duration-200 ${
                           desktopAccountMenuOpen ? "rotate-180" : ""
                         }`}
                         aria-hidden="true"
@@ -201,8 +325,15 @@ export function Header() {
                     sideOffset={10}
                     className="w-56 rounded-2xl border border-black-50 bg-white p-2 shadow-lg"
                   >
-                    <DropdownMenuLabel className="px-2 py-1.5 text-xs font-normal text-black-200">
-                      My account
+                    <DropdownMenuLabel className="px-2 py-1.5">
+                      <div className="flex flex-col gap-1">
+                        <span className="text-xs font-normal text-black-200">
+                          My account
+                        </span>
+                        <span className="text-xs font-medium text-black-400 leading-relaxed break-all">
+                          {headerIdentityLabel}
+                        </span>
+                      </div>
                     </DropdownMenuLabel>
                     {accountMenuLinks.map((item) => (
                       <DropdownMenuItem
@@ -267,12 +398,22 @@ export function Header() {
                     <Button
                       variant="outline"
                       size="default"
-                      className="h-9 gap-2 rounded-lg px-3"
+                      className="h-9 gap-2 rounded-lg px-2 sm:px-3 min-w-0 max-w-[220px]"
                       aria-label="Open wallet menu"
                     >
-                      <div className="size-6 rounded-full bg-gradient-to-br from-blue-500 to-purple-500" />
+                      <HeaderAccountAvatar
+                        imageUrl={resolvedAvatarImageUrl}
+                        isLoading={isAvatarSourceLoading}
+                        alt={headerIdentityLabel}
+                      />
+                      <span
+                        className="hidden sm:block max-w-[130px] md:max-w-[160px] truncate text-left text-sm"
+                        title={headerIdentityLabel}
+                      >
+                        {headerIdentityLabel}
+                      </span>
                       <ChevronDown
-                        className={`size-4 text-black-200 transition-transform duration-200 ${
+                        className={`size-4 shrink-0 text-black-200 transition-transform duration-200 ${
                           mobileAccountMenuOpen ? "rotate-180" : ""
                         }`}
                         aria-hidden="true"
@@ -284,8 +425,15 @@ export function Header() {
                   sideOffset={12}
                   className="w-[220px] rounded-2xl border border-black-50 bg-white p-2 shadow-lg"
                 >
-                  <DropdownMenuLabel className="px-2 py-1.5 text-xs font-normal text-black-200">
-                    My account
+                  <DropdownMenuLabel className="px-2 py-1.5">
+                    <div className="flex flex-col gap-1">
+                      <span className="text-xs font-normal text-black-200">
+                        My account
+                      </span>
+                      <span className="text-xs font-medium text-black-400 leading-relaxed break-all">
+                        {headerIdentityLabel}
+                      </span>
+                    </div>
                   </DropdownMenuLabel>
                   {accountMenuLinks.map((item) => (
                     <DropdownMenuItem
@@ -351,14 +499,20 @@ export function Header() {
                     {account ? (
                       <Button
                         variant="outline"
-                        className="w-full hover:bg-white cursor-pointer justify-start"
+                        className="w-full hover:bg-white cursor-pointer justify-start gap-2 min-w-0"
                         onClick={() => {
                           disconnect();
                           setMobileMenuOpen(false);
                         }}
                       >
-                        <div className="size-6 rounded-full bg-gradient-to-br from-blue-500 to-purple-500" />
-                        {formatAddress(account.address)}
+                        <HeaderAccountAvatar
+                          imageUrl={resolvedAvatarImageUrl}
+                          isLoading={isAvatarSourceLoading}
+                          alt={headerIdentityLabel}
+                        />
+                        <span className="min-w-0 flex-1 truncate text-left" title={headerIdentityLabel}>
+                          {headerIdentityLabel}
+                        </span>
                       </Button>
                     ) : (
                       <>

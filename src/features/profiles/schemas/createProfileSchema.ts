@@ -1,6 +1,10 @@
 import { z } from "zod";
 
-import { SUBDOMAIN_PATTERN } from "@/shared/utils/subdomain";
+import {
+  SUBDOMAIN_MAX_LENGTH,
+  SUBDOMAIN_MIN_LENGTH,
+  SUBDOMAIN_PATTERN,
+} from "@/shared/utils/subdomain";
 import { MAX_SOCIAL_LINKS } from "@/features/campaigns/constants/socialPlatforms";
 import { socialSchema } from "@/features/campaigns/schemas/newCampaignSchema";
 
@@ -33,6 +37,14 @@ export const createProfileSchema = z.object({
   subdomain: z
     .string()
     .trim()
+    .refine(
+      (value) => value.length === 0 || value.length >= SUBDOMAIN_MIN_LENGTH,
+      `Sub-name must be at least ${SUBDOMAIN_MIN_LENGTH} characters`,
+    )
+    .refine(
+      (value) => value.length === 0 || value.length <= SUBDOMAIN_MAX_LENGTH,
+      `Sub-name must be ${SUBDOMAIN_MAX_LENGTH} characters or less`,
+    )
     .refine(
       (value) =>
         value.length === 0 || SUBDOMAIN_PATTERN.test(value),

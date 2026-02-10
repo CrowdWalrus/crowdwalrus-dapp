@@ -20,7 +20,12 @@ import { getContractConfig, CLOCK_OBJECT_ID } from "@/shared/config/contracts";
 import { WALRUS_EPOCH_CONFIG } from "@/shared/config/networkConfig";
 import type { SupportedNetwork } from "@/shared/types/network";
 import { parseUsdToMicros } from "@/shared/utils/currency";
-import { formatSubdomain } from "@/shared/utils/subdomain";
+import {
+  formatSubdomain,
+  SUBDOMAIN_MAX_LENGTH,
+  SUBDOMAIN_MIN_LENGTH,
+  SUBDOMAIN_PATTERN,
+} from "@/shared/utils/subdomain";
 interface ObjectChange {
   type?: string;
   objectType?: string;
@@ -571,13 +576,23 @@ export function validateCampaignFormData(formData: CampaignFormData): void {
   }
 
   // Subdomain validation
-  if (!formData.subdomain_name || formData.subdomain_name.trim().length === 0) {
+  const normalizedSubdomain = formData.subdomain_name?.trim() ?? "";
+  if (!normalizedSubdomain) {
     throw new Error("Subdomain name is required");
   }
-  // Check subdomain format (alphanumeric and hyphens only)
-  if (!/^[a-z0-9-]+$/.test(formData.subdomain_name)) {
+  if (normalizedSubdomain.length < SUBDOMAIN_MIN_LENGTH) {
     throw new Error(
-      "Subdomain must contain only lowercase letters, numbers, and hyphens",
+      `Subdomain must be at least ${SUBDOMAIN_MIN_LENGTH} characters`,
+    );
+  }
+  if (normalizedSubdomain.length > SUBDOMAIN_MAX_LENGTH) {
+    throw new Error(
+      `Subdomain must be ${SUBDOMAIN_MAX_LENGTH} characters or less`,
+    );
+  }
+  if (!SUBDOMAIN_PATTERN.test(normalizedSubdomain)) {
+    throw new Error(
+      "Subdomain must contain only lowercase letters, numbers, and interior hyphens",
     );
   }
 

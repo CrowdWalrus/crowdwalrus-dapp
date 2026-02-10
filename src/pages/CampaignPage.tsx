@@ -64,8 +64,6 @@ import {
   CampaignResolutionNotFound,
 } from "@/features/campaigns/components/CampaignResolutionStates";
 
-const CAMPAIGN_PLACEHOLDER_IMAGE = "/assets/images/placeholders/campaign.png";
-
 export function CampaignPage() {
   const { id } = useParams<{ id: string }>();
   const network = DEFAULT_NETWORK;
@@ -122,7 +120,10 @@ export function CampaignPage() {
   });
 
   // Fetch cover image
-  const { data: imageObjectUrl } = useWalrusImage(campaign?.coverImageUrl);
+  const {
+    data: imageObjectUrl,
+    isError: isCoverImageError,
+  } = useWalrusImage(campaign?.coverImageUrl);
 
   // Fetch description
   const { data: description, isLoading: loadingDescription } =
@@ -450,10 +451,19 @@ export function CampaignPage() {
         : processingType === "delete"
           ? "Confirm the deletion transaction in your wallet to continue."
           : "Confirm the transaction in your wallet to continue.";
-  const campaignHeroImageUrl =
-    typeof imageObjectUrl === "string" && imageObjectUrl.trim().length > 0
-      ? imageObjectUrl
-      : CAMPAIGN_PLACEHOLDER_IMAGE;
+  const hasCoverImageSource = Boolean(
+    typeof campaign.coverImageUrl === "string" &&
+      campaign.coverImageUrl.trim().length > 0,
+  );
+  const shouldShowCoverImage = Boolean(
+    hasCoverImageSource && imageObjectUrl && !isCoverImageError,
+  );
+  const campaignHeroImageUrl = shouldShowCoverImage
+    ? imageObjectUrl ?? null
+    : null;
+  const isCampaignHeroImageLoading = Boolean(
+    hasCoverImageSource && !imageObjectUrl && !isCoverImageError,
+  );
 
   const campaignPathOptions = {
     subdomainName: campaign.subdomainName,
@@ -553,6 +563,7 @@ export function CampaignPage() {
               {/* Hero Section */}
               <CampaignHero
                 coverImageUrl={campaignHeroImageUrl}
+                isCoverImageLoading={isCampaignHeroImageLoading}
                 campaignName={campaign.name}
                 shortDescription={campaign.shortDescription}
                 isActive={campaign.isActive}

@@ -3,11 +3,13 @@
  * Main campaign visual and metadata section
  */
 
+import { useEffect, useState } from "react";
 import { Globe } from "lucide-react";
 import { Link } from "react-router-dom";
 import { SOCIAL_PLATFORM_CONFIG } from "@/features/campaigns/constants/socialPlatforms";
 import type { CampaignSocialLink } from "@/features/campaigns/types/campaign";
 import { Separator } from "@/shared/components/ui/separator";
+import { Skeleton } from "@/shared/components/ui/skeleton";
 import {
   CampaignStatusBadge,
   CategoryBadge,
@@ -18,6 +20,7 @@ import {
 import { getCampaignStatusInfo } from "../utils/campaignStatus";
 import { resolveProfileLink } from "@/shared/utils/profile";
 import { useNetworkVariable } from "@/shared/config/networkConfig";
+import { cn } from "@/shared/lib/utils";
 
 const PLACEHOLDER_IMAGE = "/assets/images/placeholders/campaign.png";
 
@@ -31,7 +34,8 @@ function formatAddress(address: string | null | undefined): string {
 }
 
 interface CampaignHeroProps {
-  coverImageUrl: string;
+  coverImageUrl: string | null;
+  isCoverImageLoading?: boolean;
   campaignName: string;
   shortDescription: string;
   isActive: boolean;
@@ -47,6 +51,7 @@ interface CampaignHeroProps {
 
 export function CampaignHero({
   coverImageUrl,
+  isCoverImageLoading = false,
   campaignName,
   shortDescription,
   isActive,
@@ -89,11 +94,6 @@ export function CampaignHero({
       : category.trim()
         ? [category.trim()]
         : [];
-  const hasCoverImage =
-    !!(coverImageUrl && coverImageUrl.trim().length > 0);
-  const displayCoverImageUrl = hasCoverImage
-    ? coverImageUrl
-    : PLACEHOLDER_IMAGE;
 
   const statusInfo = getCampaignStatusInfo(
     startDateMs,
@@ -119,15 +119,11 @@ export function CampaignHero({
   return (
     <div className="flex flex-col gap-4 sm:gap-5 lg:gap-6 w-full">
       {/* Cover Image */}
-      <div className="w-full h-[240px] sm:h-[320px] md:h-[380px] lg:h-[432px] rounded-2xl sm:rounded-3xl overflow-hidden bg-muted">
-        <img
-          src={displayCoverImageUrl}
+      <div className="relative w-full h-[240px] sm:h-[320px] md:h-[380px] lg:h-[432px] rounded-2xl sm:rounded-3xl overflow-hidden bg-muted">
+        <CampaignHeroCoverImage
+          imageUrl={coverImageUrl}
+          isLoading={isCoverImageLoading}
           alt={campaignName}
-          className="w-full h-full object-cover"
-          onError={(event) => {
-            event.currentTarget.onerror = null;
-            event.currentTarget.src = PLACEHOLDER_IMAGE;
-          }}
         />
       </div>
 
@@ -218,5 +214,61 @@ export function CampaignHero({
         <Separator className="bg-white-600" />
       </div>
     </div>
+  );
+}
+
+interface CampaignHeroCoverImageProps {
+  imageUrl: string | null;
+  isLoading: boolean;
+  alt: string;
+}
+
+function CampaignHeroCoverImage({
+  imageUrl,
+  isLoading,
+  alt,
+}: CampaignHeroCoverImageProps) {
+  const [isImageLoaded, setIsImageLoaded] = useState(false);
+  const [isImageErrored, setIsImageErrored] = useState(false);
+
+  useEffect(() => {
+    setIsImageLoaded(false);
+    setIsImageErrored(false);
+  }, [imageUrl]);
+
+  if (isLoading) {
+    return (
+      <Skeleton className="absolute inset-0 h-full w-full rounded-none bg-black-100" />
+    );
+  }
+
+  if (imageUrl && !isImageErrored) {
+    return (
+      <div className="absolute inset-0 h-full w-full overflow-hidden bg-muted">
+        {!isImageLoaded ? (
+          <Skeleton className="absolute inset-0 h-full w-full rounded-none bg-black-100" />
+        ) : null}
+        <img
+          src={imageUrl}
+          alt={alt}
+          className={cn(
+            "absolute inset-0 h-full w-full object-cover transition-opacity duration-200",
+            isImageLoaded ? "opacity-100" : "opacity-0",
+          )}
+          loading="lazy"
+          onLoad={() => setIsImageLoaded(true)}
+          onError={() => setIsImageErrored(true)}
+        />
+      </div>
+    );
+  }
+
+  return (
+    <img
+      src={PLACEHOLDER_IMAGE}
+      alt={alt}
+      className="absolute inset-0 h-full w-full object-cover"
+      loading="lazy"
+    />
   );
 }
