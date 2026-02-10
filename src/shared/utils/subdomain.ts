@@ -2,6 +2,8 @@
  * Allowed campaign sub-name pattern: lowercase letters, numbers, interior hyphens only.
  * Hyphen cannot be the first or last character to satisfy SuiNS constraints.
  */
+export const SUBDOMAIN_MIN_LENGTH = 3;
+export const SUBDOMAIN_MAX_LENGTH = 63;
 export const SUBDOMAIN_PATTERN = /^(?!-)[a-z0-9-]+(?<!-)$/;
 
 /**
