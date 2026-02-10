@@ -1,5 +1,13 @@
 # Changelog
 
+## [1.10.0](https://github.com/CrowdWalrus/crowdwalrus-dapp/compare/v1.9.0...v1.10.0) (2026-02-10)
+
+
+### Features
+
+* enhance ProfileSummaryCard with improved loading states and image handling ([6e930f7](https://github.com/CrowdWalrus/crowdwalrus-dapp/commit/6e930f7696b203d50950fc2d18e3dcf46ba5abb3))
+* update WALRUS upload logic to dynamically adjust epoch limits ([eabd445](https://github.com/CrowdWalrus/crowdwalrus-dapp/commit/eabd4454e09ddf80d4672f78d51dffbd6f25696c))
+
 ## [1.9.0](https://github.com/CrowdWalrus/crowdwalrus-dapp/compare/v1.8.0...v1.9.0) (2026-02-08)
 
 
