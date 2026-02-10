@@ -1,5 +1,20 @@
 # Changelog
 
+## [1.11.0](https://github.com/CrowdWalrus/crowdwalrus-dapp/compare/v1.10.0...v1.11.0) (2026-02-10)
+
+
+### Features
+
+* enhance Header component with profile image handling and identity resolution ([aa24ac1](https://github.com/CrowdWalrus/crowdwalrus-dapp/commit/aa24ac141d23e1498e7ce75bcbcee08e2bad05e7))
+* enhance subdomain validation across schemas and components ([c34c3ea](https://github.com/CrowdWalrus/crowdwalrus-dapp/commit/c34c3ea0eb184aec5c6802ed5f42d6267dc78e26))
+* improve campaign cover image handling across components ([f416f69](https://github.com/CrowdWalrus/crowdwalrus-dapp/commit/f416f69559164f4ac182a5614bd5fbca0c8af05d))
+* refactor donation transaction building with enhanced gas reserve handling ([62b9f79](https://github.com/CrowdWalrus/crowdwalrus-dapp/commit/62b9f795dba5b688c5e76584459c5629341a79ad))
+
+
+### Refactors
+
+* comment out HomeFeaturedCaseStudiesSection in HomePage ([ee35d86](https://github.com/CrowdWalrus/crowdwalrus-dapp/commit/ee35d86df407f02a8c258b11d1c04a80d852677f))
+
 ## [1.10.0](https://github.com/CrowdWalrus/crowdwalrus-dapp/compare/v1.9.0...v1.10.0) (2026-02-10)
 
 
