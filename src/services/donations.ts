@@ -17,7 +17,10 @@ import { canonicalizeCoinType, isSuiCoinType } from "@/shared/utils/sui";
 
 const MAX_U64 = (1n << 64n) - 1n;
 const DEFAULT_SLIPPAGE_BPS = 100; // 1%
-const SUI_DONATION_GAS_BUFFER = 200_000_000n; // Reserve ~0.2 SUI so the gas coin retains enough balance after splitting.
+const SUI_GAS_RESERVE_FALLBACK = 30_000_000n; // Use 0.03 SUI only when gas estimation is unavailable.
+const SUI_GAS_RESERVE_MULTIPLIER_BPS = 13_000n; // 1.3x estimated gas budget.
+const SUI_GAS_RESERVE_FLAT_OVERHEAD = 2_000_000n; // Add 0.002 SUI on top of scaled gas budget.
+const MAX_SUI_GAS_RESERVE_ATTEMPTS = 3;
 
 export interface DonationBuildResult {
   transaction: Transaction;
@@ -97,61 +100,44 @@ export async function buildFirstTimeDonationTx(
   });
 
   const config = getContractConfig(network);
-  const tx = new Transaction();
-  tx.setSenderIfNotSet(accountAddress);
-
-  const coinType = canonicalizeCoinType(token.coinType);
-
-  const donationCoin = await prepareDonationCoin({
-    tx,
+  return await buildDonationTxWithGasRetry({
     suiClient,
-    ownerAddress: accountAddress,
-    coinType,
+    accountAddress,
+    campaignId,
+    statsId,
+    token,
     rawAmount,
-  });
-
-  const priceQuote = await attachPriceOracleQuote({
     network,
-    token,
-    suiClient,
-    transaction: tx,
-    rawAmount,
-  });
-
-  const expectedMinUsdMicro = deriveExpectedMinUsdMicro(
-    priceQuote.quotedUsdMicro,
     slippageBps,
-  );
-
-  const maxAgeArg = resolveMaxAgeOption(tx, maxAgeMsOverride);
-
-  tx.moveCall({
-    target: `${config.contracts.packageId}::donations::donate_and_award_first_time`,
-    typeArguments: [coinType],
-    arguments: [
-      tx.object(campaignId),
-      tx.object(statsId),
-      tx.object(config.contracts.tokenRegistryObjectId),
-      tx.object(config.contracts.badgeConfigObjectId),
-      tx.object(config.contracts.profilesRegistryObjectId),
-      tx.object(CLOCK_OBJECT_ID),
+    maxAgeMsOverride,
+    configureMoveCall: ({
+      tx,
+      campaignId,
+      statsId,
+      coinType,
       donationCoin,
-      priceQuote.priceInfoObject,
-      tx.pure.u64(expectedMinUsdMicro),
+      priceInfoObject,
+      expectedMinUsdMicro,
       maxAgeArg,
-    ],
+    }) => {
+      tx.moveCall({
+        target: `${config.contracts.packageId}::donations::donate_and_award_first_time`,
+        typeArguments: [coinType],
+        arguments: [
+          tx.object(campaignId),
+          tx.object(statsId),
+          tx.object(config.contracts.tokenRegistryObjectId),
+          tx.object(config.contracts.badgeConfigObjectId),
+          tx.object(config.contracts.profilesRegistryObjectId),
+          tx.object(CLOCK_OBJECT_ID),
+          donationCoin,
+          priceInfoObject,
+          tx.pure.u64(expectedMinUsdMicro),
+          maxAgeArg,
+        ],
+      });
+    },
   });
-
-  return {
-    transaction: tx,
-    quotedUsdMicro: priceQuote.quotedUsdMicro,
-    expectedMinUsdMicro,
-    rawAmount,
-    pricePublishTimeMs: priceQuote.publishTimeMs,
-    priceFeedId: priceQuote.feedId,
-    registryMaxAgeMs: priceQuote.registryMaxAgeMs,
-    token,
-  };
 }
 
 export async function buildRepeatDonationTx(
@@ -180,61 +166,148 @@ export async function buildRepeatDonationTx(
   });
 
   const config = getContractConfig(network);
-  const tx = new Transaction();
-  tx.setSenderIfNotSet(accountAddress);
-
-  const coinType = canonicalizeCoinType(token.coinType);
-
-  const donationCoin = await prepareDonationCoin({
-    tx,
+  return await buildDonationTxWithGasRetry({
     suiClient,
-    ownerAddress: accountAddress,
-    coinType,
+    accountAddress,
+    campaignId,
+    statsId,
+    token,
     rawAmount,
-  });
-
-  const priceQuote = await attachPriceOracleQuote({
     network,
-    token,
-    suiClient,
-    transaction: tx,
-    rawAmount,
-  });
-
-  const expectedMinUsdMicro = deriveExpectedMinUsdMicro(
-    priceQuote.quotedUsdMicro,
     slippageBps,
-  );
-
-  const maxAgeArg = resolveMaxAgeOption(tx, maxAgeMsOverride);
-
-  tx.moveCall({
-    target: `${config.contracts.packageId}::donations::donate_and_award`,
-    typeArguments: [coinType],
-    arguments: [
-      tx.object(campaignId),
-      tx.object(statsId),
-      tx.object(config.contracts.tokenRegistryObjectId),
-      tx.object(config.contracts.badgeConfigObjectId),
-      tx.object(CLOCK_OBJECT_ID),
-      tx.object(profileId),
+    maxAgeMsOverride,
+    configureMoveCall: ({
+      tx,
+      campaignId,
+      statsId,
+      coinType,
       donationCoin,
-      priceQuote.priceInfoObject,
-      tx.pure.u64(expectedMinUsdMicro),
+      priceInfoObject,
+      expectedMinUsdMicro,
       maxAgeArg,
-    ],
+    }) => {
+      tx.moveCall({
+        target: `${config.contracts.packageId}::donations::donate_and_award`,
+        typeArguments: [coinType],
+        arguments: [
+          tx.object(campaignId),
+          tx.object(statsId),
+          tx.object(config.contracts.tokenRegistryObjectId),
+          tx.object(config.contracts.badgeConfigObjectId),
+          tx.object(CLOCK_OBJECT_ID),
+          tx.object(profileId),
+          donationCoin,
+          priceInfoObject,
+          tx.pure.u64(expectedMinUsdMicro),
+          maxAgeArg,
+        ],
+      });
+    },
   });
+}
 
-  return {
-    transaction: tx,
-    quotedUsdMicro: priceQuote.quotedUsdMicro,
-    expectedMinUsdMicro,
-    rawAmount,
-    pricePublishTimeMs: priceQuote.publishTimeMs,
-    priceFeedId: priceQuote.feedId,
-    registryMaxAgeMs: priceQuote.registryMaxAgeMs,
-    token,
-  };
+interface BuildDonationTxWithGasRetryParams extends BaseDonationBuilderParams {
+  configureMoveCall: (params: {
+    tx: Transaction;
+    campaignId: string;
+    statsId: string;
+    coinType: string;
+    donationCoin: TransactionObjectArgument;
+    priceInfoObject: TransactionObjectArgument;
+    expectedMinUsdMicro: bigint;
+    maxAgeArg: ReturnType<typeof resolveMaxAgeOption>;
+  }) => void;
+}
+
+async function buildDonationTxWithGasRetry({
+  suiClient,
+  accountAddress,
+  campaignId,
+  statsId,
+  token,
+  rawAmount,
+  network = DEFAULT_NETWORK,
+  slippageBps = DEFAULT_SLIPPAGE_BPS,
+  maxAgeMsOverride = null,
+  configureMoveCall,
+}: BuildDonationTxWithGasRetryParams): Promise<DonationBuildResult> {
+  const coinType = canonicalizeCoinType(token.coinType);
+  const isSuiDonation = isSuiCoinType(coinType);
+  let suiGasReserveHint: bigint | null = null;
+
+  for (let attempt = 0; attempt < MAX_SUI_GAS_RESERVE_ATTEMPTS; attempt += 1) {
+    const tx = new Transaction();
+    tx.setSenderIfNotSet(accountAddress);
+
+    const preparedCoin = await prepareDonationCoin({
+      tx,
+      suiClient,
+      ownerAddress: accountAddress,
+      coinType,
+      rawAmount,
+      suiGasReserveHint: isSuiDonation ? suiGasReserveHint : null,
+    });
+
+    const priceQuote = await attachPriceOracleQuote({
+      network,
+      token,
+      suiClient,
+      transaction: tx,
+      rawAmount,
+    });
+
+    const expectedMinUsdMicro = deriveExpectedMinUsdMicro(
+      priceQuote.quotedUsdMicro,
+      slippageBps,
+    );
+    const maxAgeArg = resolveMaxAgeOption(tx, maxAgeMsOverride);
+
+    configureMoveCall({
+      tx,
+      campaignId,
+      statsId,
+      coinType,
+      donationCoin: preparedCoin.coin,
+      priceInfoObject: priceQuote.priceInfoObject,
+      expectedMinUsdMicro,
+      maxAgeArg,
+    });
+
+    const buildResult: DonationBuildResult = {
+      transaction: tx,
+      quotedUsdMicro: priceQuote.quotedUsdMicro,
+      expectedMinUsdMicro,
+      rawAmount,
+      pricePublishTimeMs: priceQuote.publishTimeMs,
+      priceFeedId: priceQuote.feedId,
+      registryMaxAgeMs: priceQuote.registryMaxAgeMs,
+      token,
+    };
+
+    if (!isSuiDonation) {
+      return buildResult;
+    }
+
+    const dynamicReserve = await estimateSuiGasReserve({
+      tx,
+      suiClient,
+    });
+    const requiredReserve = dynamicReserve ?? SUI_GAS_RESERVE_FALLBACK;
+    const selectedSuiBalance = preparedCoin.selectedSuiBalance ?? 0n;
+    const requiredTotal = rawAmount + requiredReserve;
+
+    if (selectedSuiBalance >= requiredTotal) {
+      return buildResult;
+    }
+
+    if (attempt === MAX_SUI_GAS_RESERVE_ATTEMPTS - 1) {
+      throw new Error("Insufficient SUI to cover the donation plus gas fees.");
+    }
+
+    suiGasReserveHint = requiredReserve;
+  }
+
+  throw new Error("Failed to build donation transaction.");
 }
 
 export function parseCoinInputToRawAmount(
@@ -287,13 +360,18 @@ async function prepareDonationCoin({
   ownerAddress,
   coinType,
   rawAmount,
+  suiGasReserveHint = null,
 }: {
   tx: Transaction;
   suiClient: SuiClient;
   ownerAddress: string;
   coinType: string;
   rawAmount: bigint;
-}): Promise<TransactionObjectArgument> {
+  suiGasReserveHint?: bigint | null;
+}): Promise<{
+  coin: TransactionObjectArgument;
+  selectedSuiBalance?: bigint;
+}> {
   const normalizedCoinType = canonicalizeCoinType(coinType);
 
   if (isSuiCoinType(normalizedCoinType)) {
@@ -302,6 +380,7 @@ async function prepareDonationCoin({
       suiClient,
       ownerAddress,
       rawAmount,
+      suiGasReserveHint,
     });
   }
 
@@ -334,11 +413,11 @@ async function prepareDonationCoin({
   });
 
   if (totalBalance === rawAmount) {
-    return primaryCoin;
+    return { coin: primaryCoin };
   }
 
   const [donationCoin] = tx.splitCoins(primaryCoin, [rawAmount]);
-  return donationCoin;
+  return { coin: donationCoin };
 }
 
 async function prepareSuiDonationCoin({
@@ -346,15 +425,24 @@ async function prepareSuiDonationCoin({
   suiClient,
   ownerAddress,
   rawAmount,
+  suiGasReserveHint,
 }: {
   tx: Transaction;
   suiClient: SuiClient;
   ownerAddress: string;
   rawAmount: bigint;
-}): Promise<TransactionObjectArgument> {
+  suiGasReserveHint?: bigint | null;
+}): Promise<{
+  coin: TransactionObjectArgument;
+  selectedSuiBalance: bigint;
+}> {
   tx.setSenderIfNotSet(ownerAddress);
   const normalizedOwner = normalizeSuiAddress(ownerAddress);
-  const requiredAmountWithBuffer = rawAmount + SUI_DONATION_GAS_BUFFER;
+  const reserve =
+    typeof suiGasReserveHint === "bigint" && suiGasReserveHint > 0n
+      ? suiGasReserveHint
+      : 0n;
+  const requiredAmountWithBuffer = rawAmount + reserve;
   if (requiredAmountWithBuffer > MAX_U64) {
     throw new Error("Donation amount exceeds supported range.");
   }
@@ -385,25 +473,77 @@ async function prepareSuiDonationCoin({
     throw new Error("Insufficient SUI to cover the donation plus gas fees.");
   }
 
-  const [gasCoin, ...extraCoins] = sortedCoins;
-  if (!gasCoin?.digest || !gasCoin?.version) {
-    throw new Error("Unable to resolve metadata for the selected SUI coin.");
-  }
-
-  tx.setGasPayment([
-    {
-      objectId: gasCoin.coinObjectId,
-      digest: gasCoin.digest,
-      version: gasCoin.version,
-    },
-  ]);
-
-  extraCoins.forEach((coin) => {
-    tx.mergeCoins(tx.gas, [tx.object(coin.coinObjectId)]);
+  const gasPayments = sortedCoins.map((coin) => {
+    if (!coin.digest || !coin.version) {
+      throw new Error("Unable to resolve metadata for the selected SUI coins.");
+    }
+    return {
+      objectId: coin.coinObjectId,
+      digest: coin.digest,
+      version: coin.version,
+    };
   });
 
+  tx.setGasPayment(gasPayments);
+
   const [donationCoin] = tx.splitCoins(tx.gas, [rawAmount]);
-  return donationCoin;
+  return {
+    coin: donationCoin,
+    selectedSuiBalance: totalBalance,
+  };
+}
+
+async function estimateSuiGasReserve({
+  tx,
+  suiClient,
+}: {
+  tx: Transaction;
+  suiClient: SuiClient;
+}): Promise<bigint | null> {
+  const estimationTx = Transaction.from(tx);
+  try {
+    await estimationTx.build({ client: suiClient });
+  } catch {
+    return null;
+  }
+
+  const gasBudget = readGasBudgetFromTransaction(estimationTx);
+  if (gasBudget === null || gasBudget <= 0n) {
+    return null;
+  }
+
+  const scaledBudget =
+    (gasBudget * SUI_GAS_RESERVE_MULTIPLIER_BPS + 9_999n) / 10_000n;
+  const reserve = scaledBudget + SUI_GAS_RESERVE_FLAT_OVERHEAD;
+
+  return reserve > 0n ? reserve : null;
+}
+
+function readGasBudgetFromTransaction(tx: Transaction): bigint | null {
+  const snapshot = tx.getData();
+  if (!snapshot || typeof snapshot !== "object") {
+    return null;
+  }
+
+  const gasData = (snapshot as { gasData?: unknown }).gasData;
+  if (!gasData || typeof gasData !== "object") {
+    return null;
+  }
+
+  const budgetRaw = (gasData as { budget?: unknown }).budget;
+  if (
+    typeof budgetRaw !== "string" &&
+    typeof budgetRaw !== "number" &&
+    typeof budgetRaw !== "bigint"
+  ) {
+    return null;
+  }
+
+  try {
+    return BigInt(budgetRaw);
+  } catch {
+    return null;
+  }
 }
 
 function deriveExpectedMinUsdMicro(
