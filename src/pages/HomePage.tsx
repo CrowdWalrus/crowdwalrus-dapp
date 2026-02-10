@@ -1,6 +1,6 @@
 import { HomeBenefitsSection } from "@/features/home/components/HomeBenefitsSection";
 import { HomeDiscoverCampaignsSection } from "@/features/home/components/HomeDiscoverCampaignsSection";
-import { HomeFeaturedCaseStudiesSection } from "@/features/home/components/HomeFeaturedCaseStudiesSection";
+// import { HomeFeaturedCaseStudiesSection } from "@/features/home/components/HomeFeaturedCaseStudiesSection";
 import { HomeFeatureBannerSection } from "@/features/home/components/HomeFeatureBannerSection";
 import { HomeHeroSection } from "@/features/home/components/HomeHeroSection";
 import { HomeHowItWorksSection } from "@/features/home/components/HomeHowItWorksSection";
@@ -18,10 +18,9 @@ export function HomePage() {
       <HomeBenefitsSection />
       <HomeHowItWorksSection />
       <HomeDiscoverCampaignsSection />
-      <HomeFeaturedCaseStudiesSection />
+      {/* <HomeFeaturedCaseStudiesSection /> */}
       <HomeManifestoSection />
       <HomeTipsSection />
     </div>
   );
 }
-
