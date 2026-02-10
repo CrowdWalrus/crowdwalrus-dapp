@@ -1,4 +1,4 @@
-import type { ReactNode } from "react";
+import { useEffect, useState, type ReactNode } from "react";
 
 import { Globe, Mail } from "lucide-react";
 
@@ -8,6 +8,7 @@ import { useWalrusImage } from "@/features/campaigns/hooks/useWalrusImage";
 
 import { Card, CardContent } from "@/shared/components/ui/card";
 import { Separator } from "@/shared/components/ui/separator";
+import { Skeleton } from "@/shared/components/ui/skeleton";
 import { cn } from "@/shared/lib/utils";
 
 interface ProfileSummaryMetadata {
@@ -38,7 +39,6 @@ export function ProfileSummaryCard({
 }: ProfileSummaryCardProps) {
   const {
     data: avatarImageUrl,
-    isPending: isAvatarLoading,
     isError: isAvatarError,
   } = useWalrusImage(metadata?.avatarWalrusUrl ?? null);
 
@@ -55,6 +55,9 @@ export function ProfileSummaryCard({
   const resolvedAvatarImageUrl = showAvatarImage
     ? avatarImageUrl ?? null
     : null;
+  const isAvatarSourceLoading = Boolean(
+    metadata?.avatarWalrusUrl && !avatarImageUrl && !isAvatarError,
+  );
 
   if (shouldRenderMetadata) {
     return (
@@ -63,7 +66,7 @@ export function ProfileSummaryCard({
           <div className="flex w-full flex-col gap-6 sm:flex-row sm:items-start">
             <ProfileAvatar
               imageUrl={resolvedAvatarImageUrl}
-              isLoading={Boolean(isAvatarLoading && metadata?.avatarWalrusUrl)}
+              isLoading={isAvatarSourceLoading}
               fallbackLabel={avatarLabel}
               alt={displayName}
             />
@@ -164,20 +167,36 @@ function ProfileAvatar({
   fallbackLabel,
   alt,
 }: ProfileAvatarProps) {
+  const [isImageLoaded, setIsImageLoaded] = useState(false);
+  const [isImageErrored, setIsImageErrored] = useState(false);
+
+  useEffect(() => {
+    setIsImageLoaded(false);
+    setIsImageErrored(false);
+  }, [imageUrl]);
+
   if (isLoading) {
     return (
-      <div className="h-28 w-28 shrink-0 animate-pulse rounded-3xl bg-black-50" />
+      <Skeleton className="h-28 w-28 shrink-0 rounded-3xl bg-black-50" />
     );
   }
 
-  if (imageUrl) {
+  if (imageUrl && !isImageErrored) {
     return (
-      <div className="h-28 w-28 shrink-0 overflow-hidden rounded-3xl bg-black-50">
+      <div className="relative h-28 w-28 shrink-0 overflow-hidden rounded-3xl bg-black-50">
+        {!isImageLoaded ? (
+          <Skeleton className="absolute inset-0 rounded-none bg-black-50" />
+        ) : null}
         <img
           src={imageUrl}
           alt={alt}
-          className="h-full w-full object-cover"
+          className={cn(
+            "h-full w-full object-cover transition-opacity duration-200",
+            isImageLoaded ? "opacity-100" : "opacity-0",
+          )}
           loading="lazy"
+          onLoad={() => setIsImageLoaded(true)}
+          onError={() => setIsImageErrored(true)}
         />
       </div>
     );

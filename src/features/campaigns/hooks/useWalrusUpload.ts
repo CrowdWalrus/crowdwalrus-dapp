@@ -194,7 +194,7 @@ export function useWalrusUpload() {
         typeof storageEpochs === "number" && Number.isFinite(storageEpochs)
           ? storageEpochs
           : epochConfig.defaultEpochs;
-      const epochs = Math.min(
+      let epochs = Math.min(
         Math.max(requestedEpochs, minEpochs),
         epochConfig.maxEpochs,
       );
@@ -227,6 +227,23 @@ export function useWalrusUpload() {
       }
 
       const walrusClient = createWalrusClient(suiClient, resolvedNetwork);
+      try {
+        const systemState = await walrusClient.systemState();
+        const protocolMaxEpochs = Number(systemState.future_accounting.length);
+        if (
+          Number.isFinite(protocolMaxEpochs) &&
+          protocolMaxEpochs > 0 &&
+          epochs > protocolMaxEpochs
+        ) {
+          epochs = protocolMaxEpochs;
+        }
+      } catch (error) {
+        console.warn(
+          "[Walrus prepare] Failed to load protocol epoch cap, using app config cap.",
+          error,
+        );
+      }
+
       const flow = await createWalrusUploadFlow(walrusClient, files);
 
       return {

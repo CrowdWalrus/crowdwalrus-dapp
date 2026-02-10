@@ -38,7 +38,7 @@ export const WALRUS_EPOCH_CONFIG = {
     epochDurationDays: 14, // 14 days (2 weeks) per epoch on mainnet
     minEpochs: 27, // Minimum: ~1 year (27 epochs × 14 days = 378 days)
     defaultEpochs: 27, // Default: ~1 year (27 epochs × 14 days = 378 days)
-    maxEpochs: 78, // Protocol cap: 78 epochs (1092 days)
+    maxEpochs: 53, // Current protocol cap: 53 epochs (742 days)
   },
   devnet: {
     epochDurationDays: 1, // Same as testnet
