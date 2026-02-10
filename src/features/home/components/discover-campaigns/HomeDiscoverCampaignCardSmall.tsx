@@ -1,8 +1,11 @@
+import { useEffect, useState } from "react";
 import { Link } from "react-router-dom";
 
 import { useWalrusImage } from "@/features/campaigns/hooks/useWalrusImage";
 import type { CampaignData } from "@/features/campaigns/hooks/useAllCampaigns";
+import { Skeleton } from "@/shared/components/ui/skeleton";
 import { useNetworkVariable } from "@/shared/config/networkConfig";
+import { cn } from "@/shared/lib/utils";
 import { formatUsdLocaleFromMicros } from "@/shared/utils/currency";
 import { buildCampaignDetailPath } from "@/shared/utils/routes";
 
@@ -16,20 +19,84 @@ interface HomeDiscoverCampaignCardSmallProps {
   campaign: CampaignData;
 }
 
+interface DiscoverCampaignCoverImageProps {
+  imageUrl: string | null;
+  isLoading: boolean;
+  alt: string;
+}
+
+function DiscoverCampaignCoverImage({
+  imageUrl,
+  isLoading,
+  alt,
+}: DiscoverCampaignCoverImageProps) {
+  const [isImageLoaded, setIsImageLoaded] = useState(false);
+  const [isImageErrored, setIsImageErrored] = useState(false);
+
+  useEffect(() => {
+    setIsImageLoaded(false);
+    setIsImageErrored(false);
+  }, [imageUrl]);
+
+  if (isLoading) {
+    return (
+      <Skeleton className="absolute inset-0 h-full w-full rounded-none bg-black-100" />
+    );
+  }
+
+  if (imageUrl && !isImageErrored) {
+    return (
+      <div className="absolute inset-0 h-full w-full overflow-hidden bg-white-600">
+        {!isImageLoaded ? (
+          <Skeleton className="absolute inset-0 h-full w-full rounded-none bg-black-100" />
+        ) : null}
+        <img
+          src={imageUrl}
+          alt={alt}
+          className={cn(
+            "absolute inset-0 h-full w-full object-cover transition-opacity duration-200",
+            isImageLoaded ? "opacity-100" : "opacity-0",
+          )}
+          loading="lazy"
+          onLoad={() => setIsImageLoaded(true)}
+          onError={() => setIsImageErrored(true)}
+        />
+      </div>
+    );
+  }
+
+  return (
+    <img
+      src={PLACEHOLDER_IMAGE}
+      alt={alt}
+      className="absolute inset-0 h-full w-full object-cover"
+      loading="lazy"
+    />
+  );
+}
+
 export function HomeDiscoverCampaignCardSmall({
   campaign,
 }: HomeDiscoverCampaignCardSmallProps) {
   const campaignDomain = useNetworkVariable("campaignDomain") as
     | string
     | undefined;
-  const { data: coverImageObjectUrl } = useWalrusImage(campaign.coverImageUrl);
+  const { data: coverImageObjectUrl, isError: isCoverImageError } =
+    useWalrusImage(campaign.coverImageUrl);
 
-  const hasCoverImage =
-    typeof coverImageObjectUrl === "string" &&
-    coverImageObjectUrl.trim().length > 0;
-  const displayCoverImageUrl = hasCoverImage
-    ? coverImageObjectUrl
-    : PLACEHOLDER_IMAGE;
+  const hasCoverImageSource = Boolean(
+    typeof campaign.coverImageUrl === "string" &&
+      campaign.coverImageUrl.trim().length > 0,
+  );
+  const showCoverImage = Boolean(
+    hasCoverImageSource && coverImageObjectUrl && !isCoverImageError,
+  );
+  const resolvedCoverImageUrl = showCoverImage
+    ? coverImageObjectUrl ?? null
+    : null;
+  const isCoverImageSourceLoading = Boolean(
+    hasCoverImageSource && !coverImageObjectUrl && !isCoverImageError,
+  );
 
   const raisedUsdMicro = campaign.recipientTotalUsdMicro ?? 0n;
   const goalUsdMicro = campaign.fundingGoalUsdMicro ?? 0n;
@@ -49,14 +116,10 @@ export function HomeDiscoverCampaignCardSmall({
       className="flex h-full flex-col gap-4 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
     >
       <div className="relative w-full flex-1 overflow-hidden rounded-[24px] bg-white-600">
-        <img
-          src={displayCoverImageUrl}
+        <DiscoverCampaignCoverImage
+          imageUrl={resolvedCoverImageUrl}
+          isLoading={isCoverImageSourceLoading}
           alt={campaign.name}
-          className="h-full w-full object-cover"
-          onError={(event) => {
-            event.currentTarget.onerror = null;
-            event.currentTarget.src = PLACEHOLDER_IMAGE;
-          }}
         />
       </div>
 

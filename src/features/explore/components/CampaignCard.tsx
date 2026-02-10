@@ -5,7 +5,7 @@
  * Matches Figma design exactly
  */
 
-import { useMemo } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { Link } from "react-router-dom";
 import { Button } from "@/shared/components/ui/button";
 import type { CampaignData } from "@/features/campaigns/hooks/useAllCampaigns";
@@ -21,6 +21,8 @@ import { useNetworkVariable } from "@/shared/config/networkConfig";
 import { buildCampaignDetailPath } from "@/shared/utils/routes";
 import { resolveProfileLink } from "@/shared/utils/profile";
 import { formatUsdLocaleFromMicros } from "@/shared/utils/currency";
+import { Skeleton } from "@/shared/components/ui/skeleton";
+import { cn } from "@/shared/lib/utils";
 
 interface CampaignCardProps {
   campaign: CampaignData;
@@ -39,6 +41,62 @@ function formatAddress(address: string | null | undefined): string {
   return `${address.slice(0, 4)}...${address.slice(-4)}`;
 }
 
+interface CampaignCoverImageProps {
+  imageUrl: string | null;
+  isLoading: boolean;
+  alt: string;
+}
+
+function CampaignCoverImage({
+  imageUrl,
+  isLoading,
+  alt,
+}: CampaignCoverImageProps) {
+  const [isImageLoaded, setIsImageLoaded] = useState(false);
+  const [isImageErrored, setIsImageErrored] = useState(false);
+
+  useEffect(() => {
+    setIsImageLoaded(false);
+    setIsImageErrored(false);
+  }, [imageUrl]);
+
+  if (isLoading) {
+    return (
+      <Skeleton className="absolute inset-0 h-full w-full rounded-none bg-white-600" />
+    );
+  }
+
+  if (imageUrl && !isImageErrored) {
+    return (
+      <div className="absolute inset-0 h-full w-full overflow-hidden bg-white-600">
+        {!isImageLoaded ? (
+          <Skeleton className="absolute inset-0 h-full w-full rounded-none bg-white-600" />
+        ) : null}
+        <img
+          src={imageUrl}
+          alt={alt}
+          className={cn(
+            "absolute inset-0 h-full w-full object-cover transition-opacity duration-200",
+            isImageLoaded ? "opacity-100" : "opacity-0",
+          )}
+          loading="lazy"
+          onLoad={() => setIsImageLoaded(true)}
+          onError={() => setIsImageErrored(true)}
+        />
+      </div>
+    );
+  }
+
+  return (
+    <img
+      src={CAMPAIGN_PLACEHOLDER_IMAGE}
+      alt={alt}
+      className="absolute inset-0 h-full w-full object-cover"
+      loading="lazy"
+    />
+  );
+}
+
 export function CampaignCard({
   campaign,
   raisedUsdMicro = 0n,
@@ -47,7 +105,7 @@ export function CampaignCard({
   const campaignDomain = useNetworkVariable("campaignDomain") as
     | string
     | undefined;
-  const { data: coverImageObjectUrl, isPending: isCoverImagePending } =
+  const { data: coverImageObjectUrl, isError: isCoverImageError } =
     useWalrusImage(campaign.coverImageUrl);
 
   const statusInfo = getCampaignStatusInfo(
@@ -62,12 +120,19 @@ export function CampaignCard({
       ? Number((raisedUsdMicro * 100n) / campaign.fundingGoalUsdMicro)
       : 0;
   const formattedRaised = formatUsdLocaleFromMicros(raisedUsdMicro);
-  const hasCoverImage =
-    typeof coverImageObjectUrl === "string" &&
-    coverImageObjectUrl.trim().length > 0;
-  const displayCoverImageUrl = hasCoverImage
-    ? coverImageObjectUrl
-    : CAMPAIGN_PLACEHOLDER_IMAGE;
+  const hasCoverImageSource = Boolean(
+    typeof campaign.coverImageUrl === "string" &&
+      campaign.coverImageUrl.trim().length > 0,
+  );
+  const showCoverImage = Boolean(
+    hasCoverImageSource && coverImageObjectUrl && !isCoverImageError,
+  );
+  const resolvedCoverImageUrl = showCoverImage
+    ? coverImageObjectUrl ?? null
+    : null;
+  const isCoverImageSourceLoading = Boolean(
+    hasCoverImageSource && !coverImageObjectUrl && !isCoverImageError,
+  );
   const detailPath = useMemo(() => {
     const basePath = buildCampaignDetailPath(campaign.id, {
       subdomainName: campaign.subdomainName,
@@ -103,21 +168,11 @@ export function CampaignCard({
     <div className="flex flex-col overflow-hidden rounded-[24px] relative">
       {/* Cover Image */}
       <div className="relative h-[280px] w-full">
-        {isCoverImagePending ? (
-          <div className="absolute inset-0 w-full h-full bg-white-600 flex items-center justify-center">
-            <span className="text-black-300 text-sm">Loading image...</span>
-          </div>
-        ) : (
-          <img
-            src={displayCoverImageUrl}
-            alt={campaign.name}
-            className="absolute inset-0 w-full h-full object-cover"
-            onError={(event) => {
-              event.currentTarget.onerror = null;
-              event.currentTarget.src = CAMPAIGN_PLACEHOLDER_IMAGE;
-            }}
-          />
-        )}
+        <CampaignCoverImage
+          imageUrl={resolvedCoverImageUrl}
+          isLoading={isCoverImageSourceLoading}
+          alt={campaign.name}
+        />
 
         {/* Status Badge - Top Left */}
         <div className="absolute left-4 top-5">
