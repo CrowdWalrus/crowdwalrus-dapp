@@ -33,5 +33,5 @@
 
 ## Deployment & Environment Notes
 - Vite reads environment values with the `VITE_` prefix; provide local secrets via `.env.local` (never commit secrets).
-- For Walrus Sites, build first (`pnpm build`) then run `./site-builder deploy --epochs <n> dist/`; the command writes metadata to `dist/ws-resources.json`—keep it under version control if coordinated updates are needed.
+- For Walrus Sites, build first (`pnpm build`) then run `./site-builder deploy --epochs <n> --ws-resources ./ws-resources.json dist/`; the command writes metadata (including `object_id`) to `ws-resources.json` at repo root—keep this file under version control if coordinated updates are needed.
 - Reference `deployment.md` for portal setup, WAL token management, and troubleshooting.

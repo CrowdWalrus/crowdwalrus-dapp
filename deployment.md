@@ -90,19 +90,20 @@ This creates a `dist/` directory with your static files (HTML, CSS, JS).
 Deploy your built files to Walrus:
 
 ```bash
-./site-builder deploy --epochs 10 dist/
+./site-builder deploy --epochs 10 --ws-resources ./ws-resources.json dist/
 ```
 
 **Parameters**:
 - `--epochs 10`: Store blobs for 10 epochs (~10 days on testnet)
 - Maximum: 53 epochs on testnet
+- `--ws-resources ./ws-resources.json`: Use the tracked Walrus config file at repo root
 - `dist/`: Directory containing your built files
 
 **What happens during deployment**:
 1. Parses directory and computes blob IDs locally
 2. Uploads files to Walrus storage network
 3. Creates/updates Sui smart contract with site metadata
-4. Saves site object ID to `dist/ws-resources.json`
+4. Saves site object ID to `ws-resources.json`
 
 **Expected output**:
 ```
@@ -114,7 +115,7 @@ New site object ID: 0x53c001d797363b4049fc44e3d9a2f7c9a6fe2e3adf2fb90545feea716a
 
 After deployment, save these details:
 
-- **Site Object ID**: Found in `dist/ws-resources.json`
+- **Site Object ID**: Found in `ws-resources.json`
 - **Subdomain**: Base36-encoded version of object ID (shown in output)
 - **Blob IDs**: Listed for each resource file
 
@@ -179,7 +180,7 @@ For public access without running a portal:
    chmod +x site-builder-mainnet
 
    # Deploy (mainnet allows more epochs)
-   ./site-builder-mainnet deploy --epochs 365 dist/
+   ./site-builder-mainnet deploy --epochs 365 --ws-resources ./ws-resources.json dist/
    ```
 
 4. **Access via wal.app**:
@@ -200,7 +201,7 @@ walrus get-wal
 
 **Solution**: Reduce epochs to 53 or less on testnet
 ```bash
-./site-builder deploy --epochs 53 dist/
+./site-builder deploy --epochs 53 --ws-resources ./ws-resources.json dist/
 ```
 
 ### 404 Error When Accessing Site
@@ -235,7 +236,7 @@ Ensure these match testnet:
 
 ### Update Existing Site
 
-When you have `dist/ws-resources.json`, updates use the same command:
+When `ws-resources.json` includes an `object_id`, updates use the same command:
 
 ```bash
 # Make changes to your code
@@ -243,21 +244,21 @@ When you have `dist/ws-resources.json`, updates use the same command:
 pnpm build
 
 # Deploy (automatically updates existing site)
-./site-builder deploy --epochs 10 dist/
+./site-builder deploy --epochs 10 --ws-resources ./ws-resources.json dist/
 ```
 
-The site-builder detects the object ID in `ws-resources.json` and updates instead of creating new.
+The site-builder detects the object ID in `ws-resources.json` (passed by `--ws-resources`) and updates instead of creating new.
 
 ### Force New Deployment
 
 To create a completely new site:
 
 ```bash
-# Remove tracking file
-rm dist/ws-resources.json
+# Remove only the "object_id" field from ws-resources.json
+# (keep routes/headers/ignore settings)
 
 # Deploy as new
-./site-builder deploy --epochs 10 dist/
+./site-builder deploy --epochs 10 --ws-resources ./ws-resources.json dist/
 ```
 
 ### Update Single Resource
