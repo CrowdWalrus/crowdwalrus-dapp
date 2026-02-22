@@ -1,0 +1,19 @@
+{
+  "headers": {
+    "/*": {
+      "content-security-policy": "img-src 'self' data: blob: https://aggregator.walrus-mainnet.walrus.space https://aggregator.walrus-testnet.walrus.space https://aggregator.walrus.space https://aggregator.walrus.site https://aggregator-mainnet.walrus.space https://aggregator.mainnet.walrus.space https://aggregator.walrus-testnet.walrus.site;",
+      "cross-origin-embedder-policy": "credentialless",
+      "cross-origin-opener-policy": "same-origin",
+      "referrer-policy": "strict-origin-when-cross-origin"
+    }
+  },
+  "routes": {
+    "/*": "/index.html"
+  },
+  "site_name": "CrowdWalrus",
+  "object_id": "0x94293886d08459a4447150fa96c10715dfcd636e7cabfe633c2934120e9417cc",
+  "ignore": [
+    "/_headers",
+    "/_redirects"
+  ]
+}
