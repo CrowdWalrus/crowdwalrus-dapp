@@ -1,5 +1,12 @@
 # Changelog
 
+## [1.13.0](https://github.com/CrowdWalrus/crowdwalrus-dapp/compare/v1.12.0...v1.13.0) (2026-02-23)
+
+
+### Features
+
+* update CTA links in About and Explore sections ([401f0ad](https://github.com/CrowdWalrus/crowdwalrus-dapp/commit/401f0adedc3d7172e363e53fee1f633c8b8f8838))
+
 ## [1.12.0](https://github.com/CrowdWalrus/crowdwalrus-dapp/compare/v1.11.0...v1.12.0) (2026-02-23)
 
 
