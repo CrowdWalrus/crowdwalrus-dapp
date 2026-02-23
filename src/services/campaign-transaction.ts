@@ -640,8 +640,10 @@ export function validateCampaignFormData(formData: CampaignFormData): void {
   if (!formData.start_date || !formData.end_date) {
     throw new Error("Start and end dates are required");
   }
-  if (formData.start_date >= formData.end_date) {
-    throw new Error("End date must be after start date");
+  const minEndDate = new Date(formData.start_date);
+  minEndDate.setDate(minEndDate.getDate() + 1);
+  if (formData.end_date < minEndDate) {
+    throw new Error("End date must be at least 1 day after start date");
   }
 
   // Recipient address validation

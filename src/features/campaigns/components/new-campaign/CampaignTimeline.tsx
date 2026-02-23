@@ -173,7 +173,7 @@ function EditableCampaignTimeline({
                   selected={startDateObj}
                   onSelect={handleStartDateSelect}
                   disabled={(date) =>
-                    date < tomorrow || (endDateObj ? date > endDateObj : false)
+                    date < tomorrow || (endDateObj ? date >= endDateObj : false)
                   }
                   className="w-[250px] scale-110"
                 />
@@ -208,7 +208,7 @@ function EditableCampaignTimeline({
                   selected={endDateObj}
                   onSelect={handleEndDateSelect}
                   disabled={(date) =>
-                    date < tomorrow || (startDateObj ? date < startDateObj : false)
+                    date < tomorrow || (startDateObj ? date <= startDateObj : false)
                   }
                   className="w-[250px] scale-110"
                 />

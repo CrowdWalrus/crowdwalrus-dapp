@@ -180,10 +180,13 @@ export const newCampaignSchema = z
       });
     }
 
-    if (endDate <= startDate) {
+    const minEndDate = new Date(startDate);
+    minEndDate.setDate(minEndDate.getDate() + 1);
+
+    if (endDate < minEndDate) {
       ctx.addIssue({
         code: z.ZodIssueCode.custom,
-        message: "End date must be after start date",
+        message: "End date must be at least 1 day after start date",
         path: ["endDate"],
       });
     }
