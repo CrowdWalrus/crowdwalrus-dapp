@@ -3,6 +3,7 @@ import { ArrowRight } from "lucide-react";
 
 import { Button } from "@/shared/components/ui/button";
 import { ROUTES } from "@/shared/config/routes";
+import { DOCS_LINKS } from "@/shared/config/docsLinks";
 
 export function AboutCtaSection() {
   return (
@@ -38,7 +39,13 @@ export function AboutCtaSection() {
               asChild
               className="h-[56px] justify-center rounded-[10px] border-2 border-white-50/50 bg-transparent px-8 py-4 text-base font-semibold text-white-50 shadow-none hover:border-white-50 hover:bg-white-50/10"
             >
-              <Link to="#">Apply for Listing</Link>
+              <a
+                href={DOCS_LINKS.trustSafety.verificationOverview}
+                target="_blank"
+                rel="noopener noreferrer"
+              >
+                Apply for Listing
+              </a>
             </Button>
           </div>
         </div>

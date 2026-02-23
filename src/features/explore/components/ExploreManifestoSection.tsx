@@ -5,6 +5,8 @@
  */
 
 import { Button } from "@/shared/components/ui/button";
+import { Link } from "react-router-dom";
+import { ROUTES } from "@/shared/config/routes";
 
 export function ExploreManifestoSection() {
   return (
@@ -35,8 +37,13 @@ export function ExploreManifestoSection() {
             </h2>
 
             {/* CTA Button */}
-            <Button className="bg-white-50 text-blue-500 hover:bg-white-100 rounded-lg px-6 py-2.5 h-auto font-medium text-sm">
-              Start Your Fundraising Journey
+            <Button
+              asChild
+              className="bg-white-50 text-blue-500 hover:bg-white-100 rounded-lg px-6 py-2.5 h-auto font-medium text-sm"
+            >
+              <Link to={ROUTES.CAMPAIGNS_NEW}>
+                Start Your Fundraising Journey
+              </Link>
             </Button>
           </div>
         </div>

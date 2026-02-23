@@ -1,7 +1,7 @@
-import { Link } from "react-router-dom";
 import { ArrowRight, CheckCircle2, Shield } from "lucide-react";
 
 import { Button } from "@/shared/components/ui/button";
+import { DOCS_LINKS } from "@/shared/config/docsLinks";
 
 const FEATURES = [
   "Raise funds",
@@ -36,10 +36,14 @@ export function AboutTrustSection() {
               asChild
               className="mt-2 h-[52px] w-fit justify-center gap-3 rounded-[8px] bg-blue-500 px-6 py-3.5 text-base font-medium text-white-50 shadow-none hover:bg-blue-600 [&_svg]:size-5"
             >
-              <Link to="#">
+              <a
+                href={DOCS_LINKS.trustSafety.verificationOverview}
+                target="_blank"
+                rel="noopener noreferrer"
+              >
                 Learn about verification
                 <ArrowRight />
-              </Link>
+              </a>
             </Button>
           </div>
 
