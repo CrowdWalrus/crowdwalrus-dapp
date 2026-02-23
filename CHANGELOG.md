@@ -1,5 +1,20 @@
 # Changelog
 
+## [1.12.0](https://github.com/CrowdWalrus/crowdwalrus-dapp/compare/v1.11.0...v1.12.0) (2026-02-23)
+
+
+### Features
+
+* add default logomark image for branding ([94d944b](https://github.com/CrowdWalrus/crowdwalrus-dapp/commit/94d944bda24bc9bcdeba87f8015bd4f692313dad))
+* add social preview image for enhanced sharing ([7d2b8db](https://github.com/CrowdWalrus/crowdwalrus-dapp/commit/7d2b8dba56a926e5c24a6bd3184f1db67793d911))
+* enhance SEO and social sharing metadata in index.html ([e28e73b](https://github.com/CrowdWalrus/crowdwalrus-dapp/commit/e28e73b61d1cb05b99732ee7fb7a352ffb91df02))
+
+
+### Chores
+
+* update .gitignore and add ws-resources.json configuration ([2a28775](https://github.com/CrowdWalrus/crowdwalrus-dapp/commit/2a2877517fa8ef0c7da2afe587ec0605ad8c0616))
+* update deployment instructions for Walrus Sites ([3340ff8](https://github.com/CrowdWalrus/crowdwalrus-dapp/commit/3340ff8cf4c34cba4b9a16461c1afd5eb212b398))
+
 ## [1.11.0](https://github.com/CrowdWalrus/crowdwalrus-dapp/compare/v1.10.0...v1.11.0) (2026-02-10)
 
 
