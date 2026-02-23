@@ -1,4 +1,5 @@
 import type { SupportedNetwork } from "@/shared/types/network";
+import { SUI_CLOCK_OBJECT_ID } from "@mysten/sui/utils";
 
 /**
  * Smart Contract and Walrus Configuration
@@ -211,7 +212,7 @@ const MAINNET_CONFIG: NetworkContractConfig = {
 /**
  * Sui Clock object - constant across all networks
  */
-export const CLOCK_OBJECT_ID = "0x6";
+export const CLOCK_OBJECT_ID = SUI_CLOCK_OBJECT_ID;
 
 /**
  * Storage cost multiplier for Walrus

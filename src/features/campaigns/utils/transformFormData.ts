@@ -7,49 +7,7 @@
 import type { NewCampaignFormData } from "../schemas/newCampaignSchema";
 import type { CampaignFormData } from "../types/campaign";
 import { sanitizeSocialLinks } from "./socials";
-
-/**
- * Parse a date string (YYYY-MM-DD) as midnight in the user's local timezone
- *
- * This ensures that when a user selects "November 1st", the campaign starts
- * at midnight on November 1st in THEIR timezone, not UTC midnight.
- *
- * @param dateString - Date string in YYYY-MM-DD format (or undefined/empty)
- * @returns Date object representing midnight in local timezone, or Invalid Date if input is invalid
- *
- * @example
- * // User in PST (UTC-8) selects "2025-11-01"
- * parseLocalDate("2025-11-01")
- * // Returns: 2025-11-01T08:00:00.000Z (which is midnight PST in UTC)
- *
- * @example
- * // User in JST (UTC+9) selects "2025-11-01"
- * parseLocalDate("2025-11-01")
- * // Returns: 2025-10-31T15:00:00.000Z (which is midnight JST in UTC)
- *
- * @example
- * // Missing or invalid dates return Invalid Date (safe for auto-estimation)
- * parseLocalDate(undefined) // Returns: Invalid Date
- * parseLocalDate("")        // Returns: Invalid Date
- */
-function parseLocalDate(dateString: string | undefined): Date {
-  // Handle missing or empty dates gracefully
-  // This can happen during auto-estimation before user selects dates
-  if (!dateString || dateString.trim().length === 0) {
-    return new Date(NaN); // Invalid Date (matches old behavior)
-  }
-
-  const [year, month, day] = dateString.split("-").map(Number);
-
-  // Validate that we got valid numbers
-  if (isNaN(year) || isNaN(month) || isNaN(day)) {
-    return new Date(NaN); // Invalid Date
-  }
-
-  // Month is 0-indexed in JavaScript Date constructor
-  // This creates a date at midnight in the user's local timezone
-  return new Date(year, month - 1, day, 0, 0, 0, 0);
-}
+import { parseDateInputAsLocalDate } from "@/shared/utils/dateInput";
 
 /**
  * Transform NewCampaignFormData to CampaignFormData
@@ -71,6 +29,9 @@ export function transformNewCampaignFormData(
     throw new Error("Please select a campaign policy preset.");
   }
 
+  const startDate = parseDateInputAsLocalDate(formData.startDate);
+  const endDate = parseDateInputAsLocalDate(formData.endDate);
+
   return {
     // Basic Information
     name: formData.campaignName,
@@ -81,8 +42,8 @@ export function transformNewCampaignFormData(
 
     // Fundraising Details
     funding_goal: formData.targetAmount,
-    start_date: parseLocalDate(formData.startDate),
-    end_date: parseLocalDate(formData.endDate),
+    start_date: startDate ?? new Date(NaN),
+    end_date: endDate ?? new Date(NaN),
     recipient_address: formData.walletAddress,
 
     // Rich Content

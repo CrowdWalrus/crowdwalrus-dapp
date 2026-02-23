@@ -9,6 +9,7 @@ import {
 } from "@/shared/components/ui/popover";
 import { FormMessage } from "@/shared/components/ui/form";
 import { cn } from "@/shared/lib/utils";
+import { parseDateInputAsLocalDate } from "@/shared/utils/dateInput";
 
 interface CampaignTimelineProps {
   readOnly?: boolean;
@@ -84,8 +85,12 @@ function EditableCampaignTimeline({
   const startDate = watch("startDate");
   const endDate = watch("endDate");
 
-  const startDateObj = startDate ? new Date(startDate) : undefined;
-  const endDateObj = endDate ? new Date(endDate) : undefined;
+  const parsedStartDate =
+    typeof startDate === "string" ? parseDateInputAsLocalDate(startDate) : null;
+  const parsedEndDate =
+    typeof endDate === "string" ? parseDateInputAsLocalDate(endDate) : null;
+  const startDateObj = parsedStartDate ?? undefined;
+  const endDateObj = parsedEndDate ?? undefined;
   // Set minimum date to tomorrow to give users time to prepare
   // and avoid confusion with same-day campaign starts
   const tomorrow = new Date();
@@ -193,7 +198,7 @@ function EditableCampaignTimeline({
                   <span className="text-sm font-normal leading-[1.5] tracking-[0.07px]">
                     {endDateObj
                       ? endDateObj.toLocaleDateString()
-                      : "Pick a end date"}
+                      : "Pick an end date"}
                   </span>
                 </button>
               </PopoverTrigger>
