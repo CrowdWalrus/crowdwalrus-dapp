@@ -80,6 +80,10 @@ import {
   DESCRIPTION_MAX_LENGTH,
   DESCRIPTION_WARNING_THRESHOLD,
 } from "@/features/campaigns/constants/validation";
+import {
+  extractMoveAbortCode,
+  mapCampaignError,
+} from "@/features/campaigns/utils/errorMapping";
 import { isUserRejectedError } from "@/shared/utils/errors";
 import { formatTokenAmountFromNumber } from "@/shared/utils/currency";
 import { AlertCircleIcon, WalletMinimal } from "lucide-react";
@@ -247,6 +251,9 @@ export default function NewCampaignPage() {
     control: form.control,
     name: "campaignDetails",
   });
+  const campaignType = useWatch({ control: form.control, name: "campaignType" });
+  const startDate = useWatch({ control: form.control, name: "startDate" });
+  const endDate = useWatch({ control: form.control, name: "endDate" });
   const descriptionLength = (description ?? "").length;
   const isDescriptionNearLimit =
     DESCRIPTION_MAX_LENGTH - descriptionLength <= DESCRIPTION_WARNING_THRESHOLD;
@@ -263,6 +270,12 @@ export default function NewCampaignPage() {
     }
 
     try {
+      if (!campaignType?.trim()) {
+        return;
+      }
+      if (!startDate || !endDate) {
+        return;
+      }
       const formValues = form.getValues();
       const campaignFormData = transformNewCampaignFormData(formValues);
       estimateCost({ formData: campaignFormData, epochs: selectedEpochs });
@@ -272,6 +285,9 @@ export default function NewCampaignPage() {
   }, [
     debouncedCoverImage,
     debouncedCampaignDetails,
+    campaignType,
+    startDate,
+    endDate,
     estimateCost,
     form,
     selectedEpochs,
@@ -648,7 +664,14 @@ export default function NewCampaignPage() {
       console.log("Transaction Digest:", finalResult.transactionDigest);
       console.log("=====================================");
     } catch (err) {
-      setError(err instanceof Error ? err : new Error("Unknown error"));
+      const normalizedError =
+        err instanceof Error ? err : new Error("Unknown error");
+      const abortCode = extractMoveAbortCode(normalizedError);
+      if (abortCode !== null) {
+        setError(new Error(mapCampaignError(abortCode)));
+      } else {
+        setError(normalizedError);
+      }
       setWizardStep(WizardStep.ERROR);
     }
   };

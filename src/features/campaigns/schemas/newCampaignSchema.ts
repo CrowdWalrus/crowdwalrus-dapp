@@ -13,6 +13,7 @@ import {
   SUBDOMAIN_MIN_LENGTH,
   SUBDOMAIN_PATTERN,
 } from "@/shared/utils/subdomain";
+import { parseDateInputAsLocalDate } from "@/shared/utils/dateInput";
 
 const isValidHttpUrl = (value: string) => {
   try {
@@ -145,9 +146,50 @@ export const newCampaignSchema = z
       message: "You must accept the terms and conditions",
     }),
   })
-  .refine((data) => new Date(data.endDate) > new Date(data.startDate), {
-    message: "End date must be after start date",
-    path: ["endDate"],
+  .superRefine((data, ctx) => {
+    const startDate = parseDateInputAsLocalDate(data.startDate);
+    const endDate = parseDateInputAsLocalDate(data.endDate);
+
+    if (!startDate) {
+      ctx.addIssue({
+        code: z.ZodIssueCode.custom,
+        message: "Start date is invalid",
+        path: ["startDate"],
+      });
+      return;
+    }
+
+    if (!endDate) {
+      ctx.addIssue({
+        code: z.ZodIssueCode.custom,
+        message: "End date is invalid",
+        path: ["endDate"],
+      });
+      return;
+    }
+
+    const tomorrow = new Date();
+    tomorrow.setHours(0, 0, 0, 0);
+    tomorrow.setDate(tomorrow.getDate() + 1);
+
+    if (startDate < tomorrow) {
+      ctx.addIssue({
+        code: z.ZodIssueCode.custom,
+        message: "Start date must be at least tomorrow",
+        path: ["startDate"],
+      });
+    }
+
+    const minEndDate = new Date(startDate);
+    minEndDate.setDate(minEndDate.getDate() + 1);
+
+    if (endDate < minEndDate) {
+      ctx.addIssue({
+        code: z.ZodIssueCode.custom,
+        message: "End date must be at least 1 day after start date",
+        path: ["endDate"],
+      });
+    }
   });
 
 export type NewCampaignFormData = z.infer<typeof newCampaignSchema>;
