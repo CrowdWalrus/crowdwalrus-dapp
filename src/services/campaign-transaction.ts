@@ -32,6 +32,9 @@ interface ObjectChange {
   objectId?: string;
 }
 
+// Keep a safety margin so wallet review time / small clock skew does not
+// turn a valid date-only start into an on-chain "start date in the past" abort.
+const START_DATE_FUTURE_BUFFER_MS = 10 * 60 * 1000;
 
 const getObjectChanges = (value: unknown): ObjectChange[] => {
   if (
@@ -46,6 +49,32 @@ const getObjectChanges = (value: unknown): ObjectChange[] => {
   }
   return [];
 };
+
+function resolveSafeStartDateMs(
+  requestedStartDateMs: number,
+  requestedEndDateMs: number,
+): bigint {
+  if (
+    !Number.isFinite(requestedStartDateMs) ||
+    !Number.isFinite(requestedEndDateMs)
+  ) {
+    throw new Error("Start and end dates must be valid.");
+  }
+
+  const nowWithBufferMs = Date.now() + START_DATE_FUTURE_BUFFER_MS;
+  const safeStartDateMs =
+    requestedStartDateMs >= nowWithBufferMs
+      ? requestedStartDateMs
+      : nowWithBufferMs;
+
+  if (safeStartDateMs >= requestedEndDateMs) {
+    throw new Error(
+      "Start date is too close to end date. Please pick a later end date and try again.",
+    );
+  }
+
+  return BigInt(Math.trunc(safeStartDateMs));
+}
 
 /**
  * Build a transaction to create a new campaign on Sui
@@ -79,9 +108,14 @@ export function buildCreateCampaignTransaction(
     epochs,
   );
 
-  // Convert dates to Unix timestamps in milliseconds (UTC) and typed funding/policy fields
-  const startDateMs = BigInt(formData.start_date.getTime());
-  const endDateMs = BigInt(formData.end_date.getTime());
+  // Convert dates to Unix timestamps in milliseconds and keep start date safely in the future.
+  const requestedStartDateMs = formData.start_date.getTime();
+  const requestedEndDateMs = formData.end_date.getTime();
+  const startDateMs = resolveSafeStartDateMs(
+    requestedStartDateMs,
+    requestedEndDateMs,
+  );
+  const endDateMs = BigInt(Math.trunc(requestedEndDateMs));
   const fundingGoalUsdMicros = parseUsdToMicros(formData.funding_goal);
   const policyPresetName = formData.policyPresetName.trim();
 
@@ -103,7 +137,8 @@ export function buildCreateCampaignTransaction(
   console.log("Subdomain Name (original):", formData.subdomain_name);
   console.log("Subdomain Name (full):", fullSubdomain);
   console.log("Recipient Address:", formData.recipient_address);
-  console.log("Start Date (ms):", startDateMs.toString());
+  console.log("Start Date (requested ms):", requestedStartDateMs.toString());
+  console.log("Start Date (safe ms):", startDateMs.toString());
   console.log("End Date (ms):", endDateMs.toString());
   console.log("Funding Goal (USD micros):", fundingGoalUsdMicros.toString());
   console.log(

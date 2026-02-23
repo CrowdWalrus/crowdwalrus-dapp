@@ -16,7 +16,7 @@ const CAMPAIGN_ERROR_MESSAGES: Record<number, string> = {
 export function mapCampaignError(code: number): string {
   return (
     CAMPAIGN_ERROR_MESSAGES[code] ||
-    `An error occurred while updating the campaign (code: ${code}).`
+    `An error occurred while processing the campaign transaction (code: ${code}).`
   );
 }
 
@@ -38,6 +38,16 @@ export function extractMoveAbortCode(error: unknown): number | null {
   const match = message.match(/MoveAbort.*code:\s*(\d+)/i);
   if (match && match[1]) {
     const parsed = Number.parseInt(match[1], 10);
+    return Number.isNaN(parsed) ? null : parsed;
+  }
+
+  // Wallets commonly return tuple-form MoveAbort errors:
+  // MoveAbort(..., <code>) in command <n>
+  const tupleMatch = message.match(
+    /MoveAbort[\s\S]*?,\s*(\d+)\)\s*in command\s*\d+/i,
+  );
+  if (tupleMatch && tupleMatch[1]) {
+    const parsed = Number.parseInt(tupleMatch[1], 10);
     return Number.isNaN(parsed) ? null : parsed;
   }
 
