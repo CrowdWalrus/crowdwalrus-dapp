@@ -1,5 +1,17 @@
 # Changelog
 
+## [1.14.0](https://github.com/CrowdWalrus/crowdwalrus-dapp/compare/v1.13.0...v1.14.0) (2026-02-23)
+
+
+### Features
+
+* enhance campaign date handling and error management ([553f24a](https://github.com/CrowdWalrus/crowdwalrus-dapp/commit/553f24a386042ab6c96d2ebe4ecef2dc252df11e))
+
+
+### Bug Fixes
+
+* improve campaign date validation logic ([4bbf012](https://github.com/CrowdWalrus/crowdwalrus-dapp/commit/4bbf012d561b2ab72c4711fed66aa27853726364))
+
 ## [1.13.0](https://github.com/CrowdWalrus/crowdwalrus-dapp/compare/v1.12.0...v1.13.0) (2026-02-23)
 
 
