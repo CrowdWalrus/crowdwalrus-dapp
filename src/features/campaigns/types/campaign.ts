@@ -40,6 +40,15 @@ export interface CampaignFormData {
 }
 
 /**
+ * Walrus-backed campaign content only.
+ * This is the subset of campaign data that affects Walrus upload/estimation.
+ */
+export interface CampaignWalrusStorageData {
+  full_description: string;
+  cover_image: File;
+}
+
+/**
  * Metadata structure for the VecMap<String, String> on Sui
  * All values must be strings as per the smart contract
  */
@@ -94,40 +103,40 @@ export interface CreateCampaignResult {
  * Steps in the campaign creation process for progress tracking
  */
 export enum CampaignCreationStep {
-  IDLE = 'idle',
-  VALIDATING = 'validating',
-  PREPARING_FILES = 'preparing_files',
-  UPLOADING_TO_WALRUS = 'uploading_to_walrus',
-  BUILDING_TRANSACTION = 'building_transaction',
-  EXECUTING_TRANSACTION = 'executing_transaction',
-  COMPLETED = 'completed',
-  FAILED = 'failed',
+  IDLE = "idle",
+  VALIDATING = "validating",
+  PREPARING_FILES = "preparing_files",
+  UPLOADING_TO_WALRUS = "uploading_to_walrus",
+  BUILDING_TRANSACTION = "building_transaction",
+  EXECUTING_TRANSACTION = "executing_transaction",
+  COMPLETED = "completed",
+  FAILED = "failed",
 }
 
 /**
  * Main wizard steps for the controlled campaign creation flow
  */
 export enum WizardStep {
-  FORM = 'form',
-  ESTIMATING = 'estimating',
-  CONFIRM_REGISTER = 'confirm_register',  // User confirms buying Walrus storage with WAL
-  REGISTERING = 'registering',            // Registering blob (1st transaction)
-  UPLOADING = 'uploading',                // Uploading data to storage nodes
-  CERTIFYING = 'certifying',              // Certifying blob (2nd transaction)
-  CONFIRM_TX = 'confirm_tx',              // User confirms campaign creation
-  EXECUTING = 'executing',                // Creating campaign (3rd transaction)
-  SUCCESS = 'success',
-  ERROR = 'error',
+  FORM = "form",
+  ESTIMATING = "estimating",
+  CONFIRM_REGISTER = "confirm_register", // User confirms buying Walrus storage with WAL
+  REGISTERING = "registering", // Registering blob (1st transaction)
+  UPLOADING = "uploading", // Uploading data to storage nodes
+  CERTIFYING = "certifying", // Certifying blob (2nd transaction)
+  CONFIRM_TX = "confirm_tx", // User confirms campaign creation
+  EXECUTING = "executing", // Creating campaign (3rd transaction)
+  SUCCESS = "success",
+  ERROR = "error",
 }
 
 /**
  * Granular upload steps for detailed progress tracking
  */
 export enum UploadStep {
-  ENCODING = 'encoding',
-  REGISTERING = 'registering',
-  UPLOADING = 'uploading',
-  CERTIFYING = 'certifying',
+  ENCODING = "encoding",
+  REGISTERING = "registering",
+  UPLOADING = "uploading",
+  CERTIFYING = "certifying",
 }
 
 /**
@@ -146,31 +155,31 @@ export class CampaignCreationError extends Error {
   constructor(
     message: string,
     public step: CampaignCreationStep,
-    public originalError?: unknown
+    public originalError?: unknown,
   ) {
     super(message);
-    this.name = 'CampaignCreationError';
+    this.name = "CampaignCreationError";
   }
 }
 
 export class WalrusUploadError extends CampaignCreationError {
   constructor(message: string, originalError?: unknown) {
     super(message, CampaignCreationStep.UPLOADING_TO_WALRUS, originalError);
-    this.name = 'WalrusUploadError';
+    this.name = "WalrusUploadError";
   }
 }
 
 export class TransactionBuildError extends CampaignCreationError {
   constructor(message: string, originalError?: unknown) {
     super(message, CampaignCreationStep.BUILDING_TRANSACTION, originalError);
-    this.name = 'TransactionBuildError';
+    this.name = "TransactionBuildError";
   }
 }
 
 export class TransactionExecutionError extends CampaignCreationError {
   constructor(message: string, originalError?: unknown) {
     super(message, CampaignCreationStep.EXECUTING_TRANSACTION, originalError);
-    this.name = 'TransactionExecutionError';
+    this.name = "TransactionExecutionError";
   }
 }
 
@@ -179,38 +188,38 @@ export class TransactionExecutionError extends CampaignCreationError {
  */
 export interface StorageCostEstimate {
   // Size information
-  rawSize: number;        // Original file sizes in bytes
-  encodedSize: number;    // Size after Walrus encoding (5x + metadata)
-  metadataSize: number;   // Fixed metadata overhead (64MB)
+  rawSize: number; // Original file sizes in bytes
+  encodedSize: number; // Size after Walrus encoding (5x + metadata)
+  metadataSize: number; // Fixed metadata overhead (64MB)
 
   // Duration
-  epochs: number;         // Storage duration in epochs
+  epochs: number; // Storage duration in epochs
 
   // Costs in WAL tokens (before subsidy)
   storageCostWal: number; // Storage cost (epochs × size)
-  uploadCostWal: number;  // One-time upload/write cost
-  totalCostWal: number;   // Total cost in WAL before subsidy
+  uploadCostWal: number; // One-time upload/write cost
+  totalCostWal: number; // Total cost in WAL before subsidy
 
   // Subsidized costs (what user actually pays)
   subsidizedStorageCost: number; // Storage cost after subsidy
-  subsidizedUploadCost: number;  // Upload cost after subsidy
-  subsidizedTotalCost: number;   // Total cost after subsidy
+  subsidizedUploadCost: number; // Upload cost after subsidy
+  subsidizedTotalCost: number; // Total cost after subsidy
 
   // Subsidy information
-  subsidyRate?: number;   // Subsidy rate (0-1, e.g., 0.80 for 80%)
+  subsidyRate?: number; // Subsidy rate (0-1, e.g., 0.80 for 80%)
 
   // Legacy field for backward compatibility (deprecated)
-  estimatedCost: string;  // Total cost in WAL as string (now shows subsidized cost)
+  estimatedCost: string; // Total cost in WAL as string (now shows subsidized cost)
 
   // Breakdown by file type
   breakdown: {
-    jsonSize: number;     // Size of description.json (Lexical editor state)
-    imagesSize: number;   // Size of cover image
+    jsonSize: number; // Size of description.json (Lexical editor state)
+    imagesSize: number; // Size of cover image
   };
 
   // Pricing information
   pricingTimestamp: number; // When pricing was fetched
-  network: 'testnet' | 'mainnet';
+  network: "testnet" | "mainnet";
 }
 
 /**

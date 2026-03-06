@@ -10,6 +10,11 @@ import {
   MAX_SOCIAL_LINKS,
   SOCIAL_PLATFORM_CONFIG,
 } from "@/features/campaigns/constants/socialPlatforms";
+import {
+  CAMPAIGN_SOCIAL_LINKS_MIN_ERROR,
+  getCompletedSocialLinksCount,
+} from "@/features/campaigns/utils/socials";
+import { cn } from "@/shared/lib/utils";
 import { Button } from "@/shared/components/ui/button";
 import { Input } from "@/shared/components/ui/input";
 import {
@@ -24,6 +29,7 @@ interface CampaignSocialsSectionProps {
   disabled?: boolean;
   labelAction?: ReactNode;
   labelStatus?: ReactNode;
+  minSocials?: number;
   maxSocials?: number;
 }
 
@@ -40,6 +46,7 @@ export function CampaignSocialsSection({
   disabled = false,
   labelAction,
   labelStatus,
+  minSocials = 0,
   maxSocials = MAX_SOCIAL_LINKS,
 }: CampaignSocialsSectionProps) {
   const {
@@ -53,17 +60,30 @@ export function CampaignSocialsSection({
   });
 
   const socials = watch("socials");
-  const socialCount = socials?.length ?? 0;
-  const isAtLimit = socialCount >= maxSocials;
+  const socialRows = socials?.length ?? 0;
+  const completedSocialCount = getCompletedSocialLinksCount(socials ?? []);
+  const isAtMinimum = socialRows <= minSocials;
+  const isAtLimit = socialRows >= maxSocials;
+  const isBelowMinimum = minSocials > 0 && completedSocialCount < minSocials;
+  const socialSectionError = !Array.isArray(errors.socials)
+    ? (errors.socials as FieldError | undefined)?.message
+    : undefined;
+  const helperMessage = socialSectionError
+    ? String(socialSectionError)
+    : isBelowMinimum
+      ? CAMPAIGN_SOCIAL_LINKS_MIN_ERROR
+      : isAtLimit
+        ? `You have reached the maximum of ${maxSocials} social links.`
+        : minSocials > 0
+          ? `At least ${minSocials} valid social links are required. You can add up to ${maxSocials} total.`
+          : `You can add up to ${maxSocials} social links.`;
 
   useEffect(() => {
     // Keep field array in sync with async resets/navigation to avoid blank rows.
     if (!Array.isArray(socials)) {
       return;
     }
-    const normalized = socials.filter(
-      (entry) => entry && entry.platform,
-    );
+    const normalized = socials.filter((entry) => entry && entry.platform);
     if (
       normalized.length !== socials.length ||
       normalized.length !== fields.length
@@ -116,7 +136,10 @@ export function CampaignSocialsSection({
                       onValueChange={controllerField.onChange}
                       disabled={disabled}
                     >
-                      <SelectTrigger className="w-full sm:w-40" disabled={disabled}>
+                      <SelectTrigger
+                        className="w-full sm:w-40"
+                        disabled={disabled}
+                      >
                         <SelectValue />
                       </SelectTrigger>
                       <SelectContent>
@@ -163,9 +186,9 @@ export function CampaignSocialsSection({
                   </div>
                   <button
                     type="button"
-                    onClick={() => !disabled && remove(index)}
+                    onClick={() => !disabled && !isAtMinimum && remove(index)}
                     className="shrink-0 size-5 flex items-center justify-center text-red-300 hover:text-red-400 transition-colors mt-3 disabled:opacity-50"
-                    disabled={disabled}
+                    disabled={disabled || isAtMinimum}
                   >
                     <X className="size-[15.417px]" />
                   </button>
@@ -186,10 +209,15 @@ export function CampaignSocialsSection({
           <Plus className="size-[13.25px]" />
           Add more
         </Button>
-        <p className="text-xs text-muted-foreground">
-          {isAtLimit
-            ? `You have added the maximum of ${maxSocials} social links.`
-            : `You can add up to ${maxSocials} social links (${socialCount}/${maxSocials}).`}
+        <p
+          className={cn(
+            "text-xs",
+            isBelowMinimum || socialSectionError
+              ? "font-medium text-destructive"
+              : "text-muted-foreground",
+          )}
+        >
+          {helperMessage}
         </p>
       </div>
     </div>
