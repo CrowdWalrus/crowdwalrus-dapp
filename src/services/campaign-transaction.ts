@@ -13,8 +13,9 @@ import type {
 } from "@/features/campaigns/types/campaign";
 import { DESCRIPTION_MAX_LENGTH } from "@/features/campaigns/constants/validation";
 import {
+  normalizeCampaignSocialsMetadataValue,
   serializeSocialLinks,
-  sanitizeSocialLinks,
+  sanitizeCampaignSocialLinks,
 } from "@/features/campaigns/utils/socials";
 import { getContractConfig, CLOCK_OBJECT_ID } from "@/shared/config/contracts";
 import { WALRUS_EPOCH_CONFIG } from "@/shared/config/networkConfig";
@@ -89,7 +90,9 @@ export function buildCreateCampaignTransaction(
   const tx = new Transaction();
 
   // Use provided epochs or fall back to network default
-  const networkKey = (network === "devnet" ? "devnet" : network) as keyof typeof WALRUS_EPOCH_CONFIG;
+  const networkKey = (
+    network === "devnet" ? "devnet" : network
+  ) as keyof typeof WALRUS_EPOCH_CONFIG;
   const epochConfig = WALRUS_EPOCH_CONFIG[networkKey];
   const minEpochs = epochConfig.minEpochs ?? 1;
   const requestedEpochs =
@@ -262,10 +265,12 @@ export function buildUpdateCampaignMetadataTransaction(
   const values: string[] = [];
 
   Object.entries(patch).forEach(([key, value]) => {
+    let normalizedValue = value;
+
     if (
       key === "funding_goal" ||
       key === "recipient_address" ||
-      value === undefined
+      normalizedValue === undefined
     ) {
       if (key === "funding_goal" || key === "recipient_address") {
         console.warn(
@@ -275,8 +280,12 @@ export function buildUpdateCampaignMetadataTransaction(
       return;
     }
 
+    if (key === "socials_json") {
+      normalizedValue = normalizeCampaignSocialsMetadataValue(normalizedValue);
+    }
+
     keys.push(key);
-    values.push(value);
+    values.push(normalizedValue);
   });
 
   if (keys.length !== values.length) {
@@ -319,11 +328,8 @@ export function prepareMetadataVectors(
     cover_image_id: "cover.jpg", // Standard identifier in the Quilt
   };
 
-  const socials = sanitizeSocialLinks(formData.socials ?? []);
-
-  if (socials.length > 0) {
-    metadata.socials_json = serializeSocialLinks(socials);
-  }
+  const socials = sanitizeCampaignSocialLinks(formData.socials ?? []);
+  metadata.socials_json = serializeSocialLinks(socials);
 
   // Convert metadata object to parallel arrays
   const keys = Object.keys(metadata);
@@ -526,7 +532,7 @@ export function extractCampaignIdFromEffects(
     // objectChanges is at the top level of the result object
     const objectChanges = getObjectChanges(result);
 
-  const campaignType = `${packageId}::campaign::Campaign`;
+    const campaignType = `${packageId}::campaign::Campaign`;
 
     const campaignChange = objectChanges.find(
       (change) =>
@@ -647,7 +653,10 @@ export function validateCampaignFormData(formData: CampaignFormData): void {
   }
 
   // Recipient address validation
-  if (!formData.recipient_address || formData.recipient_address.trim().length === 0) {
+  if (
+    !formData.recipient_address ||
+    formData.recipient_address.trim().length === 0
+  ) {
     throw new Error("Recipient address is required");
   }
   if (!/^0x[a-fA-F0-9]+$/.test(formData.recipient_address)) {
@@ -669,7 +678,10 @@ export function validateCampaignFormData(formData: CampaignFormData): void {
   }
 
   // Policy preset validation
-  if (!formData.policyPresetName || formData.policyPresetName.trim().length === 0) {
+  if (
+    !formData.policyPresetName ||
+    formData.policyPresetName.trim().length === 0
+  ) {
     throw new Error("Policy preset must be selected.");
   }
 }

@@ -1258,7 +1258,6 @@ export default function CreateProfilePage() {
                       render={() => (
                         <FormItem className="flex flex-col gap-2">
                           <CampaignSocialsSection disabled={isFormReadOnly} />
-                          <FormMessage />
                         </FormItem>
                       )}
                     />

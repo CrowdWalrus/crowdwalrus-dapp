@@ -16,7 +16,7 @@ import {
   WalrusUploadError,
   type WalrusUploadResult,
   type StorageCostEstimate,
-  type CampaignFormData,
+  type CampaignWalrusStorageData,
 } from "@/features/campaigns/types/campaign";
 import type { CampaignUpdateStorageData } from "@/features/campaigns/types/campaignUpdate";
 import { getContractConfig } from "@/shared/config/contracts";
@@ -251,7 +251,7 @@ export function createWalrusClient(
  * Stores Lexical editor state (JSON) and cover image - React app handles rendering
  */
 export async function prepareCampaignFiles(
-  formData: CampaignFormData,
+  formData: CampaignWalrusStorageData,
 ): Promise<WalrusFile[]> {
   console.log("\n=== PREPARING WALRUS FILES ===");
   const files: WalrusFile[] = [];
@@ -282,7 +282,11 @@ export async function prepareCampaignFiles(
   files.push(coverImageFile);
   console.log("File 2: cover.jpg -", coverImageBuffer.byteLength, "bytes");
   console.log("Total files:", files.length);
-  console.log("Total size:", descriptionBytes.length + coverImageBuffer.byteLength, "bytes");
+  console.log(
+    "Total size:",
+    descriptionBytes.length + coverImageBuffer.byteLength,
+    "bytes",
+  );
   console.log("==============================\n");
 
   return files;
@@ -304,7 +308,9 @@ export async function prepareCampaignUpdateFiles(
     serializedContent.trim().length === 0 ||
     plainTextContent.length === 0
   ) {
-    throw new WalrusUploadError("Update content is empty. Please add content before uploading.");
+    throw new WalrusUploadError(
+      "Update content is empty. Please add content before uploading.",
+    );
   }
 
   const files: WalrusFile[] = [];
@@ -504,7 +510,7 @@ export async function getUploadedFilesInfo(
 
     // Get the blob ID from the first file (they're all in the same Quilt)
     const blobId = uploadedFiles[0].blobId;
-    const blobObject = uploadedFiles[0].blobObject?.id?.id || '';
+    const blobObject = uploadedFiles[0].blobObject?.id?.id || "";
 
     console.log("\n=== WALRUS UPLOAD COMPLETE ===");
     console.log("Blob ID:", blobId);
@@ -519,7 +525,9 @@ export async function getUploadedFilesInfo(
     );
 
     console.log("Files uploaded:");
-    fileSizes.forEach(f => console.log(`  - ${f.identifier}: ${f.size} bytes`));
+    fileSizes.forEach((f) =>
+      console.log(`  - ${f.identifier}: ${f.size} bytes`),
+    );
 
     const totalSize = fileSizes.reduce((sum, file) => sum + file.size, 0);
     let cost = "N/A";
@@ -534,7 +542,10 @@ export async function getUploadedFilesInfo(
       );
       cost = formatTokenAmountFromNumber(costBreakdown.subsidizedTotalCost);
     } catch (costError) {
-      console.warn("Failed to estimate upload cost after certification:", costError);
+      console.warn(
+        "Failed to estimate upload cost after certification:",
+        costError,
+      );
     }
 
     console.log("Total size:", totalSize, "bytes");
@@ -566,7 +577,7 @@ export async function getUploadedFilesInfo(
 export async function calculateStorageCost(
   suiClient: SuiClient,
   network: SupportedNetwork,
-  formData: CampaignFormData,
+  formData: CampaignWalrusStorageData,
   epochs?: number,
 ): Promise<StorageCostEstimate> {
   const files = await prepareCampaignFiles(formData);

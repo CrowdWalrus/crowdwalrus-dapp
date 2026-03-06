@@ -33,6 +33,7 @@ import {
   WizardStep,
   type CreateCampaignResult,
   type CampaignFormData,
+  type CampaignWalrusStorageData,
 } from "@/features/campaigns/types/campaign";
 import {
   CampaignCreationModal,
@@ -76,6 +77,7 @@ import {
   newCampaignSchema,
   type NewCampaignFormData,
 } from "@/features/campaigns/schemas/newCampaignSchema";
+import { MIN_CAMPAIGN_SOCIAL_LINKS } from "@/features/campaigns/constants/socialPlatforms";
 import {
   DESCRIPTION_MAX_LENGTH,
   DESCRIPTION_WARNING_THRESHOLD,
@@ -176,6 +178,7 @@ export default function NewCampaignPage() {
     "endDate",
     "targetAmount",
     "walletAddress",
+    "socials",
     "campaignDetails",
     "termsAccepted",
   ];
@@ -251,9 +254,6 @@ export default function NewCampaignPage() {
     control: form.control,
     name: "campaignDetails",
   });
-  const campaignType = useWatch({ control: form.control, name: "campaignType" });
-  const startDate = useWatch({ control: form.control, name: "startDate" });
-  const endDate = useWatch({ control: form.control, name: "endDate" });
   const descriptionLength = (description ?? "").length;
   const isDescriptionNearLimit =
     DESCRIPTION_MAX_LENGTH - descriptionLength <= DESCRIPTION_WARNING_THRESHOLD;
@@ -262,34 +262,22 @@ export default function NewCampaignPage() {
   const debouncedCoverImage = useDebounce(coverImage, 1000);
   const debouncedCampaignDetails = useDebounce(campaignDetails, 1000);
 
-  // Auto-estimate cost when debounced values or epochs change
+  // Auto-estimate cost when the Walrus-backed content changes.
   useEffect(() => {
-    // Only estimate if we have both required fields
-    if (!debouncedCoverImage || !debouncedCampaignDetails) {
+    if (!(debouncedCoverImage instanceof File) || !debouncedCampaignDetails) {
       return;
     }
 
-    try {
-      if (!campaignType?.trim()) {
-        return;
-      }
-      if (!startDate || !endDate) {
-        return;
-      }
-      const formValues = form.getValues();
-      const campaignFormData = transformNewCampaignFormData(formValues);
-      estimateCost({ formData: campaignFormData, epochs: selectedEpochs });
-    } catch (error) {
-      console.error("Error auto-estimating cost:", error);
-    }
+    const walrusFormData: CampaignWalrusStorageData = {
+      full_description: debouncedCampaignDetails,
+      cover_image: debouncedCoverImage,
+    };
+
+    estimateCost({ formData: walrusFormData, epochs: selectedEpochs });
   }, [
     debouncedCoverImage,
     debouncedCampaignDetails,
-    campaignType,
-    startDate,
-    endDate,
     estimateCost,
-    form,
     selectedEpochs,
   ]);
 
@@ -395,18 +383,22 @@ export default function NewCampaignPage() {
     setCertifyResult(null);
 
     const campaignFormData = transformNewCampaignFormData(data);
+    const walrusFormData: CampaignWalrusStorageData = {
+      full_description: campaignFormData.full_description,
+      cover_image: campaignFormData.cover_image,
+    };
     setFormData(campaignFormData);
     // Don't open modal yet - let estimation and preparation happen silently
 
     // Automatically estimate cost and prepare upload
     estimateCost(
-      { formData: campaignFormData, epochs: selectedEpochs },
+      { formData: walrusFormData, epochs: selectedEpochs },
       {
         onSuccess: () => {
           // Prepare Walrus upload
           walrus.prepare.mutate(
             {
-              formData: campaignFormData,
+              formData: walrusFormData,
               network: DEFAULT_NETWORK,
               storageEpochs: selectedEpochs,
             },
@@ -1005,8 +997,9 @@ export default function NewCampaignPage() {
                         name="socials"
                         render={() => (
                           <FormItem data-field-error="socials">
-                            <CampaignSocialsSection />
-                            <FormMessage />
+                            <CampaignSocialsSection
+                              minSocials={MIN_CAMPAIGN_SOCIAL_LINKS}
+                            />
                           </FormItem>
                         )}
                       />

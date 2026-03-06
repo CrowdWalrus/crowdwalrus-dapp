@@ -28,7 +28,7 @@ import {
   buildCertifyTransaction,
   getUploadedFilesInfo,
 } from "@/services/walrus";
-import type { CampaignFormData } from "@/features/campaigns/types/campaign";
+import type { CampaignWalrusStorageData } from "@/features/campaigns/types/campaign";
 import type { CampaignUpdateStorageData } from "@/features/campaigns/types/campaignUpdate";
 import {
   DEFAULT_NETWORK,
@@ -154,7 +154,7 @@ export function useWalrusUpload() {
   type PrepareArgs =
     | {
         purpose?: "campaign";
-        formData: CampaignFormData;
+        formData: CampaignWalrusStorageData;
         update?: undefined;
         avatar?: undefined;
         network?: SupportedNetwork;
@@ -204,13 +204,17 @@ export function useWalrusUpload() {
 
       if (purpose === "campaign") {
         if (!formData) {
-          throw new Error("Campaign form data is required for campaign uploads");
+          throw new Error(
+            "Campaign form data is required for campaign uploads",
+          );
         }
         files = await prepareCampaignFiles(formData);
       } else {
         if (purpose === "campaign-update") {
           if (!update) {
-            throw new Error("Update payload is required for campaign update uploads");
+            throw new Error(
+              "Update payload is required for campaign update uploads",
+            );
           }
           files = await prepareCampaignUpdateFiles(update);
         } else {
@@ -341,7 +345,11 @@ export function useWalrusUpload() {
   /**
    * Step 3: Upload data to Walrus storage nodes (no transaction)
    */
-  const upload = useMutation<WalrusFlowState, Error, { flowState: WalrusFlowState; registerDigest: string }>({
+  const upload = useMutation<
+    WalrusFlowState,
+    Error,
+    { flowState: WalrusFlowState; registerDigest: string }
+  >({
     mutationFn: async ({ flowState, registerDigest }) => {
       await uploadToWalrusNodes(flowState.flow, registerDigest);
       return flowState;

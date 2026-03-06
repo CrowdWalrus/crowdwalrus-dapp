@@ -37,15 +37,18 @@ import {
   type EditCampaignFormData,
 } from "@/features/campaigns/schemas/editCampaignSchema";
 import { transformEditCampaignFormData } from "@/features/campaigns/utils/transformEditCampaignFormData";
-import { sanitizeSocialLinks } from "@/features/campaigns/utils/socials";
 import type { CampaignSocialLink } from "@/features/campaigns/types/campaign";
+import type { CampaignWalrusStorageData } from "@/features/campaigns/types/campaign";
 import {
   mapCampaignError,
   extractMoveAbortCode,
 } from "@/features/campaigns/utils/errorMapping";
 import { getContractConfig, CLOCK_OBJECT_ID } from "@/shared/config/contracts";
 import { fetchWalrusBlob } from "@/services/walrus";
-import { DEFAULT_NETWORK, WALRUS_EPOCH_CONFIG } from "@/shared/config/networkConfig";
+import {
+  DEFAULT_NETWORK,
+  WALRUS_EPOCH_CONFIG,
+} from "@/shared/config/networkConfig";
 import { ROUTES } from "@/shared/config/routes";
 import { buildCampaignDetailPath } from "@/shared/utils/routes";
 import {
@@ -58,6 +61,7 @@ import {
   CampaignResolutionMissing,
   CampaignResolutionNotFound,
 } from "@/features/campaigns/components/CampaignResolutionStates";
+import { MIN_CAMPAIGN_SOCIAL_LINKS } from "@/features/campaigns/constants/socialPlatforms";
 import { DEFAULT_POLICY_PRESET } from "@/features/campaigns/constants/policies";
 import {
   DESCRIPTION_MAX_LENGTH,
@@ -618,13 +622,6 @@ export default function EditCampaignPage() {
     const runEstimation = async () => {
       const values = form.getValues();
 
-      const { metadataPatch } = transformEditCampaignFormData({
-        values,
-        dirtyFields,
-        campaign,
-        initialDescription,
-      });
-
       let coverImageFile: File | null = null;
       if (values.coverImage instanceof File) {
         coverImageFile = values.coverImage;
@@ -636,25 +633,9 @@ export default function EditCampaignPage() {
         return;
       }
 
-      const sanitizedSocials = sanitizeSocialLinks(values.socials);
-      const policyPresetName =
-        values.campaignType ||
-        campaign.policyPresetName ||
-        DEFAULT_POLICY_PRESET;
-
-      const walrusFormData = {
-        name: campaign.name,
-        short_description: values.description,
-        subdomain_name: campaign.subdomainName,
-        category: metadataPatch.category ?? campaign.category ?? "",
-        policyPresetName,
-        funding_goal: campaign.fundingGoal ?? "0",
-        start_date: new Date(campaign.startDateMs),
-        end_date: new Date(campaign.endDateMs),
-        recipient_address: campaign.recipientAddress,
+      const walrusFormData: CampaignWalrusStorageData = {
         full_description: values.campaignDetails ?? "",
         cover_image: coverImageFile,
-        socials: sanitizedSocials,
       };
 
       try {
@@ -715,9 +696,8 @@ export default function EditCampaignPage() {
         attempt < CAMPAIGN_PROPAGATION_ATTEMPTS;
         attempt++
       ) {
-        let detail: Awaited<
-          ReturnType<typeof refetchCampaign>
-        >["data"] = undefined;
+        let detail: Awaited<ReturnType<typeof refetchCampaign>>["data"] =
+          undefined;
 
         try {
           const result = await refetchCampaign();
@@ -941,7 +921,20 @@ export default function EditCampaignPage() {
   const categoriesDirty = isEditFieldDirty(dirtyFields, "categories");
   const socialsDirty = isEditFieldDirty(dirtyFields, "socials");
 
-  const mediaSectionDisabled = isWalrusError || isWalrusImageError;
+  const isWalrusDescriptionPending =
+    Boolean(campaignData.descriptionUrl) &&
+    walrusDescriptionQuery.isFetching &&
+    walrusDescriptionQuery.dataUpdatedAt === 0;
+  const isWalrusImagePending =
+    Boolean(campaignData.coverImageUrl) &&
+    walrusCoverImageQuery.isFetching &&
+    walrusCoverImageQuery.dataUpdatedAt === 0;
+  const mediaSectionDisabled =
+    !initialized ||
+    isWalrusDescriptionPending ||
+    isWalrusImagePending ||
+    isWalrusError ||
+    isWalrusImageError;
   const walrusWarningVisible =
     (isWalrusError || isWalrusImageError) && !walrusErrorAcknowledged;
 
@@ -1002,17 +995,13 @@ export default function EditCampaignPage() {
     }
 
     const values = form.getValues();
-    const {
-      metadataPatch,
-      coverImageChanged,
-      descriptionChanged,
-      storageEpochsChanged,
-    } = transformEditCampaignFormData({
-      values,
-      dirtyFields,
-      campaign: campaignData,
-      initialDescription,
-    });
+    const { coverImageChanged, descriptionChanged, storageEpochsChanged } =
+      transformEditCampaignFormData({
+        values,
+        dirtyFields,
+        campaign: campaignData,
+        initialDescription,
+      });
 
     const walrusChanges =
       coverImageChanged || descriptionChanged || storageEpochsChanged;
@@ -1051,25 +1040,9 @@ export default function EditCampaignPage() {
         return;
       }
 
-      const sanitizedSocials = sanitizeSocialLinks(values.socials);
-      const policyPresetName =
-        values.campaignType ||
-        campaignData.policyPresetName ||
-        DEFAULT_POLICY_PRESET;
-
-      const walrusFormData = {
-        name: campaignData.name,
-        short_description: values.description,
-        subdomain_name: campaignData.subdomainName,
-        category: metadataPatch.category ?? campaignData.category ?? "",
-        policyPresetName,
-        funding_goal: campaignData.fundingGoal ?? "0",
-        start_date: new Date(campaignData.startDateMs),
-        end_date: new Date(campaignData.endDateMs),
-        recipient_address: campaignData.recipientAddress,
+      const walrusFormData: CampaignWalrusStorageData = {
         full_description: values.campaignDetails ?? "",
         cover_image: coverImageFile,
-        socials: sanitizedSocials,
       };
 
       const estimate = await estimateStorageCost({
@@ -1694,7 +1667,10 @@ export default function EditCampaignPage() {
         <div className="container px-4 flex justify-center">
           <div className="w-full max-w-3xl px-4">
             <Form {...form}>
-              <form className="flex flex-col gap-16" onSubmit={handleSubmitWithWarning}>
+              <form
+                className="flex flex-col gap-16"
+                onSubmit={handleSubmitWithWarning}
+              >
                 <div className="flex flex-col items-center text-center gap-4">
                   <h1 className="text-5xl font-bold">
                     Edit{" "}
@@ -1811,9 +1787,7 @@ export default function EditCampaignPage() {
                         </FormControl>
                         <div
                           className={`flex items-center text-xs ${
-                            fieldState.error
-                              ? "justify-between"
-                              : "justify-end"
+                            fieldState.error ? "justify-between" : "justify-end"
                           }`}
                         >
                           <FormMessage className="text-xs" />
@@ -1966,6 +1940,7 @@ export default function EditCampaignPage() {
                       <FormItem data-field-error="socials">
                         <CampaignSocialsSection
                           disabled={!editingSections.socials}
+                          minSocials={MIN_CAMPAIGN_SOCIAL_LINKS}
                           labelStatus={
                             <FieldStatusBadge
                               status={sectionStatuses.socials}
@@ -1973,7 +1948,6 @@ export default function EditCampaignPage() {
                           }
                           labelAction={renderEditButton("socials")}
                         />
-                        <FormMessage />
                       </FormItem>
                     )}
                   />

@@ -7,7 +7,7 @@
 
 import { useMutation } from "@tanstack/react-query";
 import { useSuiClient } from "@mysten/dapp-kit";
-import type { CampaignFormData } from "@/features/campaigns/types/campaign";
+import type { CampaignWalrusStorageData } from "@/features/campaigns/types/campaign";
 import { DEFAULT_NETWORK } from "@/shared/config/networkConfig";
 
 /**
@@ -23,7 +23,7 @@ export function useEstimateStorageCost() {
       formData,
       epochs,
     }: {
-      formData: CampaignFormData;
+      formData: CampaignWalrusStorageData;
       epochs?: number;
     }) => {
       const { calculateStorageCost } = await import("@/services/walrus");
