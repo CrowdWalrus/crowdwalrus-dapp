@@ -62,4 +62,5 @@ export const SOCIAL_PLATFORM_KEYS = Object.keys(
   SOCIAL_PLATFORM_CONFIG,
 ) as SocialPlatform[];
 
+export const MIN_CAMPAIGN_SOCIAL_LINKS = 2;
 export const MAX_SOCIAL_LINKS = 5;

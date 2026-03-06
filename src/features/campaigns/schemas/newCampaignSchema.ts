@@ -6,23 +6,22 @@ import {
   MAX_FUNDING_TARGET,
   MIN_FUNDING_TARGET,
 } from "@/features/campaigns/constants/funding";
-import { MAX_SOCIAL_LINKS } from "@/features/campaigns/constants/socialPlatforms";
+import {
+  MAX_SOCIAL_LINKS,
+  MIN_CAMPAIGN_SOCIAL_LINKS,
+} from "@/features/campaigns/constants/socialPlatforms";
 import { DESCRIPTION_MAX_LENGTH } from "@/features/campaigns/constants/validation";
+import {
+  CAMPAIGN_SOCIAL_LINKS_MIN_ERROR,
+  getCompletedSocialLinksCount,
+  isValidSocialLinkUrl,
+} from "@/features/campaigns/utils/socials";
 import {
   SUBDOMAIN_MAX_LENGTH,
   SUBDOMAIN_MIN_LENGTH,
   SUBDOMAIN_PATTERN,
 } from "@/shared/utils/subdomain";
 import { parseDateInputAsLocalDate } from "@/shared/utils/dateInput";
-
-const isValidHttpUrl = (value: string) => {
-  try {
-    const parsed = new URL(value);
-    return parsed.protocol === "https:" || parsed.protocol === "http:";
-  } catch {
-    return false;
-  }
-};
 
 export const socialSchema = z.object({
   platform: z.string(),
@@ -34,7 +33,7 @@ export const socialSchema = z.object({
       "URL cannot contain spaces",
     )
     .refine(
-      (value) => value === "" || isValidHttpUrl(value),
+      (value) => value === "" || isValidSocialLinkUrl(value),
       "Please enter a valid URL",
     ),
 });
@@ -83,9 +82,7 @@ export const newCampaignSchema = z
       .refine((file) => file.size <= 5 * 1024 * 1024, {
         message: "Image size must be less than 5MB",
       }),
-    campaignType: z
-      .string()
-      .min(1, "Please select a campaign type"),
+    campaignType: z.string().min(1, "Please select a campaign type"),
     categories: z
       .array(z.string())
       .min(1, "Please select at least one category"),
@@ -127,6 +124,14 @@ export const newCampaignSchema = z
       ),
     socials: z
       .array(socialSchema)
+      .superRefine((socials, ctx) => {
+        if (getCompletedSocialLinksCount(socials) < MIN_CAMPAIGN_SOCIAL_LINKS) {
+          ctx.addIssue({
+            code: z.ZodIssueCode.custom,
+            message: CAMPAIGN_SOCIAL_LINKS_MIN_ERROR,
+          });
+        }
+      })
       .max(MAX_SOCIAL_LINKS, "You can add up to 5 social links."),
     campaignDetails: z
       .string()

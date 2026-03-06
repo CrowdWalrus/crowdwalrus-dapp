@@ -6,7 +6,7 @@
 
 import type { NewCampaignFormData } from "../schemas/newCampaignSchema";
 import type { CampaignFormData } from "../types/campaign";
-import { sanitizeSocialLinks } from "./socials";
+import { sanitizeCampaignSocialLinks } from "./socials";
 import { parseDateInputAsLocalDate } from "@/shared/utils/dateInput";
 
 /**
@@ -21,9 +21,9 @@ import { parseDateInputAsLocalDate } from "@/shared/utils/dateInput";
  * - Lexical JSON string for campaign details (already in correct format)
  */
 export function transformNewCampaignFormData(
-  formData: NewCampaignFormData
+  formData: NewCampaignFormData,
 ): CampaignFormData {
-  const socials = sanitizeSocialLinks(formData.socials);
+  const socials = sanitizeCampaignSocialLinks(formData.socials);
   const policyPresetName = formData.campaignType?.trim();
   if (!policyPresetName) {
     throw new Error("Please select a campaign policy preset.");
