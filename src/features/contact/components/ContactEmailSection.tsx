@@ -12,7 +12,7 @@ const INQUIRY_TYPES = [
   {
     icon: Send,
     title: "Campaigns",
-    description: "Questions about launching or managing campaigns",
+    description: "Questions about past campaigns or contributions",
   },
   {
     icon: HelpCircle,
@@ -50,8 +50,8 @@ export function ContactEmailSection() {
               </h2>
               <p className="mx-auto max-w-[550px] text-lg text-black-300">
                 For <strong className="text-black-500">all inquiries</strong>{" "}
-                including campaigns, verification, partnerships, technical
-                support, or general questions
+                including past campaigns, partnerships, or general questions
+                about the project
               </p>
             </div>
 
@@ -67,9 +67,6 @@ export function ContactEmailSection() {
                   <ArrowRight className="h-5 w-5" />
                 </a>
               </Button>
-              <span className="text-sm text-black-300">
-                We typically respond within 24-48 hours
-              </span>
             </div>
           </div>
         </div>

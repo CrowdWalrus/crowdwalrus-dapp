@@ -1,6 +1,4 @@
-import { Link } from "react-router-dom";
 import {
-  ArrowRight,
   FileText,
   HandCoins,
   PencilLine,
@@ -11,7 +9,6 @@ import { HomeHowItWorksStep } from "./how-it-works/HomeHowItWorksStep";
 import { HomeHowItWorksBackground } from "./how-it-works/HomeHowItWorksBackground";
 import { HomeHowItWorksIllustration } from "./how-it-works/HomeHowItWorksIllustration";
 import { Button } from "@/shared/components/ui/button";
-import { ROUTES } from "@/shared/config/routes";
 import { DOCS_BASE_URL } from "@/shared/config/docsLinks";
 
 const STEPS = [
@@ -85,15 +82,6 @@ export function HomeHowItWorksSection() {
                 </a>
               </Button>
 
-              <Button
-                asChild
-                className="h-[52px] justify-center gap-3 rounded-[8px] bg-blue-500 pl-[24px] pr-[23px] py-[14px] text-base font-medium text-white-50 shadow-none hover:bg-blue-600 [&_svg]:size-5"
-              >
-                <Link to={ROUTES.CAMPAIGNS_NEW}>
-                  Launch Campaign
-                  <ArrowRight />
-                </Link>
-              </Button>
             </div>
           </div>
         </div>

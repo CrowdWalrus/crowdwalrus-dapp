@@ -40,15 +40,10 @@ const FOOTER_LINK_GROUPS = [
         label: "Key Concepts Glossary",
         href: DOCS_LINKS.startHere.keyConceptsGlossary,
       },
-      {
-        label: "Install a Sui Wallet",
-        href: DOCS_LINKS.gettingStarted.installSuiWallet,
-      },
-      { label: "Get SUI for Gas", href: DOCS_LINKS.gettingStarted.getSuiForGas },
     ],
   },
   {
-    title: "Support Center",
+    title: "Help Archive",
     links: [
       { label: "FAQ", href: DOCS_LINKS.help.faq },
       { label: "Troubleshooting", href: DOCS_LINKS.help.troubleshooting },
@@ -60,7 +55,7 @@ const FOOTER_LINK_GROUPS = [
     ],
   },
   {
-    title: "Resources",
+    title: "Archived Guides",
     links: [
       {
         label: "Launch a Campaign",
@@ -77,10 +72,6 @@ const FOOTER_LINK_GROUPS = [
       {
         label: "How to Contribute",
         href: DOCS_LINKS.donors.howToContribute,
-      },
-      {
-        label: "Developer APIs",
-        href: DOCS_LINKS.developers.indexerAndApis,
       },
     ],
   },
@@ -119,9 +110,10 @@ export function Footer() {
                 </span>
               </a>
               <p className="text-base leading-[1.5] text-black-200">
-                Introducing a revolutionary web3 crowdfunding platform that
-                empowers creators and innovators to raise funds directly from
-                their community.
+                CrowdWalrus was a web3 crowdfunding platform that empowered
+                creators and innovators to raise funds directly from their
+                community. This website and its documentation are kept as an
+                archive.
               </p>
               <div className="flex items-center gap-4">
                 {SOCIAL_LINKS.map((link) => (

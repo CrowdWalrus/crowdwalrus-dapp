@@ -1,8 +1,9 @@
 import { Link } from "react-router-dom";
-import { ArrowRight } from "lucide-react";
+import { ArrowRight, FileText } from "lucide-react";
 
 import { Button } from "@/shared/components/ui/button";
 import { ROUTES } from "@/shared/config/routes";
+import { DOCS_BASE_URL } from "@/shared/config/docsLinks";
 import { HomeHeroBackground } from "./hero/HomeHeroBackground";
 
 export function HomeHeroSection() {
@@ -24,11 +25,12 @@ export function HomeHeroSection() {
               </h1>
 
               <p className="text-lg font-medium leading-[1.5] text-black-400 sm:text-xl">
-                CrowdWalrus is decentralized crowdfunding for communities,
-                creators, and startups. Launch time-bound campaigns with clear
-                goals and funding windows. Receive contributions directly into
-                your wallet—transparent, censorship-resistant, and
-                community-driven.
+                CrowdWalrus was decentralized crowdfunding for communities,
+                creators, and startups. Campaigns ran with clear goals and
+                funding windows, and contributions went directly into creators'
+                wallets—transparent, censorship-resistant, and
+                community-driven. This website is now an archive of the
+                project.
               </p>
             </div>
 
@@ -37,17 +39,22 @@ export function HomeHeroSection() {
                 asChild
                 className="h-[52px] justify-center rounded-[8px] bg-blue-500 px-[24px] py-[14px] text-base font-medium text-white-50 shadow-none hover:bg-blue-600"
               >
-                <Link to={ROUTES.CAMPAIGNS_NEW}>Start a Campaign</Link>
+                <Link to={ROUTES.ABOUT}>About CrowdWalrus</Link>
               </Button>
 
               <Button
                 asChild
                 className="h-[52px] justify-center gap-3 rounded-[8px] border border-white-50 bg-white-50 pl-[24px] pr-[23px] py-[14px] text-base font-medium text-black-500 shadow-none hover:bg-white-100 [&_svg]:size-5"
               >
-                <Link to={ROUTES.EXPLORE}>
-                  Explore Campaigns
+                <a
+                  href={DOCS_BASE_URL}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                >
+                  <FileText />
+                  Read Docs
                   <ArrowRight />
-                </Link>
+                </a>
               </Button>
             </div>
           </div>

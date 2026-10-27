@@ -13,13 +13,13 @@ const DOC_CATEGORIES = [
   {
     icon: Rocket,
     title: "Getting Started",
-    description: "Platform basics and first steps",
+    description: "What CrowdWalrus was and how it worked",
     href: DOCS_LINKS.startHere.whatIsCrowdWalrus,
   },
   {
     icon: FileText,
     title: "Campaign Creation",
-    description: "How to launch your campaign",
+    description: "How campaigns were launched",
     href: DOCS_LINKS.campaignOwners.launchCampaign,
   },
   {
@@ -31,7 +31,7 @@ const DOC_CATEGORIES = [
   {
     icon: Code,
     title: "Developer Resources",
-    description: "APIs and integration guides",
+    description: "Archived API and integration guides",
     href: DOCS_LINKS.developers.indexerAndApis,
   },
 ];
@@ -69,9 +69,9 @@ export function ContactDocsSection() {
               📚 Everything You Need to Know
             </h2>
             <p className="max-w-[600px] text-lg text-white-700">
-              Looking for guides, explanations, or technical details? Our
-              documentation covers everything from platform usage to developer
-              resources.
+              Our documentation is kept as an archive of how CrowdWalrus
+              worked, from platform usage to developer resources. These guides
+              describe a service that is no longer active.
             </p>
           </div>
 

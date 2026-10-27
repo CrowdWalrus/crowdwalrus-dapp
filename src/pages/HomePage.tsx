@@ -1,5 +1,4 @@
 import { HomeBenefitsSection } from "@/features/home/components/HomeBenefitsSection";
-import { HomeDiscoverCampaignsSection } from "@/features/home/components/HomeDiscoverCampaignsSection";
 // import { HomeFeaturedCaseStudiesSection } from "@/features/home/components/HomeFeaturedCaseStudiesSection";
 import { HomeFeatureBannerSection } from "@/features/home/components/HomeFeatureBannerSection";
 import { HomeHeroSection } from "@/features/home/components/HomeHeroSection";
@@ -17,7 +16,6 @@ export function HomePage() {
       <HomeFeatureBannerSection />
       <HomeBenefitsSection />
       <HomeHowItWorksSection />
-      <HomeDiscoverCampaignsSection />
       {/* <HomeFeaturedCaseStudiesSection /> */}
       <HomeManifestoSection />
       <HomeTipsSection />

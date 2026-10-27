@@ -26,8 +26,9 @@ export function ContactHeroSection() {
                 <span className="text-sky-300">CrowdWalrus</span>
               </h1>
               <p className="mx-auto max-w-[750px] text-lg font-medium leading-relaxed text-white-50/90 sm:text-xl">
-                Whether you're launching a campaign, supporting a project,
-                exploring partnerships, or sharing feedback, we're here to help.
+                CrowdWalrus has closed and this website remains as an archive.
+                If you have questions about the project or want to stay in
+                touch, we'd still love to hear from you.
               </p>
             </div>
 
