@@ -1,6 +1,4 @@
-import { Link } from "react-router-dom";
 import {
-  ArrowRight,
   FileText,
   HandCoins,
   PencilLine,
@@ -11,27 +9,26 @@ import { HomeHowItWorksStep } from "./how-it-works/HomeHowItWorksStep";
 import { HomeHowItWorksBackground } from "./how-it-works/HomeHowItWorksBackground";
 import { HomeHowItWorksIllustration } from "./how-it-works/HomeHowItWorksIllustration";
 import { Button } from "@/shared/components/ui/button";
-import { ROUTES } from "@/shared/config/routes";
 import { DOCS_BASE_URL } from "@/shared/config/docsLinks";
 
 const STEPS = [
   {
     icon: PencilLine,
-    title: "Step 1: Create Your Campaign",
+    title: "Step 1: Create a Campaign",
     description:
-      "Set a funding goal and deadline. Register your unique subname and launch your decentralized page.",
+      "Creators set a funding goal and deadline, registered a unique subname, and launched a decentralized campaign page.",
   },
   {
     icon: HandCoins,
     title: "Step 2: Collect Contributions",
     description:
-      "Support flows directly to your wallet. All transactions are recorded on-chain for full transparency",
+      "Support flowed directly to the creator's wallet, with every transaction recorded on-chain for full transparency.",
   },
   {
     icon: Smile,
-    title: "Step 3: Rally Your Community",
+    title: "Step 3: Rally the Community",
     description:
-      "Share your campaign link, post updates, and engage supporters as your campaign grows.",
+      "Creators shared their campaign link, posted updates, and engaged supporters as the campaign grew.",
   },
 ] as const;
 
@@ -45,11 +42,10 @@ export function HomeHowItWorksSection() {
           <div className="flex flex-col items-center pb-[80px] pt-[100px]">
             <div className="flex w-full max-w-[720px] flex-col items-center justify-center gap-4 text-center">
               <h2 className="text-4xl font-semibold leading-[1.5] text-black-500 sm:text-5xl">
-                How CrowdWalrus Works?
+                How CrowdWalrus Worked
               </h2>
               <p className="text-lg font-normal leading-[1.5] text-black-400 sm:text-xl">
-                CrowdWalrus is more than just a platform; it&apos;s a launchpad
-                for your ideas.
+                An archived look at how campaigns ran on CrowdWalrus.
               </p>
             </div>
 
@@ -85,15 +81,6 @@ export function HomeHowItWorksSection() {
                 </a>
               </Button>
 
-              <Button
-                asChild
-                className="h-[52px] justify-center gap-3 rounded-[8px] bg-blue-500 pl-[24px] pr-[23px] py-[14px] text-base font-medium text-white-50 shadow-none hover:bg-blue-600 [&_svg]:size-5"
-              >
-                <Link to={ROUTES.CAMPAIGNS_NEW}>
-                  Launch Campaign
-                  <ArrowRight />
-                </Link>
-              </Button>
             </div>
           </div>
         </div>

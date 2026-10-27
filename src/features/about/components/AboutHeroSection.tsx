@@ -18,10 +18,11 @@ export function AboutHeroSection() {
                 <span className="text-sky-300">Built for Everyone</span>
               </h1>
               <p className="mx-auto max-w-[750px] text-lg font-medium leading-relaxed text-white-50/90 sm:text-xl">
-                CrowdWalrus is a fully on-chain, decentralized crowdfunding
+                CrowdWalrus was a fully on-chain, decentralized crowdfunding
                 platform built for creators, communities, and public goods.
-                From payments to profiles, updates to reports — everything lives
-                on-chain.
+                From payments to profiles, updates to reports, everything lived
+                on-chain. The platform has closed and this site remains as an
+                archive.
               </p>
             </div>
 

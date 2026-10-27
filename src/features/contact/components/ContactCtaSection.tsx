@@ -8,7 +8,7 @@ export function ContactCtaSection() {
         <div className="flex flex-col items-center gap-8 py-20 text-center sm:py-28 lg:py-32">
           <div className="flex max-w-[800px] flex-col gap-6">
             <h2 className="text-3xl font-bold leading-tight text-white-50 sm:text-4xl lg:text-5xl">
-              Not Sure Where to Start?
+              Still Have Questions?
             </h2>
             <p className="mx-auto max-w-[600px] text-lg text-white-50/90">
               Just email us at{" "}

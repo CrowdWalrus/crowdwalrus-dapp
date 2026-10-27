@@ -31,8 +31,8 @@ export function HomeTipsSection() {
               Crowdfunding tips
             </h2>
             <p className="max-w-2xl text-lg leading-[1.6] text-black-400 sm:text-xl">
-              Some curated articles to help you understand how to launch project
-              and participate
+              Archived guides from our documentation explaining how campaigns
+              and contributions worked on CrowdWalrus
             </p>
           </div>
 

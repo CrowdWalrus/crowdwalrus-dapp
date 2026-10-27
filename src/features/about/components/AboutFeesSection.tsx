@@ -25,7 +25,7 @@ export function AboutFeesSection() {
                   Public Goods & Non-Profits
                 </h3>
                 <p className="text-base text-black-300">
-                  Fundraise without platform fees
+                  Fundraised without platform fees
                 </p>
               </div>
               <div className="mt-auto text-3xl font-bold text-sgreen-600">
@@ -42,7 +42,7 @@ export function AboutFeesSection() {
                   Commercial Campaigns
                 </h3>
                 <p className="text-base text-black-300">
-                  Contribute to sustaining the platform
+                  Contributed to sustaining the platform
                 </p>
               </div>
               <div className="mt-auto text-3xl font-bold text-purple-600">
@@ -52,9 +52,9 @@ export function AboutFeesSection() {
           </div>
 
           <p className="max-w-[600px] text-base text-black-300">
-            CrowdWalrus applies a platform fee only to commercial campaigns,
-            based on self-declaration by the campaign owner. No hidden
-            deductions — all rules are explicit and transparent.
+            CrowdWalrus applied a platform fee only to commercial campaigns,
+            based on self-declaration by the campaign owner. There were no
+            hidden deductions, and all rules were explicit and transparent.
           </p>
         </div>
       </div>

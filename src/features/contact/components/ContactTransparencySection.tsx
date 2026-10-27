@@ -12,15 +12,15 @@ import { DOCS_LINKS } from "@/shared/config/docsLinks";
 const TRANSPARENCY_FEATURES = [
   {
     icon: Eye,
-    text: "Campaigns, payments, updates, and data are publicly verifiable",
+    text: "Campaigns, payments, updates, and data were publicly verifiable",
   },
   {
     icon: Globe,
-    text: "Anyone can create a campaign, no gatekeepers",
+    text: "Anyone could create a campaign, no gatekeepers",
   },
   {
     icon: BadgeCheck,
-    text: "Verified Badge for campaigns that pass review process",
+    text: "Verified Badge for campaigns that passed the review process",
   },
   {
     icon: Shield,
@@ -44,9 +44,9 @@ export function ContactTransparencySection() {
                 ⛓️ Built with an On-Chain First Mindset
               </h2>
               <p className="max-w-[500px] text-lg text-white-700">
-                CrowdWalrus believes in radical transparency. Every action,
-                every transaction, every update: it's all on-chain and
-                verifiable by anyone.
+                CrowdWalrus was built on radical transparency. Every action,
+                every transaction, every update was recorded on-chain and
+                remains verifiable by anyone.
               </p>
             </div>
 

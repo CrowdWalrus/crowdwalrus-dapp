@@ -5,19 +5,19 @@ const BENEFITS = [
     imageSrc: "/assets/images/home/benefits/benefit-1.png",
     title: "From Idea to Live in Minutes",
     description:
-      "Create a campaign, claim your subname (e.g. mycause.crowdwalrus.sui), and start accepting contributions instantly. No backend, no jargon. Just connect your wallet and go.",
+      "Creators could set up a campaign, claim a subname (e.g. mycause.crowdwalrus.sui), and start accepting contributions within minutes, with no backend and no jargon.",
   },
   {
     imageSrc: "/assets/images/home/benefits/benefit-2.png",
     title: "You Don’t Rent a Page—You Own the Platform",
     description:
-      "campaign is on-chain, hosted on Walrus, and backed by a custom .sui subname. No lock-ins. No arbitrary takedowns. Ever.",
+      "Every campaign lived on-chain, hosted on Walrus and backed by a custom .sui subname. No lock-ins. No arbitrary takedowns.",
   },
   {
     imageSrc: "/assets/images/home/benefits/benefit-3.png",
     title: "Grow a Movement (or Fund a One-Off)",
     description:
-      "Run multiple campaigns under one hub. Post updates, share milestones, and let supporters follow your journey and keep contributing over time.",
+      "Creators could run multiple campaigns under one hub, post updates, and share milestones so supporters could follow their journey over time.",
   },
 ] as const;
 
@@ -33,10 +33,10 @@ export function HomeBenefitsSection() {
               Built for Web3—Simple as Web2
             </h2>
             <p className="text-lg font-normal leading-[1.6] text-black-400 sm:text-xl">
-              CrowdWalrus is more than just a platform; it&apos;s a launchpad
-              for your ideas. We&apos;ve removed blockchain complexity so you
-              can focus on your mission. Create a permanent, tamper-resistant
-              home for your campaign, rally your community, and raise funds with
+              CrowdWalrus set out to be more than just a platform: a launchpad
+              for ideas. It removed blockchain complexity so creators could
+              focus on their mission, giving each campaign a permanent,
+              tamper-resistant home to rally a community and raise funds with
               clarity and control.
             </p>
           </div>
