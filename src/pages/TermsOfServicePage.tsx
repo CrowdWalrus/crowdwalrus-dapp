@@ -1,15 +1,9 @@
-import { useEffect } from "react";
-
 import { Button } from "@/shared/components/ui/button";
 import { DOCS_LINKS } from "@/shared/config/docsLinks";
 import { useDocumentTitle } from "@/shared/hooks/useDocumentTitle";
 
 export function TermsOfServicePage() {
   useDocumentTitle("Terms of Use");
-
-  useEffect(() => {
-    window.location.replace(DOCS_LINKS.legal.termsOfUse);
-  }, []);
 
   return (
     <main className="bg-white">
@@ -20,12 +14,8 @@ export function TermsOfServicePage() {
               Terms of Use
             </h1>
             <p>
-              Our Terms of Use are hosted on our documentation site so the latest
-              version is always available.
-            </p>
-            <p className="text-sm text-black-300">
-              You should be redirected automatically. If not, use the button
-              below.
+              Our Terms of Use are hosted on our documentation site, which is
+              kept as an archive of the CrowdWalrus project.
             </p>
           </header>
           <div>

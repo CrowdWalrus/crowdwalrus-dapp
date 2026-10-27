@@ -27,10 +27,10 @@ export function AboutTrustSection() {
               <span className="text-blue-500">Trust by Choice</span>
             </h2>
             <p className="max-w-[550px] text-lg leading-relaxed text-black-300">
-              Anyone can create a campaign on CrowdWalrus. There are no approval
-              gatekeepers to start fundraising. However, only campaigns that
-              request review and receive a verification badge are featured
-              prominently on the platform.
+              Anyone could create a campaign on CrowdWalrus. There were no
+              approval gatekeepers to start fundraising. However, only campaigns
+              that requested review and received a verification badge were
+              featured prominently on the platform.
             </p>
             <Button
               asChild
@@ -51,7 +51,7 @@ export function AboutTrustSection() {
           <div className="flex flex-1 flex-col gap-6">
             <div className="flex flex-col gap-5 rounded-2xl border border-white-600 bg-white-50 p-8 shadow-sm">
               <h3 className="text-lg font-bold text-black-500">
-                Non-verified campaigns can still:
+                Non-verified campaigns could still:
               </h3>
               <div className="flex flex-col gap-4">
                 {FEATURES.map((feature, idx) => (
@@ -69,7 +69,7 @@ export function AboutTrustSection() {
 
             <div className="rounded-2xl border border-orange-200 bg-orange-50 p-6">
               <p className="text-base leading-relaxed text-orange-800">
-                <strong>Note:</strong> Verification affects{" "}
+                <strong>Note:</strong> Verification affected{" "}
                 <strong>visibility and trust signaling</strong> — not permission
                 to exist.
               </p>

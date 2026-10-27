@@ -54,10 +54,10 @@ export function AboutProblemSection() {
         <div className="pb-20 sm:pb-28 lg:pb-32">
           <div className="rounded-3xl bg-gradient-to-r from-blue-500 to-purple-500 p-8 text-center sm:p-12">
             <p className="text-xl font-semibold text-white-50 sm:text-2xl">
-              CrowdWalrus exists to offer an alternative:{" "}
+              CrowdWalrus was built to offer an alternative:{" "}
               <span className="text-sky-200">
-                open fundraising infrastructure that anyone can use and everyone
-                can verify.
+                open fundraising infrastructure that anyone could use and
+                everyone could verify.
               </span>
             </p>
           </div>

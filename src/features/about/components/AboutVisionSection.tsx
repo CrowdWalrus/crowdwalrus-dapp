@@ -39,7 +39,7 @@ export function AboutVisionSection() {
 
             <div className="flex flex-col gap-4">
               <p className="text-lg font-medium text-white-50/80">
-                We envision a future where:
+                We envisioned a future where:
               </p>
               <div className="flex flex-col gap-4">
                 {VISIONS.map((vision, idx) => (
@@ -59,7 +59,7 @@ export function AboutVisionSection() {
             </div>
 
             <p className="max-w-[700px] text-lg font-medium text-sky-200">
-              CrowdWalrus aims to become a core funding layer for public goods,
+              CrowdWalrus aimed to become a core funding layer for public goods,
               Web3 ecosystems, and open innovation.
             </p>
           </div>
